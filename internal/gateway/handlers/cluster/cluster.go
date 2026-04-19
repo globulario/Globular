@@ -17,12 +17,13 @@ type HandlerDeps struct {
 
 // Deps groups HTTP handlers to register.
 type Deps struct {
-	JoinToken   http.Handler
-	JoinScript  http.Handler // GET /join — self-contained join script
-	JoinBin     http.Handler // GET /join/bin/<name> — binary downloads
-	Nodes       http.Handler
-	NodeActions http.Handler
-	Health      http.Handler
+	JoinToken     http.Handler
+	JoinScript    http.Handler // GET /join — self-contained join script
+	JoinBin       http.Handler // GET /join/bin/<name> — binary downloads
+	JoinWorkflows http.Handler // GET /join/workflows/<name> — workflow definitions
+	Nodes         http.Handler
+	NodeActions   http.Handler
+	Health        http.Handler
 }
 
 // Mount registers the cluster-related routes.
@@ -32,6 +33,9 @@ func Mount(mux *http.ServeMux, d Deps) {
 	}
 	if d.JoinBin != nil {
 		mux.Handle("/join/bin/", d.JoinBin)
+	}
+	if d.JoinWorkflows != nil {
+		mux.Handle("/join/workflows/", d.JoinWorkflows)
 	}
 	if d.JoinToken != nil {
 		mux.Handle("/api/cluster/join-token", d.JoinToken)
@@ -184,21 +188,8 @@ func handleSetProfiles(w http.ResponseWriter, r *http.Request, controller *contr
 	respondJSON(w, http.StatusOK, resp)
 }
 
-func handleApplyPlan(w http.ResponseWriter, r *http.Request, deps HandlerDeps, nodeID string) {
-	ctx := r.Context()
-	if deps.Controller == nil || strings.TrimSpace(deps.Controller.Address()) == "" {
-		http.Error(w, "cluster controller not configured", http.StatusServiceUnavailable)
-		return
-	}
-	resp, err := deps.Controller.ApplyNodePlan(ctx, nodeID)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("apply plan: %v", err), http.StatusServiceUnavailable)
-		return
-	}
-	respondJSON(w, http.StatusOK, map[string]string{
-		"status":       "plan dispatch requested",
-		"operation_id": strings.TrimSpace(resp.GetOperationId()),
-	})
+func handleApplyPlan(w http.ResponseWriter, _ *http.Request, _ HandlerDeps, _ string) {
+	http.Error(w, "plan system has been removed", http.StatusGone)
 }
 
 // NewHealthHandler returns the cluster health status.

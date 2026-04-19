@@ -285,11 +285,12 @@ func (h *GatewayHandlers) wireCluster(mux *http.ServeMux, wrap func(http.Handler
 	}
 	binDir := "/usr/lib/globular/bin"
 	clusterHandlers.Mount(mux, clusterHandlers.Deps{
-		JoinToken:   wrap(clusterHandlers.NewJoinTokenHandler(deps)),
-		JoinScript:  clusterHandlers.NewJoinScriptHandler(h.cfg.ControllerAddr, h.globule.PortHTTPS),
-		JoinBin:     clusterHandlers.NewJoinBinHandler(binDir),
-		Nodes:       wrap(clusterHandlers.NewNodesHandler(deps)),
-		NodeActions: wrap(clusterHandlers.NewNodeActionsHandler(deps)),
+		JoinToken:     wrap(clusterHandlers.NewJoinTokenHandler(deps)),
+		JoinScript:    clusterHandlers.NewJoinScriptHandler(h.cfg.ControllerAddr, h.globule.PortHTTPS),
+		JoinBin:       clusterHandlers.NewJoinBinHandler(binDir),
+		JoinWorkflows: clusterHandlers.NewJoinWorkflowsHandler(),
+		Nodes:         wrap(clusterHandlers.NewNodesHandler(deps)),
+		NodeActions:   wrap(clusterHandlers.NewNodeActionsHandler(deps)),
 	})
 }
 
@@ -302,14 +303,10 @@ func (h *GatewayHandlers) wireStats(mux *http.ServeMux, wrap func(http.Handler) 
 func (h *GatewayHandlers) wireAdmin(mux *http.ServeMux, wrap func(http.Handler) http.Handler) {
 	prov := adminProvider{globule: h.globule}
 	certProv := certProvider{globule: h.globule}
-	upgProv := &upgradesProvider{}
-	agentProv := &nodeAgentProvider{}
-	ctrlProv := &controllerProvider{}
 	jobStore := adminHandlers.NewJobStore(prov.DataDir())
 	controller := controllerclient.New(h.cfg.ControllerAddr)
 
-	// Start background finalizer to update job records when upgrades complete.
-	adminHandlers.StartJobFinalizer(jobStore, agentProv, 0)
+	// Plan job finalizer removed — workflow runs handle status.
 
 	adminHandlers.Mount(mux, adminHandlers.Deps{
 		MetricsServices:      wrap(adminHandlers.NewServicesHandler(prov)),
@@ -324,17 +321,16 @@ func (h *GatewayHandlers) wireAdmin(mux *http.ServeMux, wrap func(http.Handler) 
 		})),
 		RenewPublic:        wrap(adminHandlers.NewRenewPublicHandler(certProv)),
 		RegenerateInternal: wrap(adminHandlers.NewRegenerateInternalHandler(certProv)),
-		UpgradesStatus:     wrap(adminHandlers.NewUpgradesHandler(prov, upgProv)),
-		UpgradesPlan:       wrap(adminHandlers.NewUpgradePlanHandler(ctrlProv)),
-		UpgradesApply:      wrap(adminHandlers.NewUpgradeApplyHandler(ctrlProv, jobStore)),
-		UpgradesJobStatus:  wrap(adminHandlers.NewUpgradeJobStatusHandler(agentProv)),
-		UpgradesHistory:    wrap(adminHandlers.NewUpgradeHistoryHandler(jobStore)),
-		InstalledPackages:  wrap(adminHandlers.NewInstalledPackagesHandler()),
-		RepoSearch:         wrap(adminHandlers.NewRepositorySearchHandler(repositoryProvider{})),
-		RepoManifest:       wrap(adminHandlers.NewRepositoryManifestHandler(repositoryProvider{})),
-		RepoVersions:       wrap(adminHandlers.NewRepositoryVersionsHandler(repositoryProvider{})),
-		RepoDelete:         wrap(adminHandlers.NewRepositoryDeleteHandler(repositoryProvider{})),
-		StateAlignment:     wrap(adminHandlers.NewStateAlignmentHandler()),
+		// UpgradesStatus removed — plan upgrade display deleted.
+		// Plan upgrade handlers removed — workflow-native release pipeline.
+		// UpgradesJobStatus removed — plan system deleted.
+		UpgradesHistory:   wrap(adminHandlers.NewUpgradeHistoryHandler(jobStore)),
+		InstalledPackages: wrap(adminHandlers.NewInstalledPackagesHandler()),
+		RepoSearch:        wrap(adminHandlers.NewRepositorySearchHandler(repositoryProvider{})),
+		RepoManifest:      wrap(adminHandlers.NewRepositoryManifestHandler(repositoryProvider{})),
+		RepoVersions:      wrap(adminHandlers.NewRepositoryVersionsHandler(repositoryProvider{})),
+		RepoDelete:        wrap(adminHandlers.NewRepositoryDeleteHandler(repositoryProvider{})),
+		StateAlignment:    wrap(adminHandlers.NewStateAlignmentHandler()),
 	})
 }
 

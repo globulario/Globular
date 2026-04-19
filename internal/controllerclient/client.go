@@ -40,8 +40,16 @@ func (c *Client) dial(ctx context.Context) (*grpc.ClientConn, func(), error) {
 
 	// Try TLS with the Globular CA cert. Fall back to plaintext if no CA is
 	// found (pre-TLS installations or test environments).
+	// For loopback addresses, use TLS with InsecureSkipVerify since the
+	// service cert may not include 127.0.0.1 in its SANs.
 	creds := grpc.WithTransportCredentials(insecure.NewCredentials())
-	if tc := loadTLSCreds(); tc != nil {
+	host, _, _ := strings.Cut(c.addr, ":")
+	isLoopback := host == "127.0.0.1" || host == "::1" || host == "localhost"
+	if isLoopback {
+		creds = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
+			InsecureSkipVerify: true, //nolint:gosec // loopback only
+		}))
+	} else if tc := loadTLSCreds(); tc != nil {
 		creds = grpc.WithTransportCredentials(tc)
 	}
 
@@ -146,25 +154,6 @@ func (c *Client) SetNodeProfiles(ctx context.Context, nodeID string, profiles []
 	return client.SetNodeProfiles(ctx, req)
 }
 
-// GetNodePlan requests the latest plan for the given node.
-func (c *Client) GetNodePlan(ctx context.Context, nodeID string) (*cluster_controllerpb.NodePlan, error) {
-	conn, closeFn, err := c.dial(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer closeFn()
-
-	client := cluster_controllerpb.NewClusterControllerServiceClient(conn)
-	resp, err := client.GetNodePlan(ctx, &cluster_controllerpb.GetNodePlanRequest{NodeId: strings.TrimSpace(nodeID)})
-	if err != nil {
-		return nil, err
-	}
-	if resp == nil {
-		return nil, fmt.Errorf("controller returned empty plan")
-	}
-	return resp.GetPlan(), nil
-}
-
 func (c *Client) UpdateClusterNetwork(ctx context.Context, spec *cluster_controllerpb.ClusterNetworkSpec) (*cluster_controllerpb.UpdateClusterNetworkResponse, error) {
 	conn, closeFn, err := c.dial(ctx)
 	if err != nil {
@@ -173,16 +162,6 @@ func (c *Client) UpdateClusterNetwork(ctx context.Context, spec *cluster_control
 	defer closeFn()
 	client := cluster_controllerpb.NewClusterControllerServiceClient(conn)
 	return client.UpdateClusterNetwork(ctx, &cluster_controllerpb.UpdateClusterNetworkRequest{Spec: spec})
-}
-
-func (c *Client) ApplyNodePlan(ctx context.Context, nodeID string) (*cluster_controllerpb.ApplyNodePlanResponse, error) {
-	conn, closeFn, err := c.dial(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer closeFn()
-	client := cluster_controllerpb.NewClusterControllerServiceClient(conn)
-	return client.ApplyNodePlan(ctx, &cluster_controllerpb.ApplyNodePlanRequest{NodeId: strings.TrimSpace(nodeID)})
 }
 
 // RemoveNode removes a node from the cluster.

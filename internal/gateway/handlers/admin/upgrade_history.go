@@ -151,6 +151,12 @@ func NewUpgradeHistoryHandler(store *JobStore) http.Handler {
 	})
 }
 
+func writeUpgradeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(v)
+}
+
 func parseInt(s string) int {
 	n := 0
 	for _, c := range s {
@@ -166,53 +172,15 @@ func parseInt(s string) int {
 
 // StartJobFinalizer launches a goroutine that periodically checks
 // incomplete jobs and updates their final status from the node-agent.
+// NodeAgentProvider is a stub — plan system removed.
+type NodeAgentProvider interface{}
+
 func StartJobFinalizer(store *JobStore, agent NodeAgentProvider, interval time.Duration) {
-	if interval <= 0 {
-		interval = 10 * time.Second
-	}
-	go func() {
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-		for range ticker.C {
-			finalizeJobs(store, agent)
-		}
-	}()
+	// Plan job finalizer removed — workflow runs handle status tracking.
 }
 
 func newTimeoutCtx(d time.Duration) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), d)
 }
 
-func finalizeJobs(store *JobStore, agent NodeAgentProvider) {
-	jobs, err := store.List(0)
-	if err != nil {
-		return
-	}
-	for _, job := range jobs {
-		if job.Status == "success" || job.Status == "failed" || job.Status == "rolled_back" {
-			continue // already terminal
-		}
-		// Query node-agent for current status.
-		ctx, cancel := newTimeoutCtx(10 * time.Second)
-		status, err := agent.GetPlanStatus(ctx, job.OperationID)
-		cancel()
-		if err != nil {
-			continue
-		}
-
-		newStatus := planStateToString(status.GetState())
-		if newStatus == job.Status {
-			continue // no change
-		}
-
-		job.Status = newStatus
-		job.Error = status.GetErrorMessage()
-
-		isTerminal := newStatus == "success" || newStatus == "failed" || newStatus == "rolled_back"
-		if isTerminal && job.FinishedAt == 0 {
-			job.FinishedAt = time.Now().UnixMilli()
-		}
-
-		_ = store.Save(job)
-	}
-}
+// finalizeJobs deleted — plan system removed.

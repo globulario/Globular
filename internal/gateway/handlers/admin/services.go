@@ -194,19 +194,29 @@ func fetchPromMetrics(ctx context.Context, prom *promClient) (map[string]*svcMet
 	}
 	if results, err := prom.query(ctx, "rate(process_cpu_seconds_total[1m])*100"); err == nil {
 		for _, r := range results {
-			key := promJobKey(r.Metric)
+			key := promMetricKey(r.Metric)
 			if key == "" {
 				continue
 			}
 			val := parsePromValue(r.Value[1])
-			ensure(key).cpuPct = val / numCPU
+			// Normalize to 0-100% system-wide. Clamp to 100 because
+			// rate() can produce spurious spikes after counter resets
+			// (e.g. a service restart inside the lookback window).
+			cpu := val / numCPU
+			if cpu > 100 {
+				cpu = 100
+			}
+			if cpu < 0 {
+				cpu = 0
+			}
+			ensure(key).cpuPct = cpu
 		}
 	}
 
 	// Memory: process_resident_memory_bytes
 	if results, err := prom.query(ctx, "process_resident_memory_bytes"); err == nil {
 		for _, r := range results {
-			key := promJobKey(r.Metric)
+			key := promMetricKey(r.Metric)
 			if key == "" {
 				continue
 			}
@@ -217,7 +227,7 @@ func fetchPromMetrics(ctx context.Context, prom *promClient) (map[string]*svcMet
 	// Start time: process_start_time_seconds
 	if results, err := prom.query(ctx, "process_start_time_seconds"); err == nil {
 		for _, r := range results {
-			key := promJobKey(r.Metric)
+			key := promMetricKey(r.Metric)
 			if key == "" {
 				continue
 			}
@@ -226,9 +236,9 @@ func fetchPromMetrics(ctx context.Context, prom *promClient) (map[string]*svcMet
 	}
 
 	// Request rate: handled RPCs/sec
-	if results, err := prom.query(ctx, `sum by (job)(rate(grpc_server_handled_total[1m]))`); err == nil {
+	if results, err := prom.query(ctx, `sum by (job, node)(rate(grpc_server_handled_total[1m]))`); err == nil {
 		for _, r := range results {
-			key := promJobKey(r.Metric)
+			key := promMetricKey(r.Metric)
 			if key == "" {
 				continue
 			}
@@ -237,9 +247,9 @@ func fetchPromMetrics(ctx context.Context, prom *promClient) (map[string]*svcMet
 	}
 
 	// Error rate: non-OK RPCs/sec
-	if results, err := prom.query(ctx, `sum by (job)(rate(grpc_server_handled_total{grpc_code!="OK"}[1m]))`); err == nil {
+	if results, err := prom.query(ctx, `sum by (job, node)(rate(grpc_server_handled_total{grpc_code!="OK"}[1m]))`); err == nil {
 		for _, r := range results {
-			key := promJobKey(r.Metric)
+			key := promMetricKey(r.Metric)
 			if key == "" {
 				continue
 			}
@@ -248,9 +258,9 @@ func fetchPromMetrics(ctx context.Context, prom *promClient) (map[string]*svcMet
 	}
 
 	// Latency p50
-	if results, err := prom.query(ctx, `histogram_quantile(0.50, sum by (job, le)(rate(grpc_server_handling_seconds_bucket[5m])))`); err == nil {
+	if results, err := prom.query(ctx, `histogram_quantile(0.50, sum by (job, node, le)(rate(grpc_server_handling_seconds_bucket[5m])))`); err == nil {
 		for _, r := range results {
-			key := promJobKey(r.Metric)
+			key := promMetricKey(r.Metric)
 			if key == "" {
 				continue
 			}
@@ -262,9 +272,9 @@ func fetchPromMetrics(ctx context.Context, prom *promClient) (map[string]*svcMet
 	}
 
 	// Latency p95
-	if results, err := prom.query(ctx, `histogram_quantile(0.95, sum by (job, le)(rate(grpc_server_handling_seconds_bucket[5m])))`); err == nil {
+	if results, err := prom.query(ctx, `histogram_quantile(0.95, sum by (job, node, le)(rate(grpc_server_handling_seconds_bucket[5m])))`); err == nil {
 		for _, r := range results {
-			key := promJobKey(r.Metric)
+			key := promMetricKey(r.Metric)
 			if key == "" {
 				continue
 			}
@@ -278,7 +288,7 @@ func fetchPromMetrics(ctx context.Context, prom *promClient) (map[string]*svcMet
 	// Goroutines
 	if results, err := prom.query(ctx, "go_goroutines"); err == nil {
 		for _, r := range results {
-			if key := promJobKey(r.Metric); key != "" {
+			if key := promMetricKey(r.Metric); key != "" {
 				ensure(key).goroutines = parsePromValue(r.Value[1])
 			}
 		}
@@ -287,7 +297,7 @@ func fetchPromMetrics(ctx context.Context, prom *promClient) (map[string]*svcMet
 	// Heap bytes
 	if results, err := prom.query(ctx, "go_memstats_heap_alloc_bytes"); err == nil {
 		for _, r := range results {
-			if key := promJobKey(r.Metric); key != "" {
+			if key := promMetricKey(r.Metric); key != "" {
 				ensure(key).heapBytes = parsePromValue(r.Value[1])
 			}
 		}
@@ -296,7 +306,7 @@ func fetchPromMetrics(ctx context.Context, prom *promClient) (map[string]*svcMet
 	// Open FDs
 	if results, err := prom.query(ctx, "process_open_fds"); err == nil {
 		for _, r := range results {
-			if key := promJobKey(r.Metric); key != "" {
+			if key := promMetricKey(r.Metric); key != "" {
 				ensure(key).openFDs = parsePromValue(r.Value[1])
 			}
 		}
@@ -305,25 +315,25 @@ func fetchPromMetrics(ctx context.Context, prom *promClient) (map[string]*svcMet
 	// Max FDs
 	if results, err := prom.query(ctx, "process_max_fds"); err == nil {
 		for _, r := range results {
-			if key := promJobKey(r.Metric); key != "" {
+			if key := promMetricKey(r.Metric); key != "" {
 				ensure(key).maxFDs = parsePromValue(r.Value[1])
 			}
 		}
 	}
 
 	// gRPC msg recv rate
-	if results, err := prom.query(ctx, `sum by (job)(rate(grpc_server_msg_received_total[1m]))`); err == nil {
+	if results, err := prom.query(ctx, `sum by (job, node)(rate(grpc_server_msg_received_total[1m]))`); err == nil {
 		for _, r := range results {
-			if key := promJobKey(r.Metric); key != "" {
+			if key := promMetricKey(r.Metric); key != "" {
 				ensure(key).msgRecvRate = parsePromValue(r.Value[1])
 			}
 		}
 	}
 
 	// gRPC msg sent rate
-	if results, err := prom.query(ctx, `sum by (job)(rate(grpc_server_msg_sent_total[1m]))`); err == nil {
+	if results, err := prom.query(ctx, `sum by (job, node)(rate(grpc_server_msg_sent_total[1m]))`); err == nil {
 		for _, r := range results {
-			if key := promJobKey(r.Metric); key != "" {
+			if key := promMetricKey(r.Metric); key != "" {
 				ensure(key).msgSentRate = parsePromValue(r.Value[1])
 			}
 		}
@@ -430,6 +440,53 @@ func promJobKey(labels map[string]string) string {
 		key = key[:idx]
 	}
 	return strings.ToLower(key)
+}
+
+// fetchIPHostMap scrapes Prometheus `up` labels to build a node IP/hostname
+// → hostname mapping. Each federated Globular target carries both a
+// `node` label (hostname) and an `instance` label of the form
+// "<nodeIP>:<port>" or "<hostname>:<port>", so we can extract both forms
+// and index them. Returns an empty map if Prometheus is unreachable.
+func fetchIPHostMap(ctx context.Context, prom *promClient) map[string]string {
+	out := make(map[string]string)
+	results, err := prom.query(ctx, "up")
+	if err != nil {
+		return out
+	}
+	for _, r := range results {
+		node := strings.TrimSpace(r.Metric["node"])
+		if node == "" {
+			continue
+		}
+		instance := r.Metric["instance"]
+		host := instance
+		if idx := strings.IndexByte(instance, ':'); idx > 0 {
+			host = instance[:idx]
+		}
+		if host != "" {
+			out[host] = node
+		}
+		// Also index the node hostname → itself, so cfgs with a hostname
+		// (not an IP) in their Address field still resolve.
+		out[node] = node
+	}
+	return out
+}
+
+// promMetricKey builds a composite "<service>|<node>" key from metric
+// labels. When the `node` label is absent (non-federated samples from an
+// older Prometheus), it falls back to the service key alone so lookups
+// still work.
+func promMetricKey(labels map[string]string) string {
+	job := promJobKey(labels)
+	if job == "" {
+		return ""
+	}
+	node := strings.TrimSpace(labels["node"])
+	if node == "" {
+		return job
+	}
+	return job + "|" + node
 }
 
 func parsePromValue(raw json.RawMessage) float64 {
@@ -546,12 +603,19 @@ func NewServicesHandler(provider AdminProvider) http.Handler {
 		var promMetrics map[string]*svcMetrics
 		var promConnected bool
 		var infraDetail map[string]*InfraDetail
+		var ipToHost map[string]string
 
 		var wg sync.WaitGroup
-		wg.Add(2)
+		wg.Add(3)
 		go func() { defer wg.Done(); promMetrics, promConnected = fetchPromMetrics(ctx, prom) }()
 		go func() { defer wg.Done(); infraDetail = fetchInfraMetrics(ctx, prom) }()
+		go func() { defer wg.Done(); ipToHost = fetchIPHostMap(ctx, prom) }()
 		wg.Wait()
+
+		// Optional filter: ?node=<hostname> narrows the response to services
+		// running on that node only. Used by the Services tab when the user
+		// wants to drill down to one node.
+		nodeFilter := strings.TrimSpace(r.URL.Query().Get("node"))
 
 		// Build service instances
 		var all []ServiceInstance
@@ -566,6 +630,26 @@ func NewServicesHandler(provider AdminProvider) http.Handler {
 			}
 			base = strings.ToLower(base)
 
+			// Resolve which node this service instance lives on. The cfg
+			// Address is the per-instance listen address (e.g. "10.0.0.63:10015"),
+			// which we map back to the node hostname via the IP→host table
+			// built from Prometheus labels. Fall back to the local gateway's
+			// hostname if the mapping is missing (single-node mode / pre-federation).
+			nodeHost := provider.Hostname()
+			if addr := mapStr(cfg, "Address"); addr != "" {
+				host := addr
+				if idx := strings.IndexByte(addr, ':'); idx > 0 {
+					host = addr[:idx]
+				}
+				if h := ipToHost[host]; h != "" {
+					nodeHost = h
+				}
+			}
+
+			if nodeFilter != "" && nodeHost != nodeFilter {
+				continue
+			}
+
 			inst := ServiceInstance{
 				Name:        name,
 				DisplayName: name,
@@ -575,14 +659,18 @@ func NewServicesHandler(provider AdminProvider) http.Handler {
 				Port:        mapInt(cfg, "Port"),
 				Category:    categorize(base),
 				Kind:        kindForService(base),
-				Node:        provider.Hostname(),
+				Node:        nodeHost,
 				GRPCHealth:  &GRPCHealth{Enabled: false, Status: "NOT_CHECKED"},
 			}
 
-			// Attach Prometheus runtime metrics
+			// Attach Prometheus runtime metrics, scoped to this node.
 			var pm *svcMetrics
 			if promMetrics != nil {
-				pm = promMetrics[base]
+				pm = promMetrics[base+"|"+nodeHost]
+				if pm == nil {
+					// Fallback: non-federated sample (no `node` label).
+					pm = promMetrics[base]
+				}
 			}
 			if pm != nil {
 				uptime := 0.0

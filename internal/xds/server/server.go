@@ -23,6 +23,8 @@ import (
 	test_v3 "github.com/envoyproxy/go-control-plane/pkg/test/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/keepalive"
 )
 
@@ -110,6 +112,7 @@ func (s *XDSServer) Serve(ctx context.Context, addr string, tlsConfig *TLSConfig
 
 	grpcServer := grpc.NewServer(opts...)
 	registerServices(grpcServer, s.server)
+	grpc_health_v1.RegisterHealthServer(grpcServer, health.NewServer())
 
 	s.logger.Info("xDS server listening", "addr", addr)
 	go func() {

@@ -7,8 +7,8 @@ import (
 
 	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/installed_state"
-	"github.com/globulario/services/golang/plan/versionutil"
 	"github.com/globulario/services/golang/repository/repository_client"
+	"github.com/globulario/services/golang/versionutil"
 )
 
 // stateAlignmentStatus describes the state alignment of a single package

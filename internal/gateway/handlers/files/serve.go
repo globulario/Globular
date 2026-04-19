@@ -59,7 +59,12 @@ func serveWithContentType(w http.ResponseWriter, r *http.Request, name string, f
 		return false
 	}
 
-	// No special handling needed
+	// Override MIME types that Go's stdlib gets wrong (e.g. .ts → Qt Linguist).
+	// Set the header and return false so http.ServeFile still handles Range/caching.
+	if ct := mimeByExtension(lname); ct != "" {
+		w.Header().Set("Content-Type", ct)
+	}
+
 	return false
 }
 
@@ -445,15 +450,19 @@ func NewServeFile(p ServeProvider) http.Handler {
 		info.minioCfg = minioCfg
 		isUsersPath := strings.HasPrefix(rqstPath, "/users/")
 		minioConfigured := minioCfg != nil || minioErr != nil
-		if minioConfigured && minioErr != nil {
+		// Only block on MinIO errors for paths that actually require MinIO
+		// (/users/ paths).  Filesystem-backed paths like /mnt/… or /public/…
+		// on local disk should keep working even when the object store is
+		// unreachable or misconfigured.
+		if minioConfigured && minioErr != nil && isUsersPath {
 			httplib.WriteJSONError(w, http.StatusServiceUnavailable, objectStoreErrMsg(minioErr))
 			return
 		}
 		hasMinio := minioConfigured && minioErr == nil
 		info.useMinioUsers = hasMinio && isUsersPath
 		info.useMinioWeb = hasMinio && !isUsersPath
-		// Only fallback to disk if MinIO is not configured at all
-		info.fallbackToDisk = !minioConfigured
+		// Fallback to disk when MinIO is not configured or has an error
+		info.fallbackToDisk = !minioConfigured || minioErr != nil
 		info.hostPart = cleanRequestHost(r.Host, minioCfg)
 
 		// Compute filename; "public" paths are absolute
@@ -607,7 +616,7 @@ func servePublicFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioProx
 		return true
 	}
 	defer reader.Close()
-	ct := mime.TypeByExtension(path.Ext(rqstPath))
+	ct := mimeByExtension(rqstPath)
 	if ct == "" {
 		ct = "application/octet-stream"
 	}
@@ -632,6 +641,19 @@ func serveWebrootFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioPro
 	reader, info, err := cfg.Fetch(r.Context(), cfg.webrootBucket(), key)
 	if err != nil {
 		if isMinioNoSuchKey(err) {
+			// SPA fallback: if the path is under a directory that has an index.html,
+			// serve that index.html instead of falling through to filesystem.
+			// This enables single-page apps (like Docsify) where all sub-paths
+			// should return the same index.html and client-side JS handles routing.
+			spaKey, spaErr := trySPAFallback(rqstPath, host, cfg)
+			if spaErr == nil && spaKey != "" {
+				spaReader, spaInfo, spaFetchErr := cfg.Fetch(r.Context(), cfg.webrootBucket(), spaKey)
+				if spaFetchErr == nil {
+					defer spaReader.Close()
+					serveMinioContent(w, r, "index.html", spaInfo, spaReader)
+					return true
+				}
+			}
 			return false
 		}
 		if isMinioUnavailable(err) {
@@ -648,6 +670,21 @@ func serveWebrootFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioPro
 	name := path.Base(key)
 	serveMinioContent(w, r, name, info, reader)
 	return true
+}
+
+// trySPAFallback walks up the path looking for an index.html in a parent
+// directory. For example, /docs/operators/architecture-overview → tries
+// docs/index.html. This enables Docsify and other SPA frameworks where
+// all sub-paths are handled by a single index.html.
+func trySPAFallback(rqstPath, host string, cfg *MinioProxyConfig) (string, error) {
+	clean := strings.TrimPrefix(rqstPath, "/")
+	parts := strings.Split(clean, "/")
+	// Try from the first segment: e.g. "docs" → "docs/index.html"
+	if len(parts) > 0 {
+		spaPath := "/" + parts[0] + "/index.html"
+		return buildMinioObjectKey(spaPath, host, cfg, false)
+	}
+	return "", fmt.Errorf("no SPA root")
 }
 
 func serveMinioContent(w http.ResponseWriter, r *http.Request, name string, info MinioObjectInfo, reader io.ReadSeeker) {
@@ -849,8 +886,11 @@ func buildMinioObjectKey(reqPath string, host string, cfg *MinioProxyConfig, isU
 	// and enables path traversal via Host manipulation.
 	// Always use a stable, domain-independent prefix.
 	logical := strings.TrimPrefix(cleanPath, "/")
-	if logical == "" {
-		logical = "index.html"
+	if logical == "" || strings.HasSuffix(logical, "/") {
+		logical += "index.html"
+	} else if !strings.Contains(path.Base(logical), ".") {
+		// Path looks like a directory (no file extension) — try index.html
+		logical += "/index.html"
 	}
 
 	base := cfg.webrootPrefixValue()
@@ -920,15 +960,37 @@ func cleanRequestHost(host string, cfg *MinioProxyConfig) string {
 }
 
 func setContentTypeFromName(w http.ResponseWriter, name string) {
+	if ct := mimeByExtension(name); ct != "" {
+		w.Header().Set("Content-Type", ct)
+	}
+}
+
+// mimeByExtension returns the correct MIME type for a file name.
+// It overrides Go's stdlib for extensions where mime.TypeByExtension
+// returns wrong results (e.g. .ts → Qt Linguist instead of MPEG-TS).
+func mimeByExtension(name string) string {
 	lname := strings.ToLower(name)
 	switch {
+	case strings.HasSuffix(lname, ".ts"):
+		return "video/mp2t"
+	case strings.HasSuffix(lname, ".m3u8"):
+		return "application/vnd.apple.mpegurl"
+	case strings.HasSuffix(lname, ".m3u"):
+		return "audio/mpegurl"
 	case strings.HasSuffix(lname, ".js"):
-		w.Header().Set("Content-Type", "application/javascript")
+		return "application/javascript"
 	case strings.HasSuffix(lname, ".css"):
-		w.Header().Set("Content-Type", "text/css")
-	case strings.HasSuffix(lname, ".html") || strings.HasSuffix(lname, ".htm"):
-		w.Header().Set("Content-Type", "text/html")
+		return "text/css"
+	case strings.HasSuffix(lname, ".html"), strings.HasSuffix(lname, ".htm"):
+		return "text/html"
+	case strings.HasSuffix(lname, ".wasm"):
+		return "application/wasm"
 	}
+	ct := mime.TypeByExtension(path.Ext(lname))
+	if ct == "" {
+		return ""
+	}
+	return ct
 }
 
 func weakMinioETag(info MinioObjectInfo) string {

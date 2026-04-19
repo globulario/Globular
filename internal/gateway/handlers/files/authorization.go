@@ -114,6 +114,18 @@ func AuthRuleTokenValidation(provider ServeProvider, token string) AuthRule {
 			return AuthRequireCheck // Invalid token, continue to other rules
 		}
 
+		// Shortcut: a user always has read access to their own home directory.
+		// This mirrors the upload handler's shortcut and avoids RBAC→Resource
+		// service dependency, which can break when domain changes cause identity
+		// mismatches (uid vs uid@domain).
+		bareUID := uid
+		if i := strings.Index(uid, "@"); i > 0 {
+			bareUID = uid[:i]
+		}
+		if path == "/users/"+bareUID || strings.HasPrefix(path, "/users/"+bareUID+"/") {
+			return AuthAllow
+		}
+
 		// Validate account access
 		hasAccess, hasDenied, err := provider.ValidateAccount(uid, "read", path)
 		if err != nil {

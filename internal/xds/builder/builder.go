@@ -33,6 +33,9 @@ type Cluster struct {
 	KeyFile    string     `json:"key_file,omitempty"`
 	CAFile     string     `json:"ca_file,omitempty"`
 	SNI        string     `json:"sni,omitempty"`
+	// HTTPHealthPath, when set, uses an HTTP health check at this path
+	// instead of gRPC. Used for HTTP-only services like the gateway.
+	HTTPHealthPath string `json:"http_health_path,omitempty"`
 }
 
 // Listener defines the shared ingress listener.
@@ -179,6 +182,18 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 				strings.TrimSpace(cluster.SNI),
 				toControlplaneEndpoints(cluster.Endpoints),
 			)
+		}
+		// Override for HTTP-only services (e.g. gateway): use HTTP health
+		// check and HTTP/1.1 protocol instead of gRPC health + h2.
+		if cluster.HTTPHealthPath != "" {
+			c.HealthChecks = controlplane.MakeHTTPHealthChecks(cluster.HTTPHealthPath)
+			c.TypedExtensionProtocolOptions = nil // remove h2, use HTTP/1.1
+			// Strip h2 ALPN from TLS context — the gateway is HTTP/1.1 only.
+			// Without this, the TLS ALPN negotiation fails because the gateway
+			// doesn't support h2, causing health checks to fail.
+			if c.TransportSocket != nil {
+				controlplane.StripH2ALPN(c.TransportSocket)
+			}
 		}
 		resources[resource_v3.ClusterType] = append(resources[resource_v3.ClusterType], c)
 	}

@@ -2,8 +2,11 @@ package admin
 
 import (
 	"bufio"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"io"
 	"math"
 	"net"
 	"net/http"
@@ -12,6 +15,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -74,6 +78,16 @@ func NewStorageHandler(provider AdminProvider) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// If ?node=<hostname> targets a different node, proxy the request to
+		// that node's gateway server-side. Each gateway has cluster DNS + CA
+		// trust, so we can reach peers by short-hostname with TLS validated
+		// against the cluster CA. The browser can't do this directly because
+		// (a) it lacks cluster DNS resolution and (b) cross-origin CORS.
+		if target := strings.TrimSpace(r.URL.Query().Get("node")); target != "" && target != provider.Hostname() {
+			proxyStorageToPeer(w, r, target)
 			return
 		}
 
@@ -367,6 +381,73 @@ func localHostIdentities() map[string]struct{} {
 		}
 	}
 	return ids
+}
+
+// proxyStorageToPeer forwards /admin/metrics/storage to a peer gateway so
+// the UI can see any node's ground-truth local filesystem view through a
+// single origin (avoiding CORS/DNS issues in the browser). Uses the cluster
+// CA for TLS validation. Caches the shared HTTP client.
+func proxyStorageToPeer(w http.ResponseWriter, r *http.Request, peer string) {
+	client, err := clusterHTTPClient()
+	if err != nil {
+		http.Error(w, "cluster HTTP client: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	// Target the peer's gateway on its TLS port; short hostname resolves via
+	// /etc/hosts or cluster DNS entries populated by the installer.
+	target := "https://" + peer + "/admin/metrics/storage"
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, target, nil)
+	if err != nil {
+		http.Error(w, "build proxy request: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// Preserve the expected Host header so the peer's envoy picks the right
+	// cert/listener.
+	req.Host = peer + ".globular.internal"
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, "proxy to "+peer+" failed: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+}
+
+var (
+	clusterClientOnce sync.Once
+	clusterClient     *http.Client
+	clusterClientErr  error
+)
+
+func clusterHTTPClient() (*http.Client, error) {
+	clusterClientOnce.Do(func() {
+		// Trust the cluster CA for peer HTTPS calls.
+		pool := x509.NewCertPool()
+		caBytes, err := os.ReadFile("/var/lib/globular/pki/ca.pem")
+		if err != nil {
+			// Fall back to alternate CA path used by some installs.
+			caBytes, err = os.ReadFile("/var/lib/globular/pki/ca.crt")
+		}
+		if err == nil && pool.AppendCertsFromPEM(caBytes) {
+			clusterClient = &http.Client{
+				Timeout: 10 * time.Second,
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
+				},
+			}
+			return
+		}
+		// Last-resort: skip verify (cluster-internal, trusted network).
+		clusterClient = &http.Client{
+			Timeout: 10 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}, //nolint:gosec
+			},
+		}
+	})
+	return clusterClient, clusterClientErr
 }
 
 func fmtFloat(v float64) string {

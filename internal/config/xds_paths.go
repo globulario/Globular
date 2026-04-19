@@ -6,12 +6,16 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,22 +66,34 @@ func EnsureXDSMTLSMaterials(runtimeConfigDir string, insecureAllowed bool) error
 	}
 
 	caKeyPath, caCertPath, caBundlePath := CanonicalCAPaths(runtimeConfigDir)
-	if !fileExists(caKeyPath) || !fileExists(caCertPath) {
-		return fmt.Errorf("cluster CA missing: %s or %s", caKeyPath, caCertPath)
+	if !fileExists(caCertPath) {
+		return fmt.Errorf("cluster CA cert missing: %s", caCertPath)
 	}
 	if !fileExists(caBundlePath) {
-		// Prefer to expose the CA bundle even if rotation tooling has not created it yet.
 		if err := copyFile(caCertPath, caBundlePath, 0o444); err != nil {
 			return fmt.Errorf("ensure CA bundle %s: %w", caBundlePath, err)
 		}
 	}
 
+	hasCAKey := fileExists(caKeyPath)
+
 	// Ensure xDS server and Envoy client identities exist.
-	if err := ensureXDSCertificate(true, caCertPath, caKeyPath, runtimeConfigDir); err != nil {
-		return err
-	}
-	if err := ensureXDSCertificate(false, caCertPath, caKeyPath, runtimeConfigDir); err != nil {
-		return err
+	if hasCAKey {
+		// Day-0: sign locally with CA key.
+		if err := ensureXDSCertificate(true, caCertPath, caKeyPath, runtimeConfigDir); err != nil {
+			return err
+		}
+		if err := ensureXDSCertificate(false, caCertPath, caKeyPath, runtimeConfigDir); err != nil {
+			return err
+		}
+	} else {
+		// Day-1: no CA key — request signing from gateway.
+		if err := ensureXDSCertificateViaGateway(true, caCertPath, runtimeConfigDir); err != nil {
+			return err
+		}
+		if err := ensureXDSCertificateViaGateway(false, caCertPath, runtimeConfigDir); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -133,6 +149,159 @@ func ensureXDSCertificate(server bool, caCertPath, caKeyPath, runtimeConfigDir s
 		return err
 	}
 	return nil
+}
+
+// ensureXDSCertificateViaGateway generates a keypair and CSR, sends it to the
+// gateway's /sign_ca_certificate endpoint, and saves the signed cert.
+// Used on Day-1 nodes where ca.key is not available.
+func ensureXDSCertificateViaGateway(server bool, caCertPath, runtimeConfigDir string) error {
+	var certPath, keyPath, commonName string
+	if server {
+		certPath, keyPath = GetXDSServerCertPaths(runtimeConfigDir)
+		commonName = "xds-server"
+	} else {
+		certPath, keyPath = GetEnvoyXDSClientCertPaths(runtimeConfigDir)
+		commonName = "envoy-xds-client"
+	}
+
+	if fileExists(certPath) && fileExists(keyPath) {
+		return nil
+	}
+
+	// Discover gateway address from local config.
+	gatewayAddr := discoverGatewayForCertSigning(runtimeConfigDir)
+	if gatewayAddr == "" {
+		return fmt.Errorf("cannot sign %s cert: no gateway address (Day-1 node without config.json?)", commonName)
+	}
+
+	// Generate keypair.
+	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return fmt.Errorf("generate %s key: %w", commonName, err)
+	}
+
+	// Create CSR.
+	csrTpl := &x509.CertificateRequest{
+		Subject: pkix.Name{
+			CommonName:   commonName,
+			Organization: []string{"globular.internal"},
+		},
+		DNSNames: []string{commonName, "localhost"},
+	}
+	if server {
+		csrTpl.IPAddresses = []net.IP{net.ParseIP("127.0.0.1")}
+	}
+	csrDER, err := x509.CreateCertificateRequest(rand.Reader, csrTpl, privKey)
+	if err != nil {
+		return fmt.Errorf("create %s CSR: %w", commonName, err)
+	}
+	csrPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrDER})
+
+	// Send CSR to gateway.
+	signedCert, err := signCSRViaGateway(gatewayAddr, csrPEM, caCertPath)
+	if err != nil {
+		return fmt.Errorf("sign %s cert via gateway: %w", commonName, err)
+	}
+
+	// Save keypair and signed cert.
+	if err := os.MkdirAll(filepath.Dir(certPath), 0o750); err != nil {
+		return fmt.Errorf("create xds cert dir: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(keyPath), 0o700); err != nil {
+		return fmt.Errorf("create xds key dir: %w", err)
+	}
+	if err := writePEMFile(keyPath, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privKey)}, 0o400); err != nil {
+		return err
+	}
+	if err := os.WriteFile(certPath, signedCert, 0o644); err != nil {
+		return fmt.Errorf("write %s cert: %w", commonName, err)
+	}
+	return nil
+}
+
+// signCSRViaGateway sends a PEM-encoded CSR to the gateway's /sign_ca_certificate
+// endpoint and returns the signed certificate PEM.
+func signCSRViaGateway(gatewayAddr string, csrPEM []byte, caCertPath string) ([]byte, error) {
+	csrB64 := base64Encode(csrPEM)
+
+	url := fmt.Sprintf("https://%s/sign_ca_certificate?csr=%s", gatewayAddr, csrB64)
+
+	client := httpClientWithCA(caCertPath)
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("request to gateway: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+	if resp.StatusCode != 200 && resp.StatusCode != 201 {
+		return nil, fmt.Errorf("gateway returned %d: %s", resp.StatusCode, string(body))
+	}
+	if len(body) == 0 {
+		return nil, fmt.Errorf("gateway returned empty certificate")
+	}
+	return body, nil
+}
+
+// discoverGatewayForCertSigning finds the Day-0 gateway address for CSR signing.
+// Reads the etcd_endpoints file written by the join script — the first non-local
+// endpoint's host is the bootstrap node which runs the gateway.
+func discoverGatewayForCertSigning(runtimeConfigDir string) string {
+	root := runtimeRoot(runtimeConfigDir)
+
+	// Read etcd endpoints — first entry is the bootstrap node.
+	data, err := os.ReadFile(filepath.Join(root, "config", "etcd_endpoints"))
+	if err == nil {
+		for _, line := range strings.Split(string(data), "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			// Extract host from "https://10.0.0.63:2379"
+			line = strings.TrimPrefix(line, "https://")
+			line = strings.TrimPrefix(line, "http://")
+			host := strings.Split(line, ":")[0]
+			if host != "" && host != "127.0.0.1" && host != "localhost" {
+				return host + ":8443"
+			}
+		}
+	}
+
+	// Fallback: try config.json PortHTTPS (works on Day-0 node).
+	cfg, err := globconfig.GetLocalConfig(false)
+	if err == nil {
+		if addr, ok := cfg["Address"].(string); ok && addr != "" {
+			return addr + ":8443"
+		}
+	}
+	return ""
+}
+
+// httpClientWithCA returns an HTTP client that trusts the given CA cert.
+func httpClientWithCA(caCertPath string) *http.Client {
+	caCert, err := os.ReadFile(caCertPath)
+	if err != nil {
+		return http.DefaultClient
+	}
+	pool := x509.NewCertPool()
+	pool.AppendCertsFromPEM(caCert)
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:            pool,
+				InsecureSkipVerify: true, // gateway cert may not match IP
+			},
+		},
+		Timeout: 30 * time.Second,
+	}
+}
+
+// base64Encode returns standard base64 encoding of data.
+func base64Encode(data []byte) string {
+	return base64.StdEncoding.EncodeToString(data)
 }
 
 // v1 Conformance (INV-5.3): Certificate template with stable identity

@@ -881,3 +881,52 @@ func makeGRPCHealthChecks() []*core_v3.HealthCheck {
 		},
 	}
 }
+
+// StripH2ALPN removes the "h2" ALPN protocol from a transport socket's TLS
+// context. Used for HTTP/1.1-only upstream services (like the gateway) where
+// h2 ALPN causes the TLS handshake to fail.
+func StripH2ALPN(ts *core_v3.TransportSocket) {
+	if ts == nil || ts.GetTypedConfig() == nil {
+		return
+	}
+	utls := &tls_v3.UpstreamTlsContext{}
+	if err := ts.GetTypedConfig().UnmarshalTo(utls); err != nil {
+		return
+	}
+	if utls.CommonTlsContext == nil {
+		return
+	}
+	// Remove h2 from ALPN, keep any other protocols.
+	filtered := utls.CommonTlsContext.AlpnProtocols[:0]
+	for _, p := range utls.CommonTlsContext.AlpnProtocols {
+		if p != "h2" {
+			filtered = append(filtered, p)
+		}
+	}
+	utls.CommonTlsContext.AlpnProtocols = filtered
+
+	// Re-marshal back into the transport socket.
+	any, err := anypb.New(utls)
+	if err != nil {
+		return
+	}
+	ts.ConfigType = &core_v3.TransportSocket_TypedConfig{TypedConfig: any}
+}
+
+// MakeHTTPHealthChecks returns an HTTP health check for services that don't
+// support gRPC health protocol (e.g. the gateway, which is HTTP-only).
+func MakeHTTPHealthChecks(path string) []*core_v3.HealthCheck {
+	return []*core_v3.HealthCheck{
+		{
+			Timeout:            durationpb.New(3 * time.Second),
+			Interval:           durationpb.New(5 * time.Second),
+			UnhealthyThreshold: wrapperspb.UInt32(3),
+			HealthyThreshold:   wrapperspb.UInt32(1),
+			HealthChecker: &core_v3.HealthCheck_HttpHealthCheck_{
+				HttpHealthCheck: &core_v3.HealthCheck_HttpHealthCheck{
+					Path: path,
+				},
+			},
+		},
+	}
+}

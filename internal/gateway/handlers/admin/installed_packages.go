@@ -65,6 +65,22 @@ func newInstalledPackagesHandler(prov InstalledPackagesProvider) http.Handler {
 			return
 		}
 
+		// When no kind filter is specified, exclude COMMAND packages —
+		// they are CLI tools (claude, etcdctl, mc, etc.), not service
+		// instances, and showing them in the "Service Instances" UI
+		// is confusing. Callers that explicitly want commands pass
+		// ?kind=COMMAND.
+		if kind == "" {
+			filtered := pkgs[:0]
+			for _, pkg := range pkgs {
+				if strings.EqualFold(pkg.GetKind(), "COMMAND") {
+					continue
+				}
+				filtered = append(filtered, pkg)
+			}
+			pkgs = filtered
+		}
+
 		// Marshal each package with protojson for consistent field naming,
 		// then wrap in a JSON array.
 		items := make([]json.RawMessage, 0, len(pkgs))

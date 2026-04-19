@@ -237,6 +237,56 @@ DNSCONF
 systemctl restart systemd-resolved 2>/dev/null || true
 echo "  OK: DNS resolver -> ${BOOTSTRAP_HOST} for globular.internal"
 
+# -- Add MinIO /etc/hosts fallback (zero-dependency resolution) ------------
+# MinIO must be reachable before DNS/ScyllaDB/repository services start.
+# /etc/hosts ensures resolution works even if systemd-resolved, libnss-resolve,
+# or the Globular DNS service is not yet running.
+echo "  [2.0c] Adding MinIO /etc/hosts fallback..."
+sed -i '/minio\.globular\.internal/d' /etc/hosts
+echo "${NODE_IP} minio.globular.internal  # MinIO (local)" >> /etc/hosts
+echo "${BOOTSTRAP_HOST} minio.globular.internal  # MinIO (bootstrap)" >> /etc/hosts
+echo "  OK: minio.globular.internal -> ${NODE_IP}, ${BOOTSTRAP_HOST}"
+
+# -- Ensure NSS resolve module (glibc → systemd-resolved bridge) -----------
+# Without libnss-resolve, Go binaries use glibc's stub resolver which doesn't
+# honor systemd-resolved routing domains (~globular.internal). The mdns4_minimal
+# module with [NOTFOUND=return] blocks .internal lookups before reaching DNS.
+echo "  [2.1a] Ensuring libnss-resolve..."
+if ! dpkg -l libnss-resolve 2>/dev/null | grep -q '^ii'; then
+    apt-get install -y libnss-resolve >/dev/null 2>&1 || true
+fi
+# Fix nsswitch.conf: use resolve (systemd-resolved) instead of mdns4_minimal
+if grep -q 'mdns4_minimal.*NOTFOUND.*return' /etc/nsswitch.conf; then
+    sed -i 's/^hosts:.*/hosts:          files resolve dns myhostname/' /etc/nsswitch.conf
+fi
+echo "  OK: libnss-resolve installed, nsswitch.conf updated"
+
+# -- Configure log management (prevent syslog disk fill) -------------------
+# Globular services produce verbose audit logs that can grow syslog to 300GB+
+# in hours. Rate-limit rsyslog and cap journald retention.
+echo "  [2.1b] Configuring log management..."
+
+# rsyslog: limit burst to 500 messages per 10 seconds
+mkdir -p /etc/rsyslog.d
+cat > /etc/rsyslog.d/50-globular-rate-limit.conf <<'RSYSLOG'
+# Globular: rate-limit to prevent audit log flood filling disk
+$SystemLogRateLimitInterval 10
+$SystemLogRateLimitBurst 500
+RSYSLOG
+systemctl restart rsyslog 2>/dev/null || true
+
+# journald: cap total disk usage to 2GB, keep max 7 days
+mkdir -p /etc/systemd/journald.conf.d
+cat > /etc/systemd/journald.conf.d/50-globular.conf <<'JOURNALD'
+[Journal]
+SystemMaxUse=2G
+SystemKeepFree=10G
+MaxRetentionSec=7day
+JOURNALD
+systemctl restart systemd-journald 2>/dev/null || true
+
+echo "  OK: rsyslog rate-limited, journald capped at 2GB/7days"
+
 # -- Write config.json (Day-1 Rule 5) --------------------------------------
 # Node-agent needs this to discover the gateway. Without it, the agent
 # starts blind and cannot reach any remote service.
@@ -295,6 +345,20 @@ for BIN in node_agent_server globularcli etcd etcdctl; do
 done
 ln -sf "${INSTALL_DIR}/globularcli" /usr/local/bin/globular
 ln -sf "${INSTALL_DIR}/etcdctl" /usr/local/bin/etcdctl
+
+# -- Download workflow definitions ------------------------------------------
+echo "  [3.1b] Downloading workflow definitions..."
+mkdir -p "${STATE_DIR}/workflows"
+for WF in node.join.yaml node.bootstrap.yaml node.repair.yaml release.apply.package.yaml release.apply.infrastructure.yaml release.remove.package.yaml cluster.reconcile.yaml day0.bootstrap.yaml; do
+  if curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
+    "https://${GATEWAY}/join/workflows/${WF}" \
+    -o "${STATE_DIR}/workflows/${WF}" 2>/dev/null; then
+    echo "       ${WF} installed"
+  fi
+done
+# Also copy to /tmp for legacy resolvers that check there.
+cp "${STATE_DIR}/workflows/node.join.yaml" /tmp/node.join.yaml 2>/dev/null || true
+chown -R globular:globular "${STATE_DIR}/workflows" 2>/dev/null || true
 
 # -- Remove ghost etcd member (if any) -------------------------------------
 # Must happen AFTER etcdctl is downloaded but BEFORE member-add.
