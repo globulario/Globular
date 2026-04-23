@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-globular.io-black.svg)](https://globular.io)
 
-[Website](https://globular.io) • [Organization](https://github.com/globulario) • [Core Services](https://github.com/globulario/services) • [Installable Releases](https://github.com/globulario/services/releases) • [Installer](https://github.com/globulario/globular-installer) • [Quickstart](https://github.com/globulario/globular-quickstart) • [Admin Console](https://github.com/globulario/globular-admin)
+[Website](https://globular.io) • [Organization](https://github.com/globulario) • [Core Services](https://github.com/globulario/services) • [Installer](https://github.com/globulario/globular-installer) • [Quickstart](https://github.com/globulario/globular-quickstart) • [Admin Console](https://github.com/globulario/globular-admin)
 
 ---
 
@@ -36,8 +36,8 @@ Globular is split across several repositories, each with a clear role:
 | Repository | Role |
 |------------|------|
 | **[Globular](https://github.com/globulario/Globular)** | Platform entry point, top-level architecture, gateway/xDS layer, project overview |
-| **[services](https://github.com/globulario/services)** | Core backend and control-plane services, proto definitions, package build pipeline, main documentation, and installable release artifacts via [releases](https://github.com/globulario/services/releases) |
-| **[globular-installer](https://github.com/globulario/globular-installer)** | Day-0 bootstrap and installation scripts |
+| **[services](https://github.com/globulario/services)** | Core backend and control-plane services, proto definitions, package build pipeline, main documentation |
+| **[globular-installer](https://github.com/globulario/globular-installer)** | Internal day-0 bootstrap and installation logic used by the release installer (`install.sh`); mainly relevant to contributors and packaging work |
 | **[globular-quickstart](https://github.com/globulario/globular-quickstart)** | Docker-based cluster simulation, testing, and operational scenarios |
 | **[globular-admin](https://github.com/globulario/globular-admin)** | Official admin console, web components, TypeScript SDK layer, and management UI |
 
@@ -45,8 +45,7 @@ If you are new to the project:
 
 - Start here to understand **what Globular is**
 - Go to **services** to explore the core platform implementation
-- Use **[services releases](https://github.com/globulario/services/releases)** to access installable release artifacts
-- Use **globular-installer** for bootstrap and installation
+- Use **[services releases](https://github.com/globulario/services/releases)** to download installable release artifacts
 - Use **globular-quickstart** to simulate and validate cluster behavior
 - Use **globular-admin** to manage and operate the platform from the UI
 
@@ -175,14 +174,31 @@ The **[services](https://github.com/globulario/services)** repository contains t
 - DNS and resource services
 - monitoring, backup, and AI-assisted operational services
 
-### Installer
-The **[globular-installer](https://github.com/globulario/globular-installer)** repository is responsible for **day-0** setup and initial bootstrap.
+### Install
+
+Installable releases are published from the **[services releases page](https://github.com/globulario/services/releases)**.
+
+Example install flow on Linux:
+
+```bash
+VERSION="1.0.56"
+
+curl -LO "https://github.com/globulario/services/releases/download/v${VERSION}/globular-${VERSION}-linux-amd64.tar.gz"
+curl -LO "https://github.com/globulario/services/releases/download/v${VERSION}/globular-${VERSION}-linux-amd64.tar.gz.sha256"
+/usr/bin/sha256sum -c "globular-${VERSION}-linux-amd64.tar.gz.sha256"
+
+tar xzf "globular-${VERSION}-linux-amd64.tar.gz"
+cd "globular-${VERSION}-linux-amd64"
+sudo bash install.sh
+```
+
+The release archive is the user-facing install entry point. The `install.sh` script uses the logic from **[globular-installer](https://github.com/globulario/globular-installer)** behind the scenes, but most end users should start from the published release artifacts, not from the installer repository directly.
 
 ### Quickstart and simulation
 The **[globular-quickstart](https://github.com/globulario/globular-quickstart)** repository provides a **Docker-based simulation environment** for validating platform behavior with production-style binaries and realistic scenarios.
 
 ### Admin console
-The **[globular-admin](https://github.com/globulario/globular-admin)** repository contains the **official management UI**, along with frontend building blocks and TypeScript connection layers for interacting with the cluster.
+The **[globular-admin](https://github.com/globulario/globular-admin)** repository contains the **official management UI**, along with frontend building blocks, TypeScript SDK/components, and the web admin application. It can later be wrapped as a Tauri desktop app.
 
 ---
 
@@ -197,13 +213,17 @@ The **[globular-admin](https://github.com/globulario/globular-admin)** repositor
 - Review `proto/`, `golang/`, and the architecture/operator docs
 
 ### Install a cluster
-- Use **[globular-installer](https://github.com/globulario/globular-installer)** for day-0 bootstrap
+- Download an installable release from **[services releases](https://github.com/globulario/services/releases)**
+- Extract the archive and run `sudo bash install.sh`
 
 ### Simulate and test
 - Use **[globular-quickstart](https://github.com/globulario/globular-quickstart)** to run scenario-based simulations and validate behavior before or alongside real deployments
 
 ### Operate through the UI
-- Use **[globular-admin](https://github.com/globulario/globular-admin)** for administration, management, and future desktop packaging via Tauri
+- Use **[globular-admin](https://github.com/globulario/globular-admin)** for administration, management, and the official operator experience
+
+### Work on installer internals
+- Use **[globular-installer](https://github.com/globulario/globular-installer)** only if you are contributing to the bootstrap/install pipeline itself
 
 ---
 
