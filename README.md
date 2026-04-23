@@ -277,6 +277,7 @@ The center of gravity for the core backend implementation and documentation is c
 - **Installer**: [globular-installer](https://github.com/globulario/globular-installer)
 - **Quickstart**: [globular-quickstart](https://github.com/globulario/globular-quickstart)
 - **Admin Console**: [globular-admin](https://github.com/globulario/globular-admin)
+- **Medium Article**: [Meet Globular](https://medium.com/@dave.courtois60/meet-globular-1e21424ebb45)
 
 ---
 
