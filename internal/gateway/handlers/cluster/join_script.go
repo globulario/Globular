@@ -326,6 +326,11 @@ else
 fi
 
 chown -R globular:globular "${STATE_DIR}"
+# Ensure keys dir exists and is writable by the globular user so services
+# can generate their Ed25519 signing keys on first start (join-script bug:
+# without this the dir is created as root when the first service runs).
+mkdir -p "${STATE_DIR}/keys"
+chown globular:globular "${STATE_DIR}/keys"
 echo "  OK: Connectivity configured"
 
 # ===========================================================================
