@@ -9,6 +9,8 @@
 
 [Website](https://globular.io) • [Organization](https://github.com/globulario) • [Core Services](https://github.com/globulario/services) • [Installer](https://github.com/globulario/globular-installer) • [Quickstart](https://github.com/globulario/globular-quickstart) • [Admin Console](https://github.com/globulario/globular-admin)
 
+🎧 **Audio presentation:** [Listen to the Globular presentation](docs/presentation.mp3)
+
 ---
 
 ## What is Globular?
