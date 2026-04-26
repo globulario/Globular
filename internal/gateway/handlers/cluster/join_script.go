@@ -238,14 +238,26 @@ systemctl restart systemd-resolved 2>/dev/null || true
 echo "  OK: DNS resolver -> ${BOOTSTRAP_HOST} for globular.internal"
 
 # -- Add MinIO /etc/hosts fallback (zero-dependency resolution) ------------
-# MinIO must be reachable before DNS/ScyllaDB/repository services start.
-# /etc/hosts ensures resolution works even if systemd-resolved, libnss-resolve,
-# or the Globular DNS service is not yet running.
-echo "  [2.0c] Adding MinIO /etc/hosts fallback..."
+# minio.globular.internal must resolve to the EXISTING objectstore endpoint
+# (the bootstrap node) until the topology contract says otherwise.
+#
+# Objectstore topology contract:
+#   - Joining a cluster does NOT automatically make this node a MinIO member.
+#   - Objectstore membership is governed solely by ObjectStoreDesiredState in
+#     etcd, written by the controller after explicit disk admission and topology
+#     apply (globular objectstore apply-topology).
+#   - This node may later be admitted as a disk candidate by the node-agent
+#     reporting disk inventory to etcd, but the join script must not approve
+#     disks, mutate topology, or route MinIO traffic to this node.
+#   - Until an approved TopologyTransition record exists for this node's IP,
+#     the node-agent will never wipe .minio.sys or render distributed MinIO config.
+#
+# Only the bootstrap (existing objectstore) entry is written here so that
+# artifact fetches during bootstrap resolve without depending on DNS.
+echo "  [2.0c] Adding MinIO /etc/hosts fallback (bootstrap objectstore only)..."
 sed -i '/minio\.globular\.internal/d' /etc/hosts
-echo "${NODE_IP} minio.globular.internal  # MinIO (local)" >> /etc/hosts
-echo "${BOOTSTRAP_HOST} minio.globular.internal  # MinIO (bootstrap)" >> /etc/hosts
-echo "  OK: minio.globular.internal -> ${NODE_IP}, ${BOOTSTRAP_HOST}"
+echo "${BOOTSTRAP_HOST} minio.globular.internal  # MinIO (bootstrap objectstore — topology contract governs membership)" >> /etc/hosts
+echo "  OK: minio.globular.internal -> ${BOOTSTRAP_HOST} (bootstrap; topology contract governs this node's membership)"
 
 # -- Ensure NSS resolve module (glibc → systemd-resolved bridge) -----------
 # Without libnss-resolve, Go binaries use glibc's stub resolver which doesn't
