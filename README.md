@@ -2,7 +2,9 @@
 
 # Globular
 
-**A self-hosted platform for running, operating, and evolving distributed services**
+**Open-source infrastructure for AI-operated distributed systems**
+
+Globular makes services, packages, nodes, workflows, identity, health, and history explicit enough for humans and AI agents to understand, diagnose, and operate real infrastructure safely.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-globular.io-black.svg)](https://globular.io)
@@ -13,9 +15,51 @@
 
 ---
 
+## Why this matters now
+
+AI agents are becoming part of software development and operations, but most infrastructure was not designed for agents.
+
+Most platforms expose logs, dashboards, YAML, shell commands, and scattered state. That is hard for humans and dangerous for AI.
+
+Globular exposes infrastructure as structured operational truth:
+
+- what artifacts exist
+- what the cluster wants
+- what nodes installed
+- what is actually running
+- what workflows changed
+- what health checks and doctor findings say
+- what actions are allowed through RBAC
+
+The goal is not to give AI agents a shell.
+
+The goal is to give them a safe, typed, permissioned operation surface through CLI, MCP, gRPC services, workflows, and RBAC.
+
+### AI Operation Plane
+
+```text
+Claude / Codex / AI agent
+        ↓
+MCP tools
+        ↓
+gRPC reflection / service APIs
+        ↓
+RBAC + mTLS + token validation
+        ↓
+Workflow engine / doctor / controller
+        ↓
+Cluster state changes
+        ↓
+Verification and convergence
+```
+
+---
+
 ## What is Globular?
 
 Globular is a **self-hosted distributed platform** for running native services with **explicit workflows**, **observable convergence**, **strong identity and security**, and **dynamic routing**.
+
+Its deeper purpose is to make infrastructure **agent-operable**: explicit enough for humans and AI systems to inspect state, understand drift, trigger approved workflows, and verify convergence.
 
 It is not a library you embed into an application. It is an **operating environment** for services and distributed applications that need lifecycle management, discovery, routing, storage, policy, and day-0 to day-2 operational tooling.
 
@@ -26,6 +70,7 @@ Globular is built around a few core ideas:
 - **Workflow-driven convergence**: orchestration is explicit and inspectable
 - **4-layer state model**: Repository → Desired → Installed → Runtime
 - **Strong identity everywhere**: TLS, mTLS, RBAC, and resource ownership are part of the platform, not bolted on later
+- **Agent-safe operation surface**: CLI, MCP, and gRPC service APIs expose typed operations protected by RBAC
 
 In practice, Globular gives you a platform to bootstrap a cluster, publish and install packages, route traffic through Envoy/xDS, operate services across nodes, and manage the system through workflows and admin tools.
 
@@ -62,6 +107,8 @@ Modern distributed systems often force you into one of two awkward worlds:
 
 Globular takes a different path.
 
+It treats infrastructure state as something that should be readable by humans, tools, and AI agents. Instead of hiding operational truth in scripts, dashboards, and scattered logs, Globular separates state, records workflow history, exposes secured operations, and verifies convergence.
+
 It is designed for people who want:
 
 - **self-hosted infrastructure** without heavy platform dependency
@@ -81,6 +128,7 @@ It is designed for people who want:
 | **Security** | TLS, mTLS, RBAC, resource ownership |
 | **Package lifecycle** | Repository-backed artifacts and desired/installed/runtime separation |
 | **Operations** | Day-0 bootstrap, day-1 rollout, day-2 repair and observation |
+| **AI-assisted operations** | MCP, gRPC reflection, CLI, RBAC-controlled actions, workflow verification |
 
 Globular is especially relevant when you want a platform for **native services on bare metal or VMs** and do not want container orchestration to be the only story in town.
 
@@ -129,10 +177,13 @@ Globular distinguishes between:
 
 That separation is a major part of how the platform stays understandable.
 
-#### 3. Dynamic routing with Envoy and xDS
+#### 3. Agent-operable control surface
+Globular exposes operational capabilities through CLI commands, MCP tools, and gRPC service APIs. These operations are protected by identity, mTLS, token validation, and RBAC so AI agents can inspect and propose actions without relying on unsafe shell access.
+
+#### 4. Dynamic routing with Envoy and xDS
 Traffic enters through Envoy and is routed dynamically based on platform state, rather than static host files and manual port wiring.
 
-#### 4. Native service platform
+#### 5. Native service platform
 Globular manages services as native binaries under systemd. It is designed for environments where that model is a feature, not a compromise.
 
 ---
@@ -235,10 +286,12 @@ Globular is aimed at people who want to operate distributed systems with more co
 
 It is a strong fit for:
 
+- AI infrastructure and agentic-operations builders
 - self-hosters and infrastructure builders
 - operators who want **explicit workflows** and **visible state transitions**
 - teams deploying **native services** on bare metal or VMs
 - projects that need identity, routing, storage, and lifecycle management in one platform layer
+- teams that want AI assistants to inspect, diagnose, and operate infrastructure through safe APIs instead of shell access
 - developers building local-first systems that can grow into clustered deployments
 
 ---
@@ -254,11 +307,14 @@ We favor:
 - **Identity** over ad hoc trust
 - **Clear state boundaries** over collapsed abstractions
 - **Self-hosting** over SaaS dependency
+- **Typed agent operations** over unsafe shell access
 - **Evolution** over rewrite culture
 
 The goal is not to hide distributed systems behind a curtain.
 
 The goal is to make them **operable, understandable, and yours**.
+
+In the age of AI agents, that also means making infrastructure readable and safe enough for machines to help operate it.
 
 ---
 
@@ -290,6 +346,6 @@ MIT License. See [LICENSE](LICENSE).
 ---
 
 <p align="center">
-  <strong>Self-hosted. Explicit. Operable.</strong><br>
-  <sub>Globular is a platform for running distributed services on your terms.</sub>
+  <strong>Explicit. Secure. Agent-operable.</strong><br>
+  <sub>Globular makes infrastructure readable enough for humans and AI agents to operate safely.</sub>
 </p>

@@ -36,15 +36,22 @@ func TestBuildMinioObjectKey_UserPaths(t *testing.T) {
 
 // TestBuildMinioObjectKey_WebrootPaths tests webroot key construction
 func TestBuildMinioObjectKey_WebrootPaths(t *testing.T) {
-	cfg := &MinioProxyConfig{}
+	cfg := &MinioProxyConfig{Domain: "globular.internal"}
 	tests := []struct {
 		reqPath  string
 		host     string
 		expected string
 		wantErr  bool
 	}{
-		{"/index.html", "globular.io", "webroot/index.html", false},
+		// External domain → domain-scoped prefix
+		{"/index.html", "globular.io", "globular.io/webroot/index.html", false},
+		// localhost → cluster default ("webroot")
 		{"/index.html", "localhost", "webroot/index.html", false},
+		// Internal cluster subdomain → cluster default
+		{"/index.html", "globule-ryzen.globular.internal", "webroot/index.html", false},
+		// Internal cluster domain itself → cluster default
+		{"/index.html", "globular.internal", "webroot/index.html", false},
+		// Subdirectory paths
 		{"/apps/test/main.js", "localhost", "webroot/apps/test/main.js", false},
 	}
 

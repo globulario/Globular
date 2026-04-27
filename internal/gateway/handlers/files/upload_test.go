@@ -214,7 +214,7 @@ func TestUpload_MinioWebroot(t *testing.T) {
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/file-upload", body)
 	req.Header.Set("Content-Type", ctype)
-	req.Host = "globular.io"
+	req.Host = "app.example.com"
 	req.Header.Set("token", "ok")
 
 	h.ServeHTTP(rr, req)

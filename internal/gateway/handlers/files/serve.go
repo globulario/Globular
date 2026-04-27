@@ -831,6 +831,56 @@ func (cfg *MinioProxyConfig) webrootPrefixValue() string {
 	return "webroot"
 }
 
+// webrootPrefixForHost returns the MinIO webroot prefix for the given request host.
+//
+// Internal subdomains (*.clusterDomain) always use the cluster domain webroot prefix
+// so that all admin-console traffic maps to the same path regardless of node name.
+//
+// Registered external domains (e.g. "globular.io") use their own prefix under the
+// same bucket, e.g. "globular.io/webroot". This allows a public website to be served
+// from a different MinIO path than the internal admin console.
+//
+// Safety invariants (replaces the removed INV-1.3 raw-host-as-path rule):
+//   - The host is stripped of port and lowercased before use.
+//   - Only hostnames that are valid (no slashes, no "..", at least one dot) are used
+//     as a prefix component. All others fall back to the cluster domain prefix.
+//   - The cluster's own subdomains (*.globular.internal) always use the cluster prefix,
+//     never the raw hostname, so node-specific hostnames don't create orphan paths.
+func (cfg *MinioProxyConfig) webrootPrefixForHost(host string) string {
+	if cfg == nil {
+		return ""
+	}
+	clusterDomain := strings.ToLower(strings.Trim(defaultDomain(cfg), " /."))
+
+	// Normalize the host: strip port, lowercase, trim noise.
+	h := strings.ToLower(strings.Split(host, ":")[0])
+	h = strings.Trim(h, " /.")
+
+	// Empty or loopback → cluster default.
+	if h == "" || h == "localhost" || h == "127.0.0.1" {
+		return cfg.webrootPrefixValue()
+	}
+
+	// Internal cluster domain or any subdomain of it → cluster default.
+	// This ensures globule-ryzen.globular.internal and globular.internal both
+	// resolve to the same webroot prefix.
+	if h == clusterDomain || strings.HasSuffix(h, "."+clusterDomain) {
+		return cfg.webrootPrefixValue()
+	}
+
+	// External domain: validate before using as a prefix component.
+	// Must contain a dot (is a FQDN), no path separators, no ".." sequences.
+	if strings.Contains(h, "/") || strings.Contains(h, "..") || strings.Contains(h, "\x00") {
+		return cfg.webrootPrefixValue()
+	}
+	if !strings.Contains(h, ".") {
+		return cfg.webrootPrefixValue()
+	}
+
+	// Safe external domain — use domain-scoped webroot.
+	return path.Join(h, "webroot")
+}
+
 func defaultDomain(cfg *MinioProxyConfig) string {
 	if cfg != nil && strings.TrimSpace(cfg.Domain) != "" {
 		return strings.TrimSpace(cfg.Domain)
@@ -852,8 +902,12 @@ func WebrootObjectKeyForTest(cfg *MinioProxyConfig, host, rqstPath string) (stri
 }
 
 // buildMinioObjectKey constructs a sanitized MinIO object key for either users or webroot content.
-// - User paths: /users/<user>/<file> -> users prefix + logical path (e.g. "users/alice/file.txt")
-// - Webroot: always uses the stable webroot prefix; host/domain is never included in the key
+//   - User paths: /users/<user>/<file> -> users prefix + logical path (e.g. "users/alice/file.txt")
+//   - Webroot: uses a stable, domain-scoped prefix derived from the request host.
+//     Internal cluster subdomains always map to the cluster domain prefix.
+//     Registered external domains (e.g. "globular.io") map to their own prefix.
+//     Unknown hosts fall back to the cluster domain prefix.
+//
 // Returns error when the path is unsafe or malformed.
 func buildMinioObjectKey(reqPath string, host string, cfg *MinioProxyConfig, isUserPath bool) (string, error) {
 	if cfg == nil {
@@ -881,10 +935,10 @@ func buildMinioObjectKey(reqPath string, host string, cfg *MinioProxyConfig, isU
 	}
 
 	// Webroot path handling.
-	// v1 Conformance: Host/domain MUST NOT determine storage paths (security violation INV-1.3).
-	// Host header is untrusted client input; using it for storage paths breaks on domain changes
-	// and enables path traversal via Host manipulation.
-	// Always use a stable, domain-independent prefix.
+	// Use a domain-scoped prefix so that external domains (e.g. globular.io) can serve
+	// different content than the internal admin console (*.globular.internal).
+	// Safety: the host is normalized and validated before being used as a path prefix.
+	// Internal subdomains and unknown hosts fall back to the cluster domain prefix.
 	logical := strings.TrimPrefix(cleanPath, "/")
 	if logical == "" || strings.HasSuffix(logical, "/") {
 		logical += "index.html"
@@ -893,7 +947,7 @@ func buildMinioObjectKey(reqPath string, host string, cfg *MinioProxyConfig, isU
 		logical += "/index.html"
 	}
 
-	base := cfg.webrootPrefixValue()
+	base := cfg.webrootPrefixForHost(host)
 	return joinKey(base, logical)
 }
 

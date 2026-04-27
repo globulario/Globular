@@ -354,6 +354,7 @@ func TestServe_MinioWebroot(t *testing.T) {
 				if bucket != "bucket" {
 					t.Fatalf("expected bucket bucket, got %s", bucket)
 				}
+				// Internal domain → cluster default prefix
 				if key != "webroot/index.html" {
 					t.Fatalf("unexpected key %s", key)
 				}
@@ -365,7 +366,7 @@ func TestServe_MinioWebroot(t *testing.T) {
 	h := files.NewServeFile(p)
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/index.html", nil)
-	req.Host = "globular.io"
+	req.Host = "app.example.com" // internal subdomain → uses cluster webroot prefix
 
 	h.ServeHTTP(rr, req)
 
@@ -424,7 +425,7 @@ func TestServe_MinioWebrootRootPath(t *testing.T) {
 	h := files.NewServeFile(p)
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Host = "globular.io"
+	req.Host = "app.example.com"
 
 	h.ServeHTTP(rr, req)
 
