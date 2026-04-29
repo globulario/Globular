@@ -219,6 +219,74 @@ func TestJoinScript_EtcdFailIsFatal(t *testing.T) {
 	}
 }
 
+// TestJoinScript_NoLocalhostPeerURLInEtcdYaml verifies that the etcd.yaml
+// written by the join script never uses localhost or 127.0.0.1 in peer URLs.
+// Loopback peer URLs would make the member unreachable from other nodes.
+func TestJoinScript_NoLocalhostPeerURLInEtcdYaml(t *testing.T) {
+	script := joinScriptForTest()
+
+	// Find the etcd.yaml heredoc section (between <<ETCDCFG and ETCDCFG).
+	startMark := `> "${STATE_DIR}/config/etcd.yaml" <<ETCDCFG`
+	endMark := "ETCDCFG"
+	start := strings.Index(script, startMark)
+	if start < 0 {
+		t.Fatal("could not find etcd.yaml heredoc start marker")
+	}
+	after := script[start+len(startMark):]
+	end := strings.Index(after, "\n"+endMark)
+	if end < 0 {
+		t.Fatal("could not find etcd.yaml heredoc end marker")
+	}
+	etcdYaml := after[:end]
+
+	forbidden := []string{
+		"127.0.0.1:2380",
+		"localhost:2380",
+		"[::1]:2380",
+	}
+	for _, f := range forbidden {
+		if strings.Contains(etcdYaml, f) {
+			t.Errorf("etcd.yaml must not contain loopback peer URL %q\n"+
+				"reason: loopback peer URLs make this member unreachable from other nodes",
+				f)
+		}
+	}
+}
+
+// TestJoinScript_LoopbackPeerNormalization verifies that the join script
+// normalizes loopback addresses in existing member peer URLs to the bootstrap
+// host's real IP. The Day-0 founding node may have registered with 127.0.0.1.
+func TestJoinScript_LoopbackPeerNormalization(t *testing.T) {
+	script := joinScriptForTest()
+
+	// The sed command that normalizes loopback peer URLs must be present.
+	if !strings.Contains(script, `127\\.0\\.0\\.1`) || !strings.Contains(script, "BOOTSTRAP_HOST") {
+		t.Error("join script must normalize loopback peer URLs in initial-cluster to BOOTSTRAP_HOST")
+	}
+}
+
+// TestJoinScript_NodeAgentStartAfterEtcdHealthGate verifies that the
+// node-agent start command appears AFTER the etcd health verification loop
+// in the script (not just via systemd ordering).
+func TestJoinScript_NodeAgentStartAfterEtcdHealthGate(t *testing.T) {
+	script := joinScriptForTest()
+
+	healthGateIdx := strings.Index(script, `etcd did not become healthy`)
+	agentStartIdx := strings.Index(script, `systemctl start globular-node-agent.service`)
+
+	if healthGateIdx < 0 {
+		t.Fatal("join script must contain etcd health gate failure message")
+	}
+	if agentStartIdx < 0 {
+		t.Fatal("join script must contain node-agent start command")
+	}
+	if agentStartIdx < healthGateIdx {
+		t.Errorf("node-agent start (byte %d) must appear after etcd health gate (byte %d)\n"+
+			"reason: node-agent must never start before etcd is verified healthy",
+			agentStartIdx, healthGateIdx)
+	}
+}
+
 // ─── Service start ordering ──────────────────────────────────────────────────
 
 // TestJoinScript_NodeAgentAfterEtcd verifies that the node-agent systemd unit
