@@ -123,27 +123,34 @@ func fetchBinaryFromRepo(spec binarySpec) ([]byte, error) {
 
 	platform := runtime.GOOS + "_" + runtime.GOARCH
 
-	// Resolve the version from the active platform release BOM rather than
-	// blindly fetching "latest". If the cluster has synced v1.0.85 but the
+	// Resolve the exact package ref from the active platform release BOM rather
+	// than blindly fetching "latest". If the cluster has synced v1.0.85 but the
 	// active release is v1.0.84, joining nodes must get v1.0.84 binaries.
 	//
 	// Resolution chain:
 	//   1. Read /var/lib/globular/release-index.json (written at Day-0)
-	//   2. Look up the package version for this spec.Package
+	//   2. Look up version + build_number for this spec.Package
 	//   3. Fallback to latest published if no BOM exists (legacy mode)
-	version := resolveActiveReleaseVersion(spec.Package, platform)
+	bom := resolveFromBOM(spec.Package, platform)
 
+	publisher := bom.Publisher
+	if publisher == "" {
+		publisher = "core@globular.io"
+	}
 	ref := &repopb.ArtifactRef{
 		Name:        spec.Package,
-		Version:     version,
+		Version:     bom.Version,
 		Platform:    platform,
-		PublisherId: "core@globular.io",
+		PublisherId: publisher,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	stream, err := client.DownloadArtifact(ctx, &repopb.DownloadArtifactRequest{Ref: ref})
+	stream, err := client.DownloadArtifact(ctx, &repopb.DownloadArtifactRequest{
+		Ref:         ref,
+		BuildNumber: bom.BuildNumber,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("download %s: %w", spec.Package, err)
 	}
@@ -195,40 +202,58 @@ func fetchBinaryFromRepo(spec binarySpec) ([]byte, error) {
 	return nil, fmt.Errorf("binary %s not found in artifact %s", spec.BinaryName, spec.Package)
 }
 
-// resolveActiveReleaseVersion reads the active release-index.json (written
-// at Day-0 install) and returns the version for the requested package.
-// If no release-index.json exists (legacy install), returns "" (latest).
-func resolveActiveReleaseVersion(pkgName, platform string) string {
+// bomPackageRef holds the resolved package identity from the active BOM.
+type bomPackageRef struct {
+	Version     string
+	BuildNumber int64
+	Publisher   string
+}
+
+// resolveFromBOM reads the active release-index.json (written at Day-0) and
+// returns the exact package ref for the requested binary. Includes version
+// AND build_number for precise artifact resolution.
+// If no BOM exists (legacy), returns zero-value ref (version="" → latest).
+func resolveFromBOM(pkgName, platform string) bomPackageRef {
 	const releaseIndexPath = "/var/lib/globular/release-index.json"
 
 	data, err := os.ReadFile(releaseIndexPath)
 	if err != nil {
 		// No BOM — legacy mode, fall back to latest published.
-		return ""
+		return bomPackageRef{}
 	}
 
-	// Parse minimal JSON — we only need packages[].name, packages[].version.
 	var idx struct {
 		Packages []struct {
-			Name     string `json:"name"`
-			Version  string `json:"version"`
-			Platform string `json:"platform"`
+			Name        string `json:"name"`
+			Version     string `json:"version"`
+			BuildNumber int64  `json:"build_number"`
+			Publisher   string `json:"publisher"`
+			Platform    string `json:"platform"`
 		} `json:"packages"`
 	}
 	if err := json.Unmarshal(data, &idx); err != nil {
 		log.Printf("join/bin: failed to parse release-index.json: %v — using latest", err)
-		return ""
+		return bomPackageRef{}
 	}
 
 	for _, p := range idx.Packages {
 		if p.Name == pkgName && (platform == "" || p.Platform == platform) {
-			log.Printf("join/bin: resolved %s version %s from active release BOM", pkgName, p.Version)
-			return p.Version
+			pub := p.Publisher
+			if pub == "" {
+				pub = "core@globular.io"
+			}
+			log.Printf("join/bin: resolved %s v%s build=%d from active release BOM",
+				pkgName, p.Version, p.BuildNumber)
+			return bomPackageRef{
+				Version:     p.Version,
+				BuildNumber: p.BuildNumber,
+				Publisher:   pub,
+			}
 		}
 	}
 
 	log.Printf("join/bin: package %s not found in release-index.json — using latest", pkgName)
-	return ""
+	return bomPackageRef{}
 }
 
 // directRepoConn establishes a direct gRPC connection to the local
