@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -121,9 +122,20 @@ func fetchBinaryFromRepo(spec binarySpec) ([]byte, error) {
 	client := repopb.NewPackageRepositoryClient(conn)
 
 	platform := runtime.GOOS + "_" + runtime.GOARCH
+
+	// Resolve the version from the active platform release BOM rather than
+	// blindly fetching "latest". If the cluster has synced v1.0.85 but the
+	// active release is v1.0.84, joining nodes must get v1.0.84 binaries.
+	//
+	// Resolution chain:
+	//   1. Read /var/lib/globular/release-index.json (written at Day-0)
+	//   2. Look up the package version for this spec.Package
+	//   3. Fallback to latest published if no BOM exists (legacy mode)
+	version := resolveActiveReleaseVersion(spec.Package, platform)
+
 	ref := &repopb.ArtifactRef{
 		Name:        spec.Package,
-		Version:     "", // latest published
+		Version:     version,
 		Platform:    platform,
 		PublisherId: "core@globular.io",
 	}
@@ -181,6 +193,42 @@ func fetchBinaryFromRepo(spec binarySpec) ([]byte, error) {
 	}
 
 	return nil, fmt.Errorf("binary %s not found in artifact %s", spec.BinaryName, spec.Package)
+}
+
+// resolveActiveReleaseVersion reads the active release-index.json (written
+// at Day-0 install) and returns the version for the requested package.
+// If no release-index.json exists (legacy install), returns "" (latest).
+func resolveActiveReleaseVersion(pkgName, platform string) string {
+	const releaseIndexPath = "/var/lib/globular/release-index.json"
+
+	data, err := os.ReadFile(releaseIndexPath)
+	if err != nil {
+		// No BOM — legacy mode, fall back to latest published.
+		return ""
+	}
+
+	// Parse minimal JSON — we only need packages[].name, packages[].version.
+	var idx struct {
+		Packages []struct {
+			Name     string `json:"name"`
+			Version  string `json:"version"`
+			Platform string `json:"platform"`
+		} `json:"packages"`
+	}
+	if err := json.Unmarshal(data, &idx); err != nil {
+		log.Printf("join/bin: failed to parse release-index.json: %v — using latest", err)
+		return ""
+	}
+
+	for _, p := range idx.Packages {
+		if p.Name == pkgName && (platform == "" || p.Platform == platform) {
+			log.Printf("join/bin: resolved %s version %s from active release BOM", pkgName, p.Version)
+			return p.Version
+		}
+	}
+
+	log.Printf("join/bin: package %s not found in release-index.json — using latest", pkgName)
+	return ""
 }
 
 // directRepoConn establishes a direct gRPC connection to the local
