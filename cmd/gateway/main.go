@@ -414,3 +414,5 @@ func portFromAddress(addr string) int {
 	}
 	return 0
 }
+
+// rebuild trigger for per-package build_id
