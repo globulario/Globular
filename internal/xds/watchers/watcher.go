@@ -363,6 +363,27 @@ func (w *Watcher) Run(ctx context.Context) error {
 		w.logger.Info("routing reconciler started")
 	}
 
+	// Watch etcd for ACME cert distribution updates.
+	// When a cert is published to /globular/acme/certs/<fqdn> by the domain
+	// reconciler (on the leader), all nodes receive the event and rebuild
+	// the xDS snapshot so Envoy picks up the new cert immediately.
+	acmeEtcdChan := make(chan struct{}, 1)
+	if w.etcdClient != nil {
+		go func() {
+			wch := w.etcdClient.Watch(ctx, "/globular/acme/certs/", clientv3.WithPrefix())
+			for wresp := range wch {
+				for _, ev := range wresp.Events {
+					if ev.Type == clientv3.EventTypePut {
+						select {
+						case acmeEtcdChan <- struct{}{}:
+						default:
+						}
+					}
+				}
+			}
+		}()
+	}
+
 	if err := w.sync(ctx); err != nil && !errors.Is(err, errNoChange) {
 		w.logger.Warn("initial xDS sync failed", "err", err)
 	}
@@ -423,6 +444,14 @@ func (w *Watcher) Run(ctx context.Context) error {
 			w.logger.Info("routing refresh triggered - rebuilding snapshot")
 			if err := w.sync(ctx); err != nil && !errors.Is(err, errNoChange) {
 				w.logger.Warn("xDS sync after routing refresh failed", "err", err)
+			}
+
+		case <-acmeEtcdChan:
+			// ACME cert published to etcd — rebuild snapshot so Envoy
+			// picks up the new Let's Encrypt cert on this node.
+			w.logger.Info("ACME certificate updated in etcd - rebuilding snapshot")
+			if err := w.sync(ctx); err != nil && !errors.Is(err, errNoChange) {
+				w.logger.Warn("xDS sync after ACME etcd update failed", "err", err)
 			}
 		}
 	}
@@ -632,11 +661,13 @@ func (w *Watcher) loadExternalDomains(ctx context.Context) ([]ExternalDomainRunt
 		}
 
 		// Build certificate paths using canonical PKI locations.
-		// Primary: /var/lib/globular/pki/letsencrypt/{domain}/
-		// Fallback: /var/lib/globular/domains/{domain}/ (legacy)
-		// Fallback: /var/lib/globular/config/tls/acme/{domain}/ (CertPaths convention)
+		// Primary: /var/lib/globular/pki/acme/{domain}/ (etcd-synced)
+		// Fallback: /var/lib/globular/pki/letsencrypt/{domain}/ (legacy)
+		// Fallback: /var/lib/globular/domains/{domain}/ (leader-local)
+		// Fallback: /var/lib/globular/config/tls/acme/{domain}/ (symlink)
 		var certFile, keyFile, chainFile string
 		for _, dir := range []string{
+			fmt.Sprintf("/var/lib/globular/pki/acme/%s", spec.FQDN),
 			fmt.Sprintf("/var/lib/globular/pki/letsencrypt/%s", spec.FQDN),
 			fmt.Sprintf("/var/lib/globular/domains/%s", spec.FQDN),
 			fmt.Sprintf("/var/lib/globular/config/tls/acme/%s", spec.FQDN),
