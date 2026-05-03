@@ -32,6 +32,9 @@ jobs:
             Globular/go.sum
             services/golang/go.sum
 
+      - name: Install system dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y shellcheck
+
       - name: Force module mode
         run: |
           go env -w GO111MODULE=on
