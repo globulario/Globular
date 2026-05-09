@@ -618,10 +618,12 @@ if [[ ${ETCD_OK} -ne 1 ]]; then
 fi
 log_ok "etcd healthy"
 
-# [5.7] Verify this node appears as a named member.
+# [5.7] Verify this node appears as a named member — queried from the BOOTSTRAP
+# cluster, not local etcd. A locally-healthy etcd that forked its own cluster
+# would pass a local check; only the bootstrap view proves actual cluster join.
 log_info "[5.7] Verifying named member presence..."
 MEMBER_CHECK=$("${INSTALL_DIR}/etcdctl" \
-  --endpoints="https://${NODE_IP}:2379" \
+  --endpoints="${BOOTSTRAP_ETCD}" \
   --cacert="${ETCD_CACERT}" \
   --cert="${ETCD_CERT}" \
   --key="${ETCD_KEY}" \
@@ -630,7 +632,7 @@ MEMBER_CHECK=$("${INSTALL_DIR}/etcdctl" \
 if echo "${MEMBER_CHECK}" | grep -q "${ETCD_NAME}"; then
   log_ok "etcd member '${ETCD_NAME}' confirmed in cluster"
 else
-  log_warn "Member '${ETCD_NAME}' not yet visible — may need propagation time"
+  die "etcd join failed: '${ETCD_NAME}' not visible from bootstrap cluster (${BOOTSTRAP_ETCD}). Local etcd may have forked its own cluster — use --repair-etcd to retry."
 fi
 
 # ============================================================================

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -42,7 +43,9 @@ var allowedBinaries = map[string]binarySpec{
 // same digest as the published artifact — no self-upgrade mismatch.
 //
 // Falls back to disk (binDir) if the repository is unavailable.
-func NewJoinBinHandler(binDir string) http.Handler {
+// NewJoinBinHandler serves join binaries. repoAddr is the repository service
+// endpoint resolved from etcd (e.g. "10.0.0.63:10003") — never localhost.
+func NewJoinBinHandler(binDir, repoAddr string) http.Handler {
 	var (
 		cache   = make(map[string]cachedBin)
 		cacheMu sync.RWMutex
@@ -73,7 +76,7 @@ func NewJoinBinHandler(binDir string) http.Handler {
 		}
 
 		// Download from repository.
-		data, err := fetchBinaryFromRepo(spec)
+		data, err := fetchBinaryFromRepo(spec, repoAddr)
 		if err == nil && len(data) > 0 {
 			cacheMu.Lock()
 			cache[name] = cachedBin{data: data, at: time.Now()}
@@ -110,10 +113,8 @@ func serveBinaryBytes(w http.ResponseWriter, name string, data []byte) {
 // fetchBinaryFromRepo downloads the package .tgz from the repository via
 // direct gRPC (bypassing Envoy mesh), extracts the requested binary, and
 // returns its contents. This is the single source of truth for join delivery.
-func fetchBinaryFromRepo(spec binarySpec) ([]byte, error) {
-	// Direct gRPC connection to local repository service.
-	// We bypass GetClient/mesh entirely — this is a same-node loopback call.
-	conn, err := directRepoConn()
+func fetchBinaryFromRepo(spec binarySpec, repoAddr string) ([]byte, error) {
+	conn, err := directRepoConn(repoAddr)
 	if err != nil {
 		return nil, fmt.Errorf("repo connection: %w", err)
 	}
@@ -256,18 +257,23 @@ func resolveFromBOM(pkgName, platform string) bomPackageRef {
 	return bomPackageRef{}
 }
 
-// directRepoConn establishes a direct gRPC connection to the local
-// repository service, bypassing Envoy/mesh. Uses the service TLS cert
-// for authentication.
-func directRepoConn() (*grpc.ClientConn, error) {
-	// Repository listens on port 10003 by default.
-	addr := "localhost:10003"
+// directRepoConn establishes a direct mTLS gRPC connection to the repository
+// service at the given address (resolved from etcd by the caller — never
+// localhost or a hardcoded port).
+func directRepoConn(addr string) (*grpc.ClientConn, error) {
+	if addr == "" {
+		return nil, fmt.Errorf("repository address not provided (etcd resolution failed)")
+	}
+
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid repository address %q: %w", addr, err)
+	}
 
 	certFile := "/var/lib/globular/pki/issued/services/service.crt"
 	keyFile := "/var/lib/globular/pki/issued/services/service.key"
 	caFile := "/var/lib/globular/pki/ca.crt"
 
-	// Load TLS credentials.
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return nil, fmt.Errorf("load client cert: %w", err)
@@ -282,7 +288,7 @@ func directRepoConn() (*grpc.ClientConn, error) {
 	creds := credentials.NewTLS(&tls.Config{
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      pool,
-		ServerName:   "localhost", // matches cert SAN
+		ServerName:   host, // matches the cert SAN (node's actual IP/hostname)
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

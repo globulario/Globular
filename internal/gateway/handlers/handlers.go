@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
@@ -19,6 +20,7 @@ import (
 	httplib "github.com/globulario/Globular/internal/gateway/http"
 	middleware "github.com/globulario/Globular/internal/gateway/http/middleware"
 	globpkg "github.com/globulario/Globular/internal/globule"
+	config_ "github.com/globulario/services/golang/config"
 	Utility "github.com/globulario/utility"
 )
 
@@ -287,11 +289,28 @@ func (h *GatewayHandlers) wireCluster(mux *http.ServeMux, wrap func(http.Handler
 	clusterHandlers.Mount(mux, clusterHandlers.Deps{
 		JoinToken:     wrap(clusterHandlers.NewJoinTokenHandler(deps)),
 		JoinScript:    clusterHandlers.NewJoinScriptHandler(h.cfg.ControllerAddr, h.globule.PortHTTPS),
-		JoinBin:       clusterHandlers.NewJoinBinHandler(binDir),
+		JoinBin:       clusterHandlers.NewJoinBinHandler(binDir, resolveRepoAddr()),
 		JoinWorkflows: clusterHandlers.NewJoinWorkflowsHandler(),
 		Nodes:         wrap(clusterHandlers.NewNodesHandler(deps)),
 		NodeActions:   wrap(clusterHandlers.NewNodeActionsHandler(deps)),
 	})
+}
+
+// resolveRepoAddr returns the repository service endpoint from etcd
+// (e.g. "10.0.0.63:10003"). Returns "" if etcd is unavailable — the
+// join binary handler will fall back to disk in that case.
+func resolveRepoAddr() string {
+	cfgs, err := config_.GetServicesConfigurationsByName("repository.PackageRepository")
+	if err != nil || len(cfgs) == 0 {
+		return ""
+	}
+	cfg := cfgs[0]
+	addr, _ := cfg["Address"].(string)
+	port, _ := cfg["Port"].(float64)
+	if addr == "" || port == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%s:%d", addr, int(port))
 }
 
 func (h *GatewayHandlers) wireStats(mux *http.ServeMux, wrap func(http.Handler) http.Handler) {

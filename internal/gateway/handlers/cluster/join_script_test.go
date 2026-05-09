@@ -378,6 +378,44 @@ func TestJoinScript_TargetedServiceStop(t *testing.T) {
 	}
 }
 
+// TestJoinScript_Phase57UsesBootstrapEtcd verifies that the Phase 5.7 member
+// presence check queries BOOTSTRAP_ETCD, not the local NODE_IP:2379 endpoint.
+// A locally-healthy etcd that forked its own cluster passes a local check;
+// only the bootstrap view proves the node actually joined the existing cluster.
+func TestJoinScript_Phase57UsesBootstrapEtcd(t *testing.T) {
+	script := joinScriptForTest()
+
+	// Find Phase 5.7 block.
+	marker := "[5.7] Verifying named member presence"
+	start := strings.Index(script, marker)
+	if start < 0 {
+		t.Fatal("join script must contain Phase 5.7 member verification block")
+	}
+	// Extract enough context to cover the etcdctl invocation.
+	block := script[start : start+400]
+
+	if strings.Contains(block, `"https://${NODE_IP}:2379"`) {
+		t.Error("Phase 5.7 must NOT query local NODE_IP:2379 — a forked standalone etcd passes that check\n" +
+			"must query BOOTSTRAP_ETCD instead")
+	}
+	if !strings.Contains(block, `"${BOOTSTRAP_ETCD}"`) {
+		t.Error("Phase 5.7 must query BOOTSTRAP_ETCD to verify the node is visible in the existing cluster")
+	}
+}
+
+// TestJoinScript_Phase57DiesOnMissingMember verifies that Phase 5.7 calls die
+// (not log_warn) when the joining node is not visible in the bootstrap cluster.
+func TestJoinScript_Phase57DiesOnMissingMember(t *testing.T) {
+	script := joinScriptForTest()
+
+	if strings.Contains(script, "not yet visible — may need propagation time") {
+		t.Error("Phase 5.7 must not silently warn when member is not visible — must die")
+	}
+	if !strings.Contains(script, "forked its own cluster") {
+		t.Error("Phase 5.7 die message must mention forked cluster to guide operator remediation")
+	}
+}
+
 // ─── bash syntax validation ──────────────────────────────────────────────────
 
 // TestJoinScript_BashNSyntaxCheck writes the expanded script to a temp file
