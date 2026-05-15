@@ -495,6 +495,50 @@ while IFS=',' read -r _id _status name peerURLs _rest; do
   INITIAL_CLUSTER="${INITIAL_CLUSTER}${name}=${peerURLs}"
 done <<< "${MEMBER_LIST}"
 
+# [5.2.5] Acquire join-in-progress lock to protect the new member from being
+# evicted by the controller's removeStaleMembers loop. There is a structural
+# race between this script's "etcdctl member add" (which immediately changes
+# raft membership) and the joining node's node-agent heartbeat (which puts
+# the node into /globular/nodes/). Between those two events the controller's
+# desired set does NOT contain this hostname, so the next stale-member sweep
+# classifies the freshly-added member as stale and removes it.
+#
+# Live incident: 2026-05-14, globule-nuc evicted within ~100ms of member-add.
+#
+# The lock is a leased key at /globular/etcd_joins/<sanitized_hostname>. The
+# controller's removeStaleMembers reads this prefix and skips eviction for
+# any member whose name appears in it. 300s lease covers the longest healthy
+# Day-1 join we've observed; if the script dies mid-way, the TTL self-cleans
+# the lock so a retry isn't blocked.
+#
+# Failure to acquire the lock is logged but not fatal — the original race is
+# narrow enough that most joins still succeed without it, and refusing to
+# proceed would convert a flaky-controller incident into a hard outage.
+log_info "[5.2.5] Acquiring etcd-join lock for ${ETCD_NAME}..."
+LOCK_LEASE_ID=$("${INSTALL_DIR}/etcdctl" \
+  --endpoints="${BOOTSTRAP_ETCD}" \
+  --cacert="${ETCD_CACERT}" \
+  --cert="${ETCD_CERT}" \
+  --key="${ETCD_KEY}" \
+  lease grant 300 2>/dev/null | awk '/granted/ {print $2}')
+
+if [[ -n "${LOCK_LEASE_ID}" ]]; then
+  if "${INSTALL_DIR}/etcdctl" \
+    --endpoints="${BOOTSTRAP_ETCD}" \
+    --cacert="${ETCD_CACERT}" \
+    --cert="${ETCD_CERT}" \
+    --key="${ETCD_KEY}" \
+    put "/globular/etcd_joins/${ETCD_NAME}" \
+    "{\"peer_url\":\"https://${NODE_IP}:2380\",\"started_unix\":$(date -u +%%s)}" \
+    --lease="${LOCK_LEASE_ID}" >/dev/null 2>&1; then
+    log_ok "join-lock acquired (lease=${LOCK_LEASE_ID}, ttl=300s)"
+  else
+    log_warn "failed to put join-lock — controller may evict during join"
+  fi
+else
+  log_warn "lease grant failed — proceeding without join-lock; if eviction occurs, retry with --repair-etcd"
+fi
+
 # [5.3] Add this node as a new etcd member.
 log_info "[5.3] Adding ${ETCD_NAME} (https://${NODE_IP}:2380) to etcd cluster..."
 ADD_OUT=$("${INSTALL_DIR}/etcdctl" \
