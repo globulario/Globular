@@ -621,9 +621,10 @@ Group=globular
 ExecStartPre=+/usr/bin/mkdir -p ${STATE_DIR}/etcd
 ExecStartPre=+/usr/bin/chown globular:globular ${STATE_DIR}/etcd
 ExecStartPre=+/usr/bin/chmod 0750 ${STATE_DIR}/etcd
+ExecStartPre=+/bin/sh -c 'chown globular:globular ${STATE_DIR}/pki/issued/services/service.key ${STATE_DIR}/pki/issued/services/service.crt 2>/dev/null || true'
 ExecStart=${INSTALL_DIR}/etcd --config-file ${STATE_DIR}/config/etcd.yaml
 Restart=on-failure
-RestartSec=5
+RestartSec=2
 LimitNOFILE=524288
 
 [Install]
