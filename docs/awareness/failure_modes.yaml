@@ -1,0 +1,121 @@
+# failure_modes.yaml — globular-gateway
+#
+# Failure modes observed or principled for the gateway and xDS server.
+# Re-running registration ADDS entries; IDs are stable identity.
+
+failure_modes:
+
+    - id: fm.ca.cert.missing.at.join
+      title: CA cert missing at join time — CSR signing fails silently
+      severity: critical
+      # origin: { type: principle, confidence: high }
+      root_cause: |
+          If /var/lib/globular/pki/ca.key or ca.crt is absent when a node attempts to join,
+          the CSR signing step fails. Depending on error handling, the join may return a
+          generic error or silently issue an unsigned cert. The joining node installs a bad
+          cert and all subsequent mTLS connections fail. The root cause is usually a failed
+          prior bootstrap that left PKI in a partial state.
+      symptoms:
+          - join fails at Phase 3 or Phase 4 with certificate error
+          - ls /var/lib/globular/pki/ shows ca.crt missing or zero-length
+          - joining node service fails to start due to TLS handshake error
+          - gateway log shows pki path not found or permission denied
+      related_invariants:
+          - pki.ca.canonical.path
+          - csr.signature.verified.before.signing
+
+    - id: fm.xds.insecure.in.production
+      title: xDS serving without mTLS — Envoy accepts unsigned config from any caller
+      severity: critical
+      # origin: { type: principle, confidence: high }
+      root_cause: |
+          If GLOBULAR_XDS_INSECURE=1 is set in a production environment, the xDS server
+          disables mutual TLS. Any process that can reach the xDS port can push arbitrary
+          Envoy configuration — routing all traffic to an attacker-controlled backend,
+          replacing TLS secrets, or disabling auth entirely. This is a full cluster
+          compromise vector.
+      symptoms:
+          - xDS port is reachable without presenting a client cert
+          - Envoy connects to xDS without mTLS (check Envoy admin /config_dump)
+          - GLOBULAR_XDS_INSECURE=1 present in xDS service environment
+      forbidden_fixes:
+          - no.xds.insecure.in.production
+      related_invariants:
+          - xds.mtls.required.in.production
+
+    - id: fm.etcd.ghost.member
+      title: Ghost etcd member from a failed prior join blocks new join attempts
+      severity: critical
+      # origin: { type: principle, confidence: high }
+      root_cause: |
+          If a node starts a join, reaches Phase 5 (etcd member add), but then fails before
+          completing Phase 6 (etcd start), the new member is registered in the etcd member
+          list but never comes online. Subsequent join attempts for the same node fail because
+          etcd rejects adding a member with the same peer URL or sees quorum already
+          reduced by the non-responsive ghost. The ghost must be explicitly removed.
+      symptoms:
+          - etcdctl member list shows a member with no client URLs or in unstarted state
+          - new join attempt fails with cluster quorum error or member already exists
+          - etcd cluster health shows unhealthy due to missing quorum from ghost
+      forbidden_fixes:
+          - no.join.phase.skip
+      related_invariants:
+          - etcd.ghost.cleared.before.member.add
+          - join.phase.order.enforced
+
+    - id: fm.join.token.expired.mid.phase
+      title: Join token expires between Phase 1 and Phase 5 — ghost member left in etcd
+      severity: error
+      # origin: { type: principle, confidence: high }
+      root_cause: |
+          A slow join (large binary download, slow network) may take long enough for the
+          join token to expire. If expiry is only checked at Phase 1 and not re-validated
+          at Phase 5, the gateway proceeds with an invalid token, signs a CSR for an
+          unauthenticated node, adds an etcd member, and then fails authentication checks
+          later — leaving a ghost etcd member and a mis-issued cert.
+      symptoms:
+          - join fails partway through with token expired error after long phase 4
+          - etcd member list has a new entry that never became healthy
+          - issued cert exists in pki/issued/ but the node never completed join
+      related_invariants:
+          - join.token.validated.before.phase
+          - etcd.ghost.cleared.before.member.add
+
+    - id: fm.csr.signed.without.validation
+      title: CSR signed without verifying node identity or token — cert issued to unknown caller
+      severity: critical
+      # origin: { type: principle, confidence: high }
+      root_cause: |
+          If the CSR signing handler signs any CSR submitted to the join endpoint without
+          first validating the join token, the CSR subject matching the expected node
+          identity, and the CSR signature (proving key ownership), then any caller who
+          reaches the join endpoint can obtain a valid cluster CA-signed cert. This cert
+          can be used to pass mTLS checks for any cluster service.
+      symptoms:
+          - CA issues certs for nodes that never appeared in the approved join queue
+          - Cert subject CN does not match the node hostname that was expected
+          - CSR submitted without a join token succeeds
+      forbidden_fixes:
+          - no.csr.sign.without.verify
+      related_invariants:
+          - csr.signature.verified.before.signing
+          - join.token.validated.before.phase
+
+    - id: fm.xds.snapshot.stale
+      title: Envoy running with stale xDS snapshot after cert renewal or config change
+      severity: error
+      # origin: { type: principle, confidence: high }
+      root_cause: |
+          When a TLS cert is renewed or an Envoy cluster/listener config changes, the xDS
+          server must push a new snapshot. If the push is missed (gateway restart, xDS crash,
+          or race between cert renewal and snapshot rebuild), Envoy continues serving with the
+          old config. The service appears healthy but is using an expired cert or routing to
+          a stale set of backends. Envoy does not self-detect snapshot staleness.
+      symptoms:
+          - Envoy admin /config_dump shows an older version string than xDS server
+          - TLS handshake errors despite cert having been renewed in PKI
+          - Traffic routed to a removed backend endpoint
+          - xDS NACKs in Envoy log referencing old version ID
+      related_invariants:
+          - xds.cert.validated.before.serving.secrets
+          - xds.mtls.required.in.production

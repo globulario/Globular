@@ -1,0 +1,67 @@
+# forbidden_fixes.yaml — globular-gateway
+#
+# Patterns that look like reasonable shortcuts but are wrong in this codebase.
+# Re-running registration ADDS entries; IDs are stable identity.
+
+forbidden_fixes:
+
+    - id: no.pki.path.relative.to.domain
+      summary: |
+          Do not construct PKI file paths relative to the domain name, a config variable,
+          or the current working directory. All PKI files live under /var/lib/globular/pki/.
+          The path /etc/globular/creds/ does not exist. Constructing the wrong path causes
+          silent fallback to an absent or unsigned cert, which produces mTLS failures
+          that are difficult to diagnose across the cluster.
+      related_invariants:
+          - pki.ca.canonical.path
+
+    - id: no.xds.insecure.in.production
+      summary: |
+          Do not add GLOBULAR_XDS_INSECURE=1 to any production unit file, deployment spec,
+          or default configuration. Do not add code that defaults to insecure when the
+          env var is absent, and do not add a --insecure flag to the xDS binary.
+          The insecure mode exists only for development. Setting it in production allows
+          any caller to push arbitrary Envoy configuration without authentication.
+      related_invariants:
+          - xds.mtls.required.in.production
+
+    - id: no.etcd.write.from.gateway
+      summary: |
+          Do not add etcd write operations to any gateway handler, join phase, or CSR
+          signer. The gateway is the cluster entry point, not the control plane. Desired
+          state, node records, service configs, and cluster policy all go through the
+          controller. Gateway writing to etcd creates split-brain state and breaks the
+          single-authority model.
+      related_invariants:
+          - gateway.no.etcd.writes
+
+    - id: no.join.phase.skip
+      summary: |
+          Do not add logic to skip or reorder join phases to speed up a join or work
+          around a failed phase. Each phase has a hard dependency on the previous:
+          Phase 5 (etcd member add) requires Phase 4 (binary sync). Phase 6 (service start)
+          requires Phase 5. Skipping phases leaves the node in a partially-joined state
+          that cannot be recovered without a full clean and rejoin.
+      related_invariants:
+          - join.phase.order.enforced
+          - etcd.ghost.cleared.before.member.add
+
+    - id: no.csr.sign.without.verify
+      summary: |
+          Do not sign a CSR without first verifying all three conditions: (1) the join
+          token is valid and not expired, (2) the CSR subject matches the expected node
+          identity, (3) the CSR signature is valid. Signing without verification issues
+          a CA-signed cert to any caller who can reach the join endpoint, bypassing all
+          cluster authentication.
+      related_invariants:
+          - csr.signature.verified.before.signing
+          - join.token.validated.before.phase
+
+    - id: no.repair.etcd.implicit
+      summary: |
+          Do not wipe a node's etcd WAL implicitly during a join retry or repair flow.
+          The --repair-etcd flag must be explicitly set by the operator. Implicit WAL
+          wipes destroy any surviving local etcd data from a node that might be recoverable,
+          and replace a recoverable state with a full reseed requirement.
+      related_invariants:
+          - repair.etcd.explicit.flag.only

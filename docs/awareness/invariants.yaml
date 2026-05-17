@@ -1,0 +1,161 @@
+# invariants.yaml — globular-gateway
+#
+# Laws the gateway and xDS server must uphold. An AI agent editing any join handler,
+# CSR signer, xDS snapshot builder, PKI loader, or cert serving path must not
+# introduce changes that violate these.
+
+invariants:
+
+    - id: pki.ca.canonical.path
+      title: PKI files must be read from /var/lib/globular/pki/ — never relative to domain or cwd
+      severity: critical
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The CA key, CA cert, and all issued service certs live under /var/lib/globular/pki/.
+          No code may construct a PKI path relative to the domain name, a config variable,
+          or the current working directory. Paths like /etc/globular/creds/ do not exist.
+          Constructing a wrong path silently falls back to an unsigned or missing cert,
+          causing mTLS failures that are hard to diagnose.
+      protects:
+          files:
+              - gateway_server/
+              - xds/
+      forbidden_fixes:
+          - no.pki.path.relative.to.domain
+
+    - id: xds.mtls.required.in.production
+      title: xDS must use mTLS in production; GLOBULAR_XDS_INSECURE is dev-only
+      severity: critical
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The xDS server serves TLS secrets to Envoy. In production, the connection between
+          xDS and Envoy must be mutually authenticated with the cluster CA.
+          GLOBULAR_XDS_INSECURE=1 disables this check and must never be set in production.
+          An AI agent must not add logic that defaults to insecure when the env var is absent
+          or treats its absence as an error.
+      protects:
+          files:
+              - xds/
+              - cmd/xds/main.go
+      forbidden_fixes:
+          - no.xds.insecure.in.production
+
+    - id: join.token.validated.before.phase
+      title: Join token must be validated before Phase 1; re-checked before Phase 5
+      severity: critical
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The 8-phase join flow must validate the join token at Phase 1 entry. If the join
+          is long-running (slow network, large binary sync), the token expiry must be
+          re-checked before Phase 5 (etcd member add), which is the point of no return.
+          Proceeding with an expired token past Phase 5 leaves a ghost etcd member.
+      protects:
+          files:
+              - gateway_server/
+      forbidden_fixes:
+          - no.join.phase.skip
+
+    - id: etcd.ghost.cleared.before.member.add
+      title: Ghost etcd members must be removed before adding the new member in Phase 5
+      severity: critical
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          If a node was partially joined in a prior attempt, it may have a ghost entry in
+          the etcd member list. Adding a new member for the same node without first removing
+          the ghost causes etcd quorum failures. The join handler must detect and remove
+          stale member entries for the joining node's identity before calling member add.
+      protects:
+          files:
+              - gateway_server/
+              - internal/server/
+      forbidden_fixes:
+          - no.etcd.write.from.gateway
+
+    - id: repair.etcd.explicit.flag.only
+      title: etcd WAL wipe requires --repair-etcd; never implicit
+      severity: critical
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          When a node's prior join left a stale etcd WAL, re-running join will fail because
+          etcd refuses to start with an existing data directory that doesn't match the
+          cluster. The --repair-etcd flag signals the join handler to wipe the WAL before
+          starting etcd. This must never happen implicitly — a silent WAL wipe destroys
+          any local etcd data and must require explicit operator intent.
+      protects:
+          files:
+              - gateway_server/
+              - cmd/gateway/main.go
+      forbidden_fixes:
+          - no.repair.etcd.implicit
+
+    - id: gateway.no.etcd.writes
+      title: Gateway must not write desired state to etcd; only controller may do this
+      severity: critical
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The gateway is the cluster entry point — it signs CSRs, proxies requests, and
+          serves the join flow. It must NOT write service configuration, desired state,
+          node records, or any cluster policy to etcd. All etcd writes for cluster state
+          go through the controller. If the gateway writes to etcd, it breaks the
+          single-authority model and creates split-brain state.
+      protects:
+          files:
+              - gateway_server/
+              - cmd/gateway/main.go
+              - internal/server/
+      forbidden_fixes:
+          - no.etcd.write.from.gateway
+
+    - id: xds.cert.validated.before.serving.secrets
+      title: xDS must verify cert chain before serving TLS secrets to Envoy
+      severity: error
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          When xDS builds the TLS secret response for Envoy SDS, it must verify that the
+          cert it is about to serve is signed by the cluster CA and has not expired.
+          Serving an expired or self-signed cert causes Envoy to reject connections
+          cluster-wide. A missing file must return an error, not serve an empty secret.
+      protects:
+          files:
+              - xds/
+      forbidden_fixes:
+          - no.csr.sign.without.verify
+
+    - id: csr.signature.verified.before.signing
+      title: CSR must be verified (node identity + token) before the CA signs it
+      severity: critical
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The join flow accepts a CSR from the joining node. Before the gateway CA signs the
+          CSR, it must verify: (1) the join token is valid and not expired, (2) the CSR
+          subject matches the expected node identity, (3) the CSR signature is valid
+          (the node holds the private key). Signing without these checks issues a cert to
+          any caller who submits a CSR to the join endpoint.
+      protects:
+          files:
+              - gateway_server/
+      forbidden_fixes:
+          - no.csr.sign.without.verify
+
+    - id: join.phase.order.enforced
+      title: Join phases 1-8 must execute in order; no phase may be skipped
+      severity: error
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The 8-phase join flow has strict dependencies: each phase builds on the state
+          established by the prior phase. Phase 5 (etcd member add) requires Phase 4
+          (binary sync). Phase 6 (service start) requires Phase 5 (etcd member added).
+          An AI agent must not add a shortcut that skips phases, and must not reorder
+          phases to "optimize" the flow.
+      protects:
+          files:
+              - gateway_server/

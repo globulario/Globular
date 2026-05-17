@@ -1,0 +1,97 @@
+# authority_rules.yaml — globular-gateway
+#
+# Maps every category of state the gateway and xDS server manage to its canonical authority.
+# An AI agent editing any join handler, CSR signer, xDS snapshot builder, or PKI path
+# must check this map first.
+#
+# Core mental model: Gateway is the CLUSTER ENTRY POINT, not the control plane.
+# It signs CSRs, serves join scripts, proxies HTTPS traffic, and serves xDS config to Envoy.
+# It does NOT write desired state to etcd — the controller owns that.
+
+authorities:
+
+  - id: pki.ca
+    owns:
+      - CA private key and CA certificate
+      - issued service certificates under /var/lib/globular/pki/issued/
+      - CSR signing for joining nodes
+    source: /var/lib/globular/pki/ (ca.key, ca.crt, issued/services/service.crt, issued/services/service.key)
+    must_not_infer:
+      - CA cert is valid from file presence alone (check expiry and signature chain)
+      - a CSR is safe to sign without verifying the join token and node identity
+    stale_states:
+      - CA key rotated but issued certs not yet renewed (mTLS failures across all services)
+      - issued cert expired but service has not reloaded (service continues with stale cert)
+    consumers:
+      - gateway_server/csr.go (CSR signing)
+      - xds/ (serving cert secrets to Envoy)
+
+  - id: join.token
+    owns:
+      - which tokens are valid for node join
+      - token expiry, scope, and single-use state
+    source: token store (in-memory or etcd-backed, validated before Phase 1 of join)
+    must_not_infer:
+      - a token is valid from format alone (verify against the issued token store)
+      - a token remains valid across phases without re-checking expiry
+    stale_states:
+      - token expires between Phase 1 and Phase 5 (long join on slow network)
+    consumers:
+      - gateway_server/ (join handler)
+
+  - id: xds.snapshot
+    owns:
+      - current Envoy listener, cluster, route, and endpoint configuration
+      - TLS certificate secrets served to Envoy via SDS
+    source: xDS server in-memory snapshot (rebuilt from etcd on change or on cert renewal)
+    must_not_infer:
+      - Envoy is using current snapshot from snapshot push alone (Envoy ACKs confirm delivery)
+      - a stale snapshot is safe to serve (version mismatch causes Envoy to reject)
+    stale_states:
+      - snapshot rebuilt but Envoy has not ACKed new version (in-flight transition)
+      - cert renewed but snapshot not rebuilt (Envoy serves expired cert)
+    consumers:
+      - xds/ (snapshot cache, SDS handler)
+      - internal/server/ (snapshot builder)
+
+  - id: gateway.routing
+    owns:
+      - which backends are routable through the gateway
+      - HTTP/HTTPS reverse proxy rules and port bindings
+    source: Globule struct (Name, Domain, Protocol, PortHTTP, PortHTTPS, ExternalIPAddress, UseEnvoy)
+    must_not_infer:
+      - a backend is healthy from routing table presence alone (health probe required)
+      - ExternalIPAddress is static (VIP can float between nodes via keepalived)
+    stale_states:
+      - Globule struct loaded from file but etcd has a newer version
+    consumers:
+      - gateway_server/ (reverse proxy handlers)
+      - cmd/gateway/main.go
+
+  - id: etcd.member.state
+    owns:
+      - which etcd members are in the cluster
+      - which members are healthy vs. ghost (started join but never completed)
+    source: etcdctl member list (live query during join Phase 5)
+    must_not_infer:
+      - an etcd member is healthy from member list presence alone (check health endpoint)
+      - a ghost member will self-remove (must be explicitly removed before adding new member)
+    stale_states:
+      - member present in list but etcd process not running on that node
+      - WAL present on node from failed prior join (--repair-etcd required before rejoin)
+    consumers:
+      - gateway_server/ (join Phase 5 handler)
+      - internal/server/ (etcd member management)
+
+  - id: join.phase.sequence
+    owns:
+      - the 8-phase join flow order and state transitions
+      - which phases are safe to retry vs. which require --repair-etcd
+    source: join handler phase machine (gateway_server/)
+    must_not_infer:
+      - phases can be skipped to speed up a join (each phase has a dependency on the previous)
+      - a phase failure can be retried without cleanup (some phases leave partial state)
+    stale_states:
+      - node partially through join flow when gateway restarts (resume or restart from Phase 1)
+    consumers:
+      - gateway_server/ (join phases 1-8)

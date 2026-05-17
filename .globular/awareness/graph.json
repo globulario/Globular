@@ -1,0 +1,1239 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "failure_mode:fm.ca.cert.missing.at.join",
+      "type": "failure_mode",
+      "name": "fm.ca.cert.missing.at.join",
+      "summary": "If /var/lib/globular/pki/ca.key or ca.crt is absent when a node attempts to join,\nthe CSR signing step fails. Depending on error handling, the join may return a\ngeneric error or silently issue an unsigned cert. The joining node installs a bad\ncert and all subsequent mTLS connections fail. The root cause is usually a failed\nprior bootstrap that left PKI in a partial state.\n",
+      "metadata": {
+        "coverage_state": "",
+        "deprecated": false,
+        "intentional_gap": false,
+        "severity": "critical"
+      },
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "invariant:xds.cert.validated.before.serving.secrets",
+      "type": "invariant",
+      "name": "xds.cert.validated.before.serving.secrets",
+      "summary": "When xDS builds the TLS secret response for Envoy SDS, it must verify that the\ncert it is about to serve is signed by the cluster CA and has not expired.\nServing an expired or self-signed cert causes Envoy to reject connections\ncluster-wide. A missing file must return an error, not serve an empty secret.\n",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "source_file:gateway_server/",
+      "type": "source_file",
+      "name": "gateway_server/",
+      "path": "gateway_server/",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "metric_warning_rule:workflow_failed_runs_15m",
+      "type": "metric_warning_rule",
+      "name": "metric_warning:workflow_failed_runs_15m",
+      "summary": "Workflow failures indicate convergence risk and may threaten reconcile fairness",
+      "metadata": {
+        "critical": 0,
+        "explanation": "Workflow failures indicate convergence risk and may threaten reconcile fairness",
+        "linked_drs": 0,
+        "linked_fms": 0,
+        "linked_invs": 0,
+        "missing_drs": 0,
+        "missing_fms": 1,
+        "missing_invs": 1,
+        "query_id": "workflow_failed_runs_15m",
+        "threshold_key": "workflow:failed_runs_15m",
+        "warn": 0
+      },
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "metric_warning_rule:scylla_disk_percent",
+      "type": "metric_warning_rule",
+      "name": "metric_warning:scylla_disk_percent",
+      "summary": "ScyllaDB disk pressure risks workflow/AI memory backend availability",
+      "metadata": {
+        "critical": 0,
+        "explanation": "ScyllaDB disk pressure risks workflow/AI memory backend availability",
+        "linked_drs": 0,
+        "linked_fms": 0,
+        "linked_invs": 0,
+        "missing_drs": 0,
+        "missing_fms": 1,
+        "missing_invs": 1,
+        "query_id": "scylla_disk_percent",
+        "threshold_key": "scylla:disk_percent",
+        "warn": 0
+      },
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "source_file:xds/",
+      "type": "source_file",
+      "name": "xds/",
+      "path": "xds/",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "invariant:xds.mtls.required.in.production",
+      "type": "invariant",
+      "name": "xds.mtls.required.in.production",
+      "summary": "The xDS server serves TLS secrets to Envoy. In production, the connection between\nxDS and Envoy must be mutually authenticated with the cluster CA.\nGLOBULAR_XDS_INSECURE=1 disables this check and must never be set in production.\nAn AI agent must not add logic that defaults to insecure when the env var is absent\nor treats its absence as an error.\n",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "invariant:join.phase.order.enforced",
+      "type": "invariant",
+      "name": "join.phase.order.enforced",
+      "summary": "The 8-phase join flow has strict dependencies: each phase builds on the state\nestablished by the prior phase. Phase 5 (etcd member add) requires Phase 4\n(binary sync). Phase 6 (service start) requires Phase 5 (etcd member added).\nAn AI agent must not add a shortcut that skips phases, and must not reorder\nphases to \"optimize\" the flow.\n",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "forbidden_fix:no.pki.path.relative.to.domain",
+      "type": "forbidden_fix",
+      "name": "no.pki.path.relative.to.domain",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "forbidden_fix:no.repair.etcd.implicit",
+      "type": "forbidden_fix",
+      "name": "no.repair.etcd.implicit",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "invariant:pki.ca.canonical.path",
+      "type": "invariant",
+      "name": "pki.ca.canonical.path",
+      "summary": "The CA key, CA cert, and all issued service certs live under /var/lib/globular/pki/.\nNo code may construct a PKI path relative to the domain name, a config variable,\nor the current working directory. Paths like /etc/globular/creds/ do not exist.\nConstructing a wrong path silently falls back to an unsigned or missing cert,\ncausing mTLS failures that are hard to diagnose.\n",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "failure_mode:fm.join.token.expired.mid.phase",
+      "type": "failure_mode",
+      "name": "fm.join.token.expired.mid.phase",
+      "summary": "A slow join (large binary download, slow network) may take long enough for the\njoin token to expire. If expiry is only checked at Phase 1 and not re-validated\nat Phase 5, the gateway proceeds with an invalid token, signs a CSR for an\nunauthenticated node, adds an etcd member, and then fails authentication checks\nlater — leaving a ghost etcd member and a mis-issued cert.\n",
+      "metadata": {
+        "coverage_state": "",
+        "deprecated": false,
+        "intentional_gap": false,
+        "severity": "error"
+      },
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "source_file:internal/server/",
+      "type": "source_file",
+      "name": "internal/server/",
+      "path": "internal/server/",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "invariant:csr.signature.verified.before.signing",
+      "type": "invariant",
+      "name": "csr.signature.verified.before.signing",
+      "summary": "The join flow accepts a CSR from the joining node. Before the gateway CA signs the\nCSR, it must verify: (1) the join token is valid and not expired, (2) the CSR\nsubject matches the expected node identity, (3) the CSR signature is valid\n(the node holds the private key). Signing without these checks issues a cert to\nany caller who submits a CSR to the join endpoint.\n",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "failure_mode:fm.xds.insecure.in.production",
+      "type": "failure_mode",
+      "name": "fm.xds.insecure.in.production",
+      "summary": "If GLOBULAR_XDS_INSECURE=1 is set in a production environment, the xDS server\ndisables mutual TLS. Any process that can reach the xDS port can push arbitrary\nEnvoy configuration — routing all traffic to an attacker-controlled backend,\nreplacing TLS secrets, or disabling auth entirely. This is a full cluster\ncompromise vector.\n",
+      "metadata": {
+        "coverage_state": "",
+        "deprecated": false,
+        "intentional_gap": false,
+        "severity": "critical"
+      },
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "invariant:repair.etcd.explicit.flag.only",
+      "type": "invariant",
+      "name": "repair.etcd.explicit.flag.only",
+      "summary": "When a node's prior join left a stale etcd WAL, re-running join will fail because\netcd refuses to start with an existing data directory that doesn't match the\ncluster. The --repair-etcd flag signals the join handler to wipe the WAL before\nstarting etcd. This must never happen implicitly — a silent WAL wipe destroys\nany local etcd data and must require explicit operator intent.\n",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "source_file:cmd/xds/main.go",
+      "type": "source_file",
+      "name": "cmd/xds/main.go",
+      "path": "cmd/xds/main.go",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "source_file:cmd/gateway/main.go",
+      "type": "source_file",
+      "name": "cmd/gateway/main.go",
+      "path": "cmd/gateway/main.go",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "failure_mode:fm.csr.signed.without.validation",
+      "type": "failure_mode",
+      "name": "fm.csr.signed.without.validation",
+      "summary": "If the CSR signing handler signs any CSR submitted to the join endpoint without\nfirst validating the join token, the CSR subject matching the expected node\nidentity, and the CSR signature (proving key ownership), then any caller who\nreaches the join endpoint can obtain a valid cluster CA-signed cert. This cert\ncan be used to pass mTLS checks for any cluster service.\n",
+      "metadata": {
+        "coverage_state": "",
+        "deprecated": false,
+        "intentional_gap": false,
+        "severity": "critical"
+      },
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "forbidden_fix:no.csr.sign.without.verify",
+      "type": "forbidden_fix",
+      "name": "no.csr.sign.without.verify",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "invariant:gateway.no.etcd.writes",
+      "type": "invariant",
+      "name": "gateway.no.etcd.writes",
+      "summary": "The gateway is the cluster entry point — it signs CSRs, proxies requests, and\nserves the join flow. It must NOT write service configuration, desired state,\nnode records, or any cluster policy to etcd. All etcd writes for cluster state\ngo through the controller. If the gateway writes to etcd, it breaks the\nsingle-authority model and creates split-brain state.\n",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "metric_warning_rule:minio_offline_disks",
+      "type": "metric_warning_rule",
+      "name": "metric_warning:minio_offline_disks",
+      "summary": "Offline MinIO disks risk artifact availability and violate topology contract",
+      "metadata": {
+        "critical": 0,
+        "explanation": "Offline MinIO disks risk artifact availability and violate topology contract",
+        "linked_drs": 0,
+        "linked_fms": 0,
+        "linked_invs": 0,
+        "missing_drs": 1,
+        "missing_fms": 1,
+        "missing_invs": 1,
+        "query_id": "minio_offline_disks",
+        "threshold_key": "minio:offline_disks",
+        "warn": 0
+      },
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "forbidden_fix:no.xds.insecure.in.production",
+      "type": "forbidden_fix",
+      "name": "no.xds.insecure.in.production",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "failure_mode:fm.etcd.ghost.member",
+      "type": "failure_mode",
+      "name": "fm.etcd.ghost.member",
+      "summary": "If a node starts a join, reaches Phase 5 (etcd member add), but then fails before\ncompleting Phase 6 (etcd start), the new member is registered in the etcd member\nlist but never comes online. Subsequent join attempts for the same node fail because\netcd rejects adding a member with the same peer URL or sees quorum already\nreduced by the non-responsive ghost. The ghost must be explicitly removed.\n",
+      "metadata": {
+        "coverage_state": "",
+        "deprecated": false,
+        "intentional_gap": false,
+        "severity": "critical"
+      },
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "forbidden_fix:no.join.phase.skip",
+      "type": "forbidden_fix",
+      "name": "no.join.phase.skip",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "invariant:etcd.ghost.cleared.before.member.add",
+      "type": "invariant",
+      "name": "etcd.ghost.cleared.before.member.add",
+      "summary": "If a node was partially joined in a prior attempt, it may have a ghost entry in\nthe etcd member list. Adding a new member for the same node without first removing\nthe ghost causes etcd quorum failures. The join handler must detect and remove\nstale member entries for the joining node's identity before calling member add.\n",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "invariant:join.token.validated.before.phase",
+      "type": "invariant",
+      "name": "join.token.validated.before.phase",
+      "summary": "The 8-phase join flow must validate the join token at Phase 1 entry. If the join\nis long-running (slow network, large binary sync), the token expiry must be\nre-checked before Phase 5 (etcd member add), which is the point of no return.\nProceeding with an expired token past Phase 5 leaves a ghost etcd member.\n",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "forbidden_fix:no.etcd.write.from.gateway",
+      "type": "forbidden_fix",
+      "name": "no.etcd.write.from.gateway",
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "metric_warning_rule:etcd_fsync_latency_ms",
+      "type": "metric_warning_rule",
+      "name": "metric_warning:etcd_fsync_latency_ms",
+      "summary": "High etcd fsync latency risks leader election instability and workflow dispatch timeouts",
+      "metadata": {
+        "critical": 0,
+        "explanation": "High etcd fsync latency risks leader election instability and workflow dispatch timeouts",
+        "linked_drs": 0,
+        "linked_fms": 0,
+        "linked_invs": 0,
+        "missing_drs": 1,
+        "missing_fms": 2,
+        "missing_invs": 1,
+        "query_id": "etcd_fsync_latency_ms",
+        "threshold_key": "etcd:fsync_latency_ms",
+        "warn": 0
+      },
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "metric_warning_rule:etcd_disk_percent",
+      "type": "metric_warning_rule",
+      "name": "metric_warning:etcd_disk_percent",
+      "summary": "etcd disk full triggers NOSPACE alarm, blocks all writes, halts convergence",
+      "metadata": {
+        "critical": 0,
+        "explanation": "etcd disk full triggers NOSPACE alarm, blocks all writes, halts convergence",
+        "linked_drs": 0,
+        "linked_fms": 0,
+        "linked_invs": 0,
+        "missing_drs": 1,
+        "missing_fms": 2,
+        "missing_invs": 1,
+        "query_id": "etcd_disk_percent",
+        "threshold_key": "etcd:disk_percent",
+        "warn": 0
+      },
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    },
+    {
+      "id": "failure_mode:fm.xds.snapshot.stale",
+      "type": "failure_mode",
+      "name": "fm.xds.snapshot.stale",
+      "summary": "When a TLS cert is renewed or an Envoy cluster/listener config changes, the xDS\nserver must push a new snapshot. If the push is missed (gateway restart, xDS crash,\nor race between cert renewal and snapshot rebuild), Envoy continues serving with the\nold config. The service appears healthy but is using an expired cert or routing to\na stale set of backends. Envoy does not self-detect snapshot staleness.\n",
+      "metadata": {
+        "coverage_state": "",
+        "deprecated": false,
+        "intentional_gap": false,
+        "severity": "error"
+      },
+      "created_at": 1779061811,
+      "updated_at": 1779061811
+    }
+  ],
+  "edges": [
+    {
+      "src": "failure_mode:fm.ca.cert.missing.at.join",
+      "kind": "violates",
+      "dst": "invariant:pki.ca.canonical.path",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "failure_mode:fm.ca.cert.missing.at.join",
+      "kind": "violates",
+      "dst": "invariant:csr.signature.verified.before.signing",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "failure_mode:fm.xds.insecure.in.production",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.xds.insecure.in.production",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "failure_mode:fm.xds.insecure.in.production",
+      "kind": "violates",
+      "dst": "invariant:xds.mtls.required.in.production",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "failure_mode:fm.etcd.ghost.member",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.join.phase.skip",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "failure_mode:fm.etcd.ghost.member",
+      "kind": "violates",
+      "dst": "invariant:etcd.ghost.cleared.before.member.add",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "failure_mode:fm.etcd.ghost.member",
+      "kind": "violates",
+      "dst": "invariant:join.phase.order.enforced",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "failure_mode:fm.join.token.expired.mid.phase",
+      "kind": "violates",
+      "dst": "invariant:join.token.validated.before.phase",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "failure_mode:fm.join.token.expired.mid.phase",
+      "kind": "violates",
+      "dst": "invariant:etcd.ghost.cleared.before.member.add",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "failure_mode:fm.csr.signed.without.validation",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.csr.sign.without.verify",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "failure_mode:fm.csr.signed.without.validation",
+      "kind": "violates",
+      "dst": "invariant:csr.signature.verified.before.signing",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "failure_mode:fm.csr.signed.without.validation",
+      "kind": "violates",
+      "dst": "invariant:join.token.validated.before.phase",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "failure_mode:fm.xds.snapshot.stale",
+      "kind": "violates",
+      "dst": "invariant:xds.cert.validated.before.serving.secrets",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "failure_mode:fm.xds.snapshot.stale",
+      "kind": "violates",
+      "dst": "invariant:xds.mtls.required.in.production",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "invariant:pki.ca.canonical.path",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.pki.path.relative.to.domain",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "invariant:xds.mtls.required.in.production",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.xds.insecure.in.production",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "invariant:gateway.no.etcd.writes",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.etcd.write.from.gateway",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "invariant:join.phase.order.enforced",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.join.phase.skip",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "invariant:etcd.ghost.cleared.before.member.add",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.join.phase.skip",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "invariant:csr.signature.verified.before.signing",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.csr.sign.without.verify",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "invariant:join.token.validated.before.phase",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.csr.sign.without.verify",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "invariant:repair.etcd.explicit.flag.only",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.repair.etcd.implicit",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "invariant:pki.ca.canonical.path",
+      "kind": "protects",
+      "dst": "source_file:gateway_server/",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "implements",
+      "dst": "invariant:pki.ca.canonical.path",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "invariant:pki.ca.canonical.path",
+      "kind": "protects",
+      "dst": "source_file:xds/",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:xds/",
+      "kind": "implements",
+      "dst": "invariant:pki.ca.canonical.path",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "forbidden_fix:no.pki.path.relative.to.domain",
+      "kind": "blocks_forbidden_action",
+      "dst": "invariant:pki.ca.canonical.path",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared"
+      }
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "partially_implements",
+      "dst": "invariant:pki.ca.canonical.path",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "source_file:xds/",
+      "kind": "partially_implements",
+      "dst": "invariant:pki.ca.canonical.path",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "invariant:xds.mtls.required.in.production",
+      "kind": "protects",
+      "dst": "source_file:xds/",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:xds/",
+      "kind": "implements",
+      "dst": "invariant:xds.mtls.required.in.production",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "invariant:xds.mtls.required.in.production",
+      "kind": "protects",
+      "dst": "source_file:cmd/xds/main.go",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:cmd/xds/main.go",
+      "kind": "implements",
+      "dst": "invariant:xds.mtls.required.in.production",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "forbidden_fix:no.xds.insecure.in.production",
+      "kind": "blocks_forbidden_action",
+      "dst": "invariant:xds.mtls.required.in.production",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared"
+      }
+    },
+    {
+      "src": "source_file:xds/",
+      "kind": "partially_implements",
+      "dst": "invariant:xds.mtls.required.in.production",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "source_file:cmd/xds/main.go",
+      "kind": "partially_implements",
+      "dst": "invariant:xds.mtls.required.in.production",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "invariant:join.token.validated.before.phase",
+      "kind": "protects",
+      "dst": "source_file:gateway_server/",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "implements",
+      "dst": "invariant:join.token.validated.before.phase",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "invariant:join.token.validated.before.phase",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.join.phase.skip",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "forbidden_fix:no.join.phase.skip",
+      "kind": "blocks_forbidden_action",
+      "dst": "invariant:join.token.validated.before.phase",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared"
+      }
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "partially_implements",
+      "dst": "invariant:join.token.validated.before.phase",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "invariant:etcd.ghost.cleared.before.member.add",
+      "kind": "protects",
+      "dst": "source_file:gateway_server/",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "implements",
+      "dst": "invariant:etcd.ghost.cleared.before.member.add",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "invariant:etcd.ghost.cleared.before.member.add",
+      "kind": "protects",
+      "dst": "source_file:internal/server/",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:internal/server/",
+      "kind": "implements",
+      "dst": "invariant:etcd.ghost.cleared.before.member.add",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "invariant:etcd.ghost.cleared.before.member.add",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.etcd.write.from.gateway",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "forbidden_fix:no.etcd.write.from.gateway",
+      "kind": "blocks_forbidden_action",
+      "dst": "invariant:etcd.ghost.cleared.before.member.add",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared"
+      }
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "partially_implements",
+      "dst": "invariant:etcd.ghost.cleared.before.member.add",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "source_file:internal/server/",
+      "kind": "partially_implements",
+      "dst": "invariant:etcd.ghost.cleared.before.member.add",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "invariant:repair.etcd.explicit.flag.only",
+      "kind": "protects",
+      "dst": "source_file:gateway_server/",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "implements",
+      "dst": "invariant:repair.etcd.explicit.flag.only",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "invariant:repair.etcd.explicit.flag.only",
+      "kind": "protects",
+      "dst": "source_file:cmd/gateway/main.go",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:cmd/gateway/main.go",
+      "kind": "implements",
+      "dst": "invariant:repair.etcd.explicit.flag.only",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "forbidden_fix:no.repair.etcd.implicit",
+      "kind": "blocks_forbidden_action",
+      "dst": "invariant:repair.etcd.explicit.flag.only",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared"
+      }
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "partially_implements",
+      "dst": "invariant:repair.etcd.explicit.flag.only",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "source_file:cmd/gateway/main.go",
+      "kind": "partially_implements",
+      "dst": "invariant:repair.etcd.explicit.flag.only",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "invariant:gateway.no.etcd.writes",
+      "kind": "protects",
+      "dst": "source_file:gateway_server/",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "implements",
+      "dst": "invariant:gateway.no.etcd.writes",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "invariant:gateway.no.etcd.writes",
+      "kind": "protects",
+      "dst": "source_file:cmd/gateway/main.go",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:cmd/gateway/main.go",
+      "kind": "implements",
+      "dst": "invariant:gateway.no.etcd.writes",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "invariant:gateway.no.etcd.writes",
+      "kind": "protects",
+      "dst": "source_file:internal/server/",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:internal/server/",
+      "kind": "implements",
+      "dst": "invariant:gateway.no.etcd.writes",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "forbidden_fix:no.etcd.write.from.gateway",
+      "kind": "blocks_forbidden_action",
+      "dst": "invariant:gateway.no.etcd.writes",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared"
+      }
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "partially_implements",
+      "dst": "invariant:gateway.no.etcd.writes",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "source_file:cmd/gateway/main.go",
+      "kind": "partially_implements",
+      "dst": "invariant:gateway.no.etcd.writes",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "source_file:internal/server/",
+      "kind": "partially_implements",
+      "dst": "invariant:gateway.no.etcd.writes",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "invariant:xds.cert.validated.before.serving.secrets",
+      "kind": "protects",
+      "dst": "source_file:xds/",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:xds/",
+      "kind": "implements",
+      "dst": "invariant:xds.cert.validated.before.serving.secrets",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "invariant:xds.cert.validated.before.serving.secrets",
+      "kind": "forbids",
+      "dst": "forbidden_fix:no.csr.sign.without.verify",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1
+    },
+    {
+      "src": "forbidden_fix:no.csr.sign.without.verify",
+      "kind": "blocks_forbidden_action",
+      "dst": "invariant:xds.cert.validated.before.serving.secrets",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared"
+      }
+    },
+    {
+      "src": "source_file:xds/",
+      "kind": "partially_implements",
+      "dst": "invariant:xds.cert.validated.before.serving.secrets",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "invariant:csr.signature.verified.before.signing",
+      "kind": "protects",
+      "dst": "source_file:gateway_server/",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "implements",
+      "dst": "invariant:csr.signature.verified.before.signing",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "forbidden_fix:no.csr.sign.without.verify",
+      "kind": "blocks_forbidden_action",
+      "dst": "invariant:csr.signature.verified.before.signing",
+      "confidence": 1,
+      "class": "decision",
+      "weight": 1,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared"
+      }
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "partially_implements",
+      "dst": "invariant:csr.signature.verified.before.signing",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    },
+    {
+      "src": "invariant:join.phase.order.enforced",
+      "kind": "protects",
+      "dst": "source_file:gateway_server/",
+      "confidence": 1,
+      "class": "information",
+      "weight": 0.3
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "implements",
+      "dst": "invariant:join.phase.order.enforced",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7
+    },
+    {
+      "src": "source_file:gateway_server/",
+      "kind": "partially_implements",
+      "dst": "invariant:join.phase.order.enforced",
+      "confidence": 1,
+      "class": "structural",
+      "weight": 0.7,
+      "metadata": {
+        "source_file": "docs/awareness/invariants.yaml",
+        "trust_level": "declared",
+        "weight_reason": "protects.files backward compat"
+      }
+    }
+  ],
+  "invariants": [
+    {
+      "id": "join.token.validated.before.phase",
+      "title": "Join token must be validated before Phase 1; re-checked before Phase 5",
+      "summary": "The 8-phase join flow must validate the join token at Phase 1 entry. If the join\nis long-running (slow network, large binary sync), the token expiry must be\nre-checked before Phase 5 (etcd member add), which is the point of no return.\nProceeding with an expired token past Phase 5 leaves a ghost etcd member.\n",
+      "severity": "critical",
+      "status": "active"
+    },
+    {
+      "id": "xds.cert.validated.before.serving.secrets",
+      "title": "xDS must verify cert chain before serving TLS secrets to Envoy",
+      "summary": "When xDS builds the TLS secret response for Envoy SDS, it must verify that the\ncert it is about to serve is signed by the cluster CA and has not expired.\nServing an expired or self-signed cert causes Envoy to reject connections\ncluster-wide. A missing file must return an error, not serve an empty secret.\n",
+      "severity": "error",
+      "status": "active"
+    },
+    {
+      "id": "csr.signature.verified.before.signing",
+      "title": "CSR must be verified (node identity + token) before the CA signs it",
+      "summary": "The join flow accepts a CSR from the joining node. Before the gateway CA signs the\nCSR, it must verify: (1) the join token is valid and not expired, (2) the CSR\nsubject matches the expected node identity, (3) the CSR signature is valid\n(the node holds the private key). Signing without these checks issues a cert to\nany caller who submits a CSR to the join endpoint.\n",
+      "severity": "critical",
+      "status": "active"
+    },
+    {
+      "id": "pki.ca.canonical.path",
+      "title": "PKI files must be read from /var/lib/globular/pki/ — never relative to domain or cwd",
+      "summary": "The CA key, CA cert, and all issued service certs live under /var/lib/globular/pki/.\nNo code may construct a PKI path relative to the domain name, a config variable,\nor the current working directory. Paths like /etc/globular/creds/ do not exist.\nConstructing a wrong path silently falls back to an unsigned or missing cert,\ncausing mTLS failures that are hard to diagnose.\n",
+      "severity": "critical",
+      "status": "active"
+    },
+    {
+      "id": "xds.mtls.required.in.production",
+      "title": "xDS must use mTLS in production; GLOBULAR_XDS_INSECURE is dev-only",
+      "summary": "The xDS server serves TLS secrets to Envoy. In production, the connection between\nxDS and Envoy must be mutually authenticated with the cluster CA.\nGLOBULAR_XDS_INSECURE=1 disables this check and must never be set in production.\nAn AI agent must not add logic that defaults to insecure when the env var is absent\nor treats its absence as an error.\n",
+      "severity": "critical",
+      "status": "active"
+    },
+    {
+      "id": "etcd.ghost.cleared.before.member.add",
+      "title": "Ghost etcd members must be removed before adding the new member in Phase 5",
+      "summary": "If a node was partially joined in a prior attempt, it may have a ghost entry in\nthe etcd member list. Adding a new member for the same node without first removing\nthe ghost causes etcd quorum failures. The join handler must detect and remove\nstale member entries for the joining node's identity before calling member add.\n",
+      "severity": "critical",
+      "status": "active"
+    },
+    {
+      "id": "repair.etcd.explicit.flag.only",
+      "title": "etcd WAL wipe requires --repair-etcd; never implicit",
+      "summary": "When a node's prior join left a stale etcd WAL, re-running join will fail because\netcd refuses to start with an existing data directory that doesn't match the\ncluster. The --repair-etcd flag signals the join handler to wipe the WAL before\nstarting etcd. This must never happen implicitly — a silent WAL wipe destroys\nany local etcd data and must require explicit operator intent.\n",
+      "severity": "critical",
+      "status": "active"
+    },
+    {
+      "id": "gateway.no.etcd.writes",
+      "title": "Gateway must not write desired state to etcd; only controller may do this",
+      "summary": "The gateway is the cluster entry point — it signs CSRs, proxies requests, and\nserves the join flow. It must NOT write service configuration, desired state,\nnode records, or any cluster policy to etcd. All etcd writes for cluster state\ngo through the controller. If the gateway writes to etcd, it breaks the\nsingle-authority model and creates split-brain state.\n",
+      "severity": "critical",
+      "status": "active"
+    },
+    {
+      "id": "join.phase.order.enforced",
+      "title": "Join phases 1-8 must execute in order; no phase may be skipped",
+      "summary": "The 8-phase join flow has strict dependencies: each phase builds on the state\nestablished by the prior phase. Phase 5 (etcd member add) requires Phase 4\n(binary sync). Phase 6 (service start) requires Phase 5 (etcd member added).\nAn AI agent must not add a shortcut that skips phases, and must not reorder\nphases to \"optimize\" the flow.\n",
+      "severity": "error",
+      "status": "active"
+    }
+  ],
+  "failure_modes": [
+    {
+      "id": "fm.join.token.expired.mid.phase",
+      "title": "Join token expires between Phase 1 and Phase 5 — ghost member left in etcd",
+      "summary": "A slow join (large binary download, slow network) may take long enough for the\njoin token to expire. If expiry is only checked at Phase 1 and not re-validated\nat Phase 5, the gateway proceeds with an invalid token, signs a CSR for an\nunauthenticated node, adds an etcd member, and then fails authentication checks\nlater — leaving a ghost etcd member and a mis-issued cert.\n",
+      "symptoms": [
+        "join fails partway through with token expired error after long phase 4",
+        "etcd member list has a new entry that never became healthy",
+        "issued cert exists in pki/issued/ but the node never completed join"
+      ],
+      "root_cause": "A slow join (large binary download, slow network) may take long enough for the\njoin token to expire. If expiry is only checked at Phase 1 and not re-validated\nat Phase 5, the gateway proceeds with an invalid token, signs a CSR for an\nunauthenticated node, adds an etcd member, and then fails authentication checks\nlater — leaving a ghost etcd member and a mis-issued cert.\n"
+    },
+    {
+      "id": "fm.csr.signed.without.validation",
+      "title": "CSR signed without verifying node identity or token — cert issued to unknown caller",
+      "summary": "If the CSR signing handler signs any CSR submitted to the join endpoint without\nfirst validating the join token, the CSR subject matching the expected node\nidentity, and the CSR signature (proving key ownership), then any caller who\nreaches the join endpoint can obtain a valid cluster CA-signed cert. This cert\ncan be used to pass mTLS checks for any cluster service.\n",
+      "symptoms": [
+        "CA issues certs for nodes that never appeared in the approved join queue",
+        "Cert subject CN does not match the node hostname that was expected",
+        "CSR submitted without a join token succeeds"
+      ],
+      "root_cause": "If the CSR signing handler signs any CSR submitted to the join endpoint without\nfirst validating the join token, the CSR subject matching the expected node\nidentity, and the CSR signature (proving key ownership), then any caller who\nreaches the join endpoint can obtain a valid cluster CA-signed cert. This cert\ncan be used to pass mTLS checks for any cluster service.\n"
+    },
+    {
+      "id": "fm.xds.snapshot.stale",
+      "title": "Envoy running with stale xDS snapshot after cert renewal or config change",
+      "summary": "When a TLS cert is renewed or an Envoy cluster/listener config changes, the xDS\nserver must push a new snapshot. If the push is missed (gateway restart, xDS crash,\nor race between cert renewal and snapshot rebuild), Envoy continues serving with the\nold config. The service appears healthy but is using an expired cert or routing to\na stale set of backends. Envoy does not self-detect snapshot staleness.\n",
+      "symptoms": [
+        "Envoy admin /config_dump shows an older version string than xDS server",
+        "TLS handshake errors despite cert having been renewed in PKI",
+        "Traffic routed to a removed backend endpoint",
+        "xDS NACKs in Envoy log referencing old version ID"
+      ],
+      "root_cause": "When a TLS cert is renewed or an Envoy cluster/listener config changes, the xDS\nserver must push a new snapshot. If the push is missed (gateway restart, xDS crash,\nor race between cert renewal and snapshot rebuild), Envoy continues serving with the\nold config. The service appears healthy but is using an expired cert or routing to\na stale set of backends. Envoy does not self-detect snapshot staleness.\n"
+    },
+    {
+      "id": "fm.ca.cert.missing.at.join",
+      "title": "CA cert missing at join time — CSR signing fails silently",
+      "summary": "If /var/lib/globular/pki/ca.key or ca.crt is absent when a node attempts to join,\nthe CSR signing step fails. Depending on error handling, the join may return a\ngeneric error or silently issue an unsigned cert. The joining node installs a bad\ncert and all subsequent mTLS connections fail. The root cause is usually a failed\nprior bootstrap that left PKI in a partial state.\n",
+      "symptoms": [
+        "join fails at Phase 3 or Phase 4 with certificate error",
+        "ls /var/lib/globular/pki/ shows ca.crt missing or zero-length",
+        "joining node service fails to start due to TLS handshake error",
+        "gateway log shows pki path not found or permission denied"
+      ],
+      "root_cause": "If /var/lib/globular/pki/ca.key or ca.crt is absent when a node attempts to join,\nthe CSR signing step fails. Depending on error handling, the join may return a\ngeneric error or silently issue an unsigned cert. The joining node installs a bad\ncert and all subsequent mTLS connections fail. The root cause is usually a failed\nprior bootstrap that left PKI in a partial state.\n"
+    },
+    {
+      "id": "fm.xds.insecure.in.production",
+      "title": "xDS serving without mTLS — Envoy accepts unsigned config from any caller",
+      "summary": "If GLOBULAR_XDS_INSECURE=1 is set in a production environment, the xDS server\ndisables mutual TLS. Any process that can reach the xDS port can push arbitrary\nEnvoy configuration — routing all traffic to an attacker-controlled backend,\nreplacing TLS secrets, or disabling auth entirely. This is a full cluster\ncompromise vector.\n",
+      "symptoms": [
+        "xDS port is reachable without presenting a client cert",
+        "Envoy connects to xDS without mTLS (check Envoy admin /config_dump)",
+        "GLOBULAR_XDS_INSECURE=1 present in xDS service environment"
+      ],
+      "root_cause": "If GLOBULAR_XDS_INSECURE=1 is set in a production environment, the xDS server\ndisables mutual TLS. Any process that can reach the xDS port can push arbitrary\nEnvoy configuration — routing all traffic to an attacker-controlled backend,\nreplacing TLS secrets, or disabling auth entirely. This is a full cluster\ncompromise vector.\n"
+    },
+    {
+      "id": "fm.etcd.ghost.member",
+      "title": "Ghost etcd member from a failed prior join blocks new join attempts",
+      "summary": "If a node starts a join, reaches Phase 5 (etcd member add), but then fails before\ncompleting Phase 6 (etcd start), the new member is registered in the etcd member\nlist but never comes online. Subsequent join attempts for the same node fail because\netcd rejects adding a member with the same peer URL or sees quorum already\nreduced by the non-responsive ghost. The ghost must be explicitly removed.\n",
+      "symptoms": [
+        "etcdctl member list shows a member with no client URLs or in unstarted state",
+        "new join attempt fails with cluster quorum error or member already exists",
+        "etcd cluster health shows unhealthy due to missing quorum from ghost"
+      ],
+      "root_cause": "If a node starts a join, reaches Phase 5 (etcd member add), but then fails before\ncompleting Phase 6 (etcd start), the new member is registered in the etcd member\nlist but never comes online. Subsequent join attempts for the same node fail because\netcd rejects adding a member with the same peer URL or sees quorum already\nreduced by the non-responsive ghost. The ghost must be explicitly removed.\n"
+    }
+  ],
+  "builds": [
+    {
+      "id": "build-1779061811",
+      "repo_root": ".",
+      "git_commit": "2dc87e62fd48c122cf4220467f538dc292e1232b",
+      "created_at": 1779061811,
+      "stats": {
+        "nodes": 31,
+        "edges": 78,
+        "invariants": 9,
+        "failure_modes": 6
+      },
+      "collector_health": [
+        {
+          "collector_id": "metrics",
+          "source_tier": "knowledge_base",
+          "status": "ok",
+          "nodes_emitted": 0,
+          "priority": "P0"
+        }
+      ]
+    }
+  ]
+}

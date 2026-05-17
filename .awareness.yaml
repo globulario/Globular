@@ -1,0 +1,41 @@
+name: globular-gateway
+kind: service
+
+languages:
+  go: true
+  yaml: true
+  bash: true
+  markdown: true
+
+source_roots:
+  - cmd
+  - internal
+  - gateway_server
+  - xds
+
+runtime:
+  enabled: false
+  adapter: null
+
+graph:
+  cache_dir: docs/awareness/cache
+  freshness_ttl: 24h
+  invalidate_on:
+    - source_mtime_change
+    - awareness_file_mtime_change
+    - go_mod_change
+
+awareness:
+  root: docs/awareness
+  invariants:
+    - docs/awareness/invariants.yaml
+  failure_modes:
+    - docs/awareness/failure_modes.yaml
+  forbidden_fixes:
+    - docs/awareness/forbidden_fixes.yaml
+  authority_rules:
+    - docs/awareness/authority_rules.yaml
+
+mcp:
+  project_aware: true
+  resolve_profile_from: cwd
