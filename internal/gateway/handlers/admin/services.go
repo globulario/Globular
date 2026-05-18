@@ -542,6 +542,27 @@ func promMetricKey(labels map[string]string) string {
 	return job + "|" + node
 }
 
+// deduplicateByNameNode collapses duplicate service instances that share the
+// same name+node key (caused by multiple etcd registrations). When duplicates
+// exist the instance with the best derived status is kept: healthy > degraded >
+// unknown > critical.
+func deduplicateByNameNode(in []ServiceInstance) []ServiceInstance {
+	rank := map[string]int{"healthy": 0, "degraded": 1, "unknown": 2, "critical": 3}
+	best := make(map[string]ServiceInstance, len(in))
+	for _, s := range in {
+		key := s.Name + "|" + s.Node
+		prev, exists := best[key]
+		if !exists || rank[s.DerivedStatus] < rank[prev.DerivedStatus] {
+			best[key] = s
+		}
+	}
+	out := make([]ServiceInstance, 0, len(best))
+	for _, s := range best {
+		out = append(out, s)
+	}
+	return out
+}
+
 func parsePromValue(raw json.RawMessage) float64 {
 	var s string
 	if err := json.Unmarshal(raw, &s); err != nil {
@@ -764,6 +785,12 @@ func NewServicesHandler(provider AdminProvider) http.Handler {
 
 			all = append(all, inst)
 		}
+
+		// Deduplicate: when multiple service registrations produce the same
+		// name+node pair (e.g. after a re-registration creates a second etcd
+		// entry), keep the instance with the best derived status so that a
+		// stale "closed" registration doesn't shadow a live "running" one.
+		all = deduplicateByNameNode(all)
 
 		// Group by category
 		grouped := groupServices(all)
