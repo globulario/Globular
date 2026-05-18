@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	config_ "github.com/globulario/services/golang/config"
 )
 
 // ── JSON response types ─────────────────────────────────────────────────────
@@ -447,28 +449,79 @@ func promJobKey(labels map[string]string) string {
 // `node` label (hostname) and an `instance` label of the form
 // "<nodeIP>:<port>" or "<hostname>:<port>", so we can extract both forms
 // and index them. Returns an empty map if Prometheus is unreachable.
+//
+// The result is supplemented by fetchClusterNodeMap so that remote nodes are
+// always resolved correctly even when Prometheus is not federated.
 func fetchIPHostMap(ctx context.Context, prom *promClient) map[string]string {
 	out := make(map[string]string)
 	results, err := prom.query(ctx, "up")
-	if err != nil {
+	if err == nil {
+		for _, r := range results {
+			node := strings.TrimSpace(r.Metric["node"])
+			if node == "" {
+				continue
+			}
+			instance := r.Metric["instance"]
+			host := instance
+			if idx := strings.IndexByte(instance, ':'); idx > 0 {
+				host = instance[:idx]
+			}
+			if host != "" {
+				out[host] = node
+			}
+			out[node] = node
+		}
+	}
+
+	// Supplement with cluster node registry from etcd — authoritative even
+	// when Prometheus lacks node labels (non-federated single-node mode).
+	for ip, hostname := range fetchClusterNodeMap(ctx) {
+		if _, exists := out[ip]; !exists {
+			out[ip] = hostname
+		}
+		if _, exists := out[hostname]; !exists {
+			out[hostname] = hostname
+		}
+	}
+	return out
+}
+
+// fetchClusterNodeMap reads the cluster controller state from etcd and returns
+// a map of IP → hostname for every registered cluster node.
+func fetchClusterNodeMap(ctx context.Context) map[string]string {
+	out := make(map[string]string)
+	cli, err := config_.GetEtcdClient()
+	if err != nil || cli == nil {
 		return out
 	}
-	for _, r := range results {
-		node := strings.TrimSpace(r.Metric["node"])
-		if node == "" {
+
+	resp, err := cli.Get(ctx, "/globular/clustercontroller/state")
+	if err != nil || len(resp.Kvs) == 0 {
+		return out
+	}
+
+	var state struct {
+		Nodes map[string]struct {
+			Identity struct {
+				Hostname string   `json:"hostname"`
+				Ips      []string `json:"ips"`
+			} `json:"identity"`
+		} `json:"nodes"`
+	}
+	if err := json.Unmarshal(resp.Kvs[0].Value, &state); err != nil {
+		return out
+	}
+	for _, n := range state.Nodes {
+		hostname := strings.TrimSpace(n.Identity.Hostname)
+		if hostname == "" {
 			continue
 		}
-		instance := r.Metric["instance"]
-		host := instance
-		if idx := strings.IndexByte(instance, ':'); idx > 0 {
-			host = instance[:idx]
+		for _, ip := range n.Identity.Ips {
+			ip = strings.TrimSpace(ip)
+			if ip != "" {
+				out[ip] = hostname
+			}
 		}
-		if host != "" {
-			out[host] = node
-		}
-		// Also index the node hostname → itself, so cfgs with a hostname
-		// (not an IP) in their Address field still resolve.
-		out[node] = node
 	}
 	return out
 }
