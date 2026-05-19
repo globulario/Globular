@@ -726,20 +726,14 @@ func deriveMinioLayout(cfg *config_.MinioProxyConfig) minioLayout {
 	if layout.usersPrefix == "" && basePrefix != "" {
 		layout.usersPrefix = path.Join(basePrefix, "users")
 	}
-	if layout.webrootPrefix == "" && basePrefix != "" {
-		layout.webrootPrefix = path.Join(basePrefix, "webroot")
-	}
 	if layout.usersPrefix == "" {
-		// v1 Conformance: Use stable prefix (security violation INV-1.3)
-		// REMOVED: path.Join(layout.domain, "users") - Domain MUST NOT determine storage paths
-		// Domain is routing configuration, not identity - using it breaks on domain changes
-		// For multi-tenancy, use explicit prefix config with clusterID or principalID
-		layout.usersPrefix = "users" // Stable prefix, independent of domain config
+		layout.usersPrefix = "users"
 	}
+	// Webroot is always at the top-level "webroot" prefix regardless of the base
+	// prefix. The base prefix scopes user data (e.g. "globular.internal/users")
+	// but webroot content is stored at the bucket root ("webroot/index.html").
 	if layout.webrootPrefix == "" {
-		// v1 Conformance: Use stable prefix (security violation INV-1.3)
-		// REMOVED: path.Join(layout.domain, "webroot")
-		layout.webrootPrefix = "webroot" // Stable prefix, independent of domain config
+		layout.webrootPrefix = "webroot"
 	}
 	return layout
 }

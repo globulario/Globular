@@ -654,6 +654,46 @@ func serveWebrootFromMinio(w http.ResponseWriter, r *http.Request, cfg *MinioPro
 					return true
 				}
 			}
+			// Cluster-domain fallback: external domains without their own webroot
+			// content in MinIO (e.g. globular.io) fall back to the cluster domain's
+			// webroot (globular.internal/webroot) so the admin UI is served there too.
+			clusterPrefix := cfg.webrootPrefixValue()
+			domainPrefix := cfg.webrootPrefixForHost(host)
+			if clusterPrefix != domainPrefix {
+				logical := strings.TrimPrefix(rqstPath, "/")
+				if logical == "" || strings.HasSuffix(logical, "/") {
+					logical += "index.html"
+				} else if !strings.Contains(path.Base(logical), ".") {
+					logical += "/index.html"
+				}
+				if clusterKey, ckErr := joinKey(clusterPrefix, logical); ckErr == nil && clusterKey != "" {
+					clusterReader, clusterInfo, clusterFetchErr := cfg.Fetch(r.Context(), cfg.webrootBucket(), clusterKey)
+					if clusterFetchErr == nil {
+						defer clusterReader.Close()
+						serveMinioContent(w, r, path.Base(clusterKey), clusterInfo, clusterReader)
+						return true
+					}
+					// SPA fallback for cluster prefix
+					spaLogical := strings.Split(strings.TrimPrefix(logical, "/"), "/")[0] + "/index.html"
+					if spaKey2, spaErr2 := joinKey(clusterPrefix, spaLogical); spaErr2 == nil {
+						spaReader2, spaInfo2, spaFetchErr2 := cfg.Fetch(r.Context(), cfg.webrootBucket(), spaKey2)
+						if spaFetchErr2 == nil {
+							defer spaReader2.Close()
+							serveMinioContent(w, r, "index.html", spaInfo2, spaReader2)
+							return true
+						}
+					}
+					// Root index.html as final MinIO fallback
+					if rootKey, rErr := joinKey(clusterPrefix, "index.html"); rErr == nil {
+						rootReader, rootInfo, rootFetchErr := cfg.Fetch(r.Context(), cfg.webrootBucket(), rootKey)
+						if rootFetchErr == nil {
+							defer rootReader.Close()
+							serveMinioContent(w, r, "index.html", rootInfo, rootReader)
+							return true
+						}
+					}
+				}
+			}
 			return false
 		}
 		if isMinioUnavailable(err) {

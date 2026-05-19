@@ -21,6 +21,7 @@ import (
 	gatewayhttp "github.com/globulario/Globular/internal/gateway/httpserver"
 	globpkg "github.com/globulario/Globular/internal/globule"
 	globconfig "github.com/globulario/services/golang/config"
+	"github.com/globulario/services/golang/domain"
 
 	"net/http"
 
@@ -204,6 +205,15 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	if etcdCli, err := globconfig.GetEtcdClient(); err == nil && etcdCli != nil {
+		if err := domain.SyncACMECertsFromEtcd(etcdCli, logger); err != nil {
+			logger.Warn("acme-sync: initial sync failed", "err", err)
+		}
+		go domain.WatchACMECerts(ctx, etcdCli, logger)
+	} else {
+		logger.Warn("acme-sync: etcd not available, skipping cert sync", "err", err)
+	}
 
 	<-ctx.Done()
 
