@@ -346,9 +346,9 @@ func emitGatewayDescribe(cfg *servicePortConfig, g *globpkg.Globule) error {
 }
 
 // startGatewayMetrics starts a plain-HTTP Prometheus metrics server on a free
-// port bound to localhost. Returns the port number, or 0 on failure.
+// port bound to all interfaces. Returns the port number, or 0 on failure.
 func startGatewayMetrics(logger *slog.Logger) int {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := net.Listen("tcp", "0.0.0.0:0")
 	if err != nil {
 		logger.Warn("gateway metrics: cannot allocate port", "err", err)
 		return 0
@@ -390,8 +390,17 @@ const promTargetsDir = "/var/lib/globular/prometheus/targets"
 
 // writePromTargetFile writes a Prometheus file_sd YAML target file so that
 // Prometheus auto-discovers this service's /metrics endpoint.
+// Uses the node's routable IP so that a Prometheus instance on any cluster
+// node can reach this endpoint. Skips silently if the routable IP cannot
+// be determined — better to have no target than a loopback-poisoned one.
 func writePromTargetFile(job string, port int) {
-	content := fmt.Sprintf("- targets: [\"127.0.0.1:%d\"]\n  labels:\n    job: %s\n", port, job)
+	nodeIP, err := globconfig.GetRoutableIP()
+	if err != nil || nodeIP == "" {
+		slog.Warn("gateway metrics: cannot determine routable IP, skipping prometheus target", "err", err)
+		return
+	}
+	hostname, _ := os.Hostname()
+	content := fmt.Sprintf("- targets: [\"%s:%d\"]\n  labels:\n    job: %s\n    node: %s\n", nodeIP, port, job, hostname)
 	path := filepath.Join(promTargetsDir, job+".yaml")
 	if err := os.MkdirAll(promTargetsDir, 0750); err != nil {
 		return
