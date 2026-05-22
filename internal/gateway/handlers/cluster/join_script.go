@@ -733,11 +733,18 @@ log_phase "7 — Cluster Join RPC and DNS"
 # ============================================================================
 
 log_info "[7.1] Sending join request to controller..."
-globular cluster join \
+JOIN_ERR=$(globular cluster join \
   --join-token "${JOIN_TOKEN}" \
   --controller "${CONTROLLER}" \
   --node "${NODE_IP}:11000" \
-  --insecure
+  --insecure 2>&1) || {
+  if echo "${JOIN_ERR}" | grep -q "hostname already present"; then
+    log_ok "Node already registered with controller (idempotent re-join)"
+  else
+    log_warn "[7.1] Join RPC failed: ${JOIN_ERR}"
+    exit 1
+  fi
+}
 log_ok "Join request sent"
 
 log_info "[7.2] Registering DNS A record..."
