@@ -3,9 +3,16 @@ set -euo pipefail
 
 # ── Globular Node Cleanup ─────────────────────────────────────────────────────
 #
-# Prepares a node for a fresh Day-1 join by stopping all Globular and ScyllaDB
-# services and removing their state. Run this on any node that previously had
-# Globular installed before joining it to a new cluster.
+# Removes this node cleanly from the cluster, then wipes all local state so the
+# node is ready for a fresh Day-1 join.
+#
+# Phase 0 (NEW): Cluster-level detachment — runs while services are still UP:
+#   a. Removes the node from the cluster controller (cascades to envoy/xDS
+#      endpoint removal and MinIO pool eviction automatically).
+#   b. Decommissions the ScyllaDB node (streams data to peers before shutdown).
+#   c. Removes the etcd member (prevents quorum breakage on remaining peers).
+#
+# Phases 1–5: Local cleanup — stops services and wipes state.
 #
 # Usage:
 #   sudo bash clean-node.sh              # interactive (asks before wiping)
@@ -36,9 +43,129 @@ echo "  Date: $(date)"
 echo ""
 
 if [[ $FORCE -eq 0 ]] && [[ -t 0 ]]; then
-  echo "  This will stop all Globular/ScyllaDB services and wipe their data."
+  echo "  This will remove this node from the cluster and wipe all local data."
   echo "  Press Enter to continue, or Ctrl+C to abort..."
   read -r
+fi
+
+# ── Phase 0: Cluster-level detachment ────────────────────────────────────────
+#
+# Must run BEFORE stopping services: ScyllaDB decommission and etcd member
+# remove both require the respective service to be running. Controller removal
+# triggers xDS endpoint pruning and MinIO pool eviction automatically.
+
+log_step "Detaching from Cluster (before local wipe)"
+
+_STATE_DIR="/var/lib/globular"
+_PKI_DIR="${_STATE_DIR}/pki"
+_STATE_FILE="${_STATE_DIR}/nodeagent/state.json"
+_ETCD_CACERT="${_PKI_DIR}/ca.crt"
+_ETCD_CERT="${_PKI_DIR}/issued/etcd/client.crt"
+_ETCD_KEY="${_PKI_DIR}/issued/etcd/client.key"
+_NODE_IP=$(hostname -I | awk '{print $1}')
+_ETCD_ENDPOINT="https://${_NODE_IP}:2379"
+
+# Locate globular CLI binary
+_GLOBULAR_BIN=$(command -v globular 2>/dev/null || true)
+[[ -z "$_GLOBULAR_BIN" ]] && [[ -x "${_STATE_DIR}/bin/globularcli" ]] && _GLOBULAR_BIN="${_STATE_DIR}/bin/globularcli"
+# Locate etcdctl
+_ETCDCTL_BIN=$(command -v etcdctl 2>/dev/null || true)
+[[ -z "$_ETCDCTL_BIN" ]] && [[ -x "${_STATE_DIR}/bin/etcdctl" ]] && _ETCDCTL_BIN="${_STATE_DIR}/bin/etcdctl"
+
+# Read node ID from node-agent state file
+_NODE_ID=""
+if [[ -f "$_STATE_FILE" ]] && command -v python3 >/dev/null 2>&1; then
+  _NODE_ID=$(python3 -c "
+import json
+try:
+    d = json.load(open('$_STATE_FILE'))
+    print(d.get('NodeID', '').strip())
+except Exception:
+    pass
+" 2>/dev/null || true)
+fi
+
+# ── 0.1 Remove from cluster controller ───────────────────────────────────────
+# Cascades to: envoy/xDS endpoint removal, MinIO pool eviction, node registry.
+if [[ -n "$_NODE_ID" ]] && [[ -n "$_GLOBULAR_BIN" ]]; then
+  log_info "Removing node ${_NODE_ID} from cluster controller (xDS + MinIO pool)..."
+  if "$_GLOBULAR_BIN" cluster nodes remove "$_NODE_ID" --force --drain=false 2>/dev/null; then
+    log_success "Node removed from cluster controller"
+  else
+    log_warn "Controller removal failed — continuing local wipe. Run manually if needed:"
+    log_warn "  globular cluster nodes remove ${_NODE_ID} --force --drain=false"
+  fi
+elif [[ -z "$_NODE_ID" ]]; then
+  log_warn "No node ID in ${_STATE_FILE} — skipping controller removal (node may not be registered)"
+else
+  log_warn "globular CLI not found — skipping controller removal"
+fi
+
+# ── 0.2 ScyllaDB: decommission before shutdown ───────────────────────────────
+# Streams data to remaining peers; must run while scylla-server is still active.
+# Skip when this is the only ScyllaDB node (nothing to stream to).
+if systemctl is-active --quiet scylla-server.service 2>/dev/null; then
+  if command -v nodetool >/dev/null 2>&1; then
+    _SCYLLA_UP=$(nodetool status 2>/dev/null | grep -cE "^U[NL] " || echo "0")
+    if [[ "$_SCYLLA_UP" -gt 1 ]]; then
+      log_info "Decommissioning ScyllaDB node (streaming data to peers — this may take a few minutes)..."
+      if nodetool decommission 2>/dev/null; then
+        log_success "ScyllaDB node decommissioned cleanly"
+      else
+        log_warn "ScyllaDB decommission failed — data may be under-replicated."
+        log_warn "  From another node: nodetool removenode <host-id>"
+      fi
+    else
+      log_info "Single-node ScyllaDB — skipping decommission"
+    fi
+  else
+    log_warn "nodetool not found — skipping ScyllaDB decommission"
+    log_warn "  From another node after this wipe: nodetool removenode <host-id>"
+  fi
+fi
+
+# ── 0.3 etcd: remove member before data wipe ─────────────────────────────────
+# Without this the remaining peers still count this node toward quorum and will
+# stall on the next leader election or write if it stays missing.
+if systemctl is-active --quiet globular-etcd.service 2>/dev/null \
+    && [[ -n "$_ETCDCTL_BIN" ]] \
+    && [[ -f "$_ETCD_CACERT" ]] && [[ -f "$_ETCD_CERT" ]] && [[ -f "$_ETCD_KEY" ]]; then
+
+  _MEMBER_ID=$(ETCDCTL_API=3 "$_ETCDCTL_BIN" \
+    --endpoints="$_ETCD_ENDPOINT" \
+    --cacert="$_ETCD_CACERT" --cert="$_ETCD_CERT" --key="$_ETCD_KEY" \
+    member list --write-out=json 2>/dev/null | \
+    python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+    node_ip = '${_NODE_IP}'
+    for m in d.get('members', []):
+        urls = m.get('peerURLs', []) + m.get('clientURLs', [])
+        if any(node_ip in u for u in urls):
+            print(m['ID'])
+            break
+except Exception:
+    pass
+" 2>/dev/null || true)
+
+  if [[ -n "$_MEMBER_ID" ]]; then
+    log_info "Removing etcd member ${_MEMBER_ID} (${_NODE_IP}) from cluster..."
+    if ETCDCTL_API=3 "$_ETCDCTL_BIN" \
+        --endpoints="$_ETCD_ENDPOINT" \
+        --cacert="$_ETCD_CACERT" --cert="$_ETCD_CERT" --key="$_ETCD_KEY" \
+        member remove "$_MEMBER_ID" 2>/dev/null; then
+      log_success "etcd member removed — remaining peers updated"
+    else
+      log_warn "etcd member remove failed — remaining peers may have a ghost member."
+      log_warn "  From another etcd member: etcdctl member remove ${_MEMBER_ID}"
+    fi
+  else
+    log_warn "This node not found in etcd member list — may already be removed"
+  fi
+elif systemctl is-active --quiet globular-etcd.service 2>/dev/null; then
+  log_warn "etcdctl or TLS certs missing — skipping etcd member removal"
+  log_warn "  Manual fix: etcdctl member list → etcdctl member remove <id>"
 fi
 
 # ── Phase 1: Stop services ────────────────────────────────────────────────────
