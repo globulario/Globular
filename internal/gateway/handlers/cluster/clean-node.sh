@@ -7,8 +7,8 @@ set -euo pipefail
 # node is ready for a fresh Day-1 join.
 #
 # Phase 0 (NEW): Cluster-level detachment — runs while services are still UP:
-#   a. Removes the node from the cluster controller (cascades to envoy/xDS
-#      endpoint removal and MinIO pool eviction automatically).
+#   a. Removes the node from the cluster controller via gateway HTTP API
+#      (cascades to envoy/xDS endpoint removal and MinIO pool eviction).
 #   b. Decommissions the ScyllaDB node (streams data to peers before shutdown).
 #   c. Removes the etcd member (prevents quorum breakage on remaining peers).
 #
@@ -86,19 +86,52 @@ except Exception:
 fi
 
 # ── 0.1 Remove from cluster controller ───────────────────────────────────────
-# Cascades to: envoy/xDS endpoint removal, MinIO pool eviction, node registry.
-if [[ -n "$_NODE_ID" ]] && [[ -n "$_GLOBULAR_BIN" ]]; then
-  log_info "Removing node ${_NODE_ID} from cluster controller (xDS + MinIO pool)..."
-  if "$_GLOBULAR_BIN" cluster nodes remove "$_NODE_ID" --force --drain=false 2>/dev/null; then
+# Primary: gateway HTTP API (DELETE /api/cluster/nodes/<id>). The gateway uses
+# its own controller auth — no user token is required on the cleaning node.
+# Fallback: globular CLI (needs a cached token at ~/.config/globular/token).
+
+if [[ -n "$_NODE_ID" ]]; then
+  # Derive gateway host from controller_endpoint in state.json (strip scheme/port).
+  _GATEWAY_HOST="globular.internal"
+  if [[ -f "$_STATE_FILE" ]] && command -v python3 >/dev/null 2>&1; then
+    _GH=$(python3 -c "
+import json, re
+try:
+    d = json.load(open('$_STATE_FILE'))
+    ep = d.get('controller_endpoint', '').strip()
+    ep = re.sub(r'^https?://', '', ep)
+    ep = re.sub(r':\d+$', '', ep)
+    if ep: print(ep)
+except Exception: pass
+" 2>/dev/null || true)
+    [[ -n "$_GH" ]] && _GATEWAY_HOST="$_GH"
+  fi
+
+  log_info "Removing node ${_NODE_ID} from cluster via gateway API (${_GATEWAY_HOST}:8443)..."
+  _HTTP_STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+    -X DELETE "https://${_GATEWAY_HOST}:8443/api/cluster/nodes/${_NODE_ID}" \
+    -k -H "Content-Type: application/json" \
+    -d '{"force":true,"drain":false}' 2>/dev/null || echo "000")
+
+  if [[ "$_HTTP_STATUS" == "200" ]]; then
     log_success "Node removed from cluster controller"
   else
-    log_warn "Controller removal failed — continuing local wipe. Run manually if needed:"
-    log_warn "  globular cluster nodes remove ${_NODE_ID} --force --drain=false"
+    log_warn "Gateway API returned HTTP ${_HTTP_STATUS} — falling back to globular CLI..."
+    if [[ -n "$_GLOBULAR_BIN" ]]; then
+      _REMOVE_ERR=$("$_GLOBULAR_BIN" cluster nodes remove "$_NODE_ID" --force --drain=false 2>&1 || true)
+      if echo "$_REMOVE_ERR" | grep -q "^message:"; then
+        log_success "Node removed from cluster controller (via CLI)"
+      else
+        log_warn "CLI removal also failed: ${_REMOVE_ERR}"
+        log_warn "Run manually after cleanup: globular cluster nodes remove ${_NODE_ID} --force --drain=false"
+      fi
+    else
+      log_warn "globular CLI not found — run manually after cleanup:"
+      log_warn "  curl -X DELETE https://${_GATEWAY_HOST}:8443/api/cluster/nodes/${_NODE_ID} -k -d '{\"force\":true,\"drain\":false}'"
+    fi
   fi
 elif [[ -z "$_NODE_ID" ]]; then
   log_warn "No node ID in ${_STATE_FILE} — skipping controller removal (node may not be registered)"
-else
-  log_warn "globular CLI not found — skipping controller removal"
 fi
 
 # ── 0.2 ScyllaDB: decommission before shutdown ───────────────────────────────
