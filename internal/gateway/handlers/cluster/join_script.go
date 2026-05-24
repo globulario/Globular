@@ -416,7 +416,36 @@ cp "${STATE_DIR}/workflows/node.join.yaml" /tmp/node.join.yaml 2>/dev/null || tr
 chown -R globular:globular "${STATE_DIR}/workflows" 2>/dev/null || true
 log_ok "Workflows installed"
 
-log_info "[4.3] Preparing ScyllaDB apt source (workflow owns the actual install)..."
+log_info "[4.3] Downloading package artifacts from gateway..."
+PACKAGES_DIR="${STATE_DIR}/packages"
+mkdir -p "${PACKAGES_DIR}"
+PKG_LIST=$(curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
+  "https://${GATEWAY}/join/packages/" 2>/dev/null || echo "[]")
+if [[ "${PKG_LIST}" == "[]" || -z "${PKG_LIST}" ]]; then
+  log_info "No packages listed by gateway — packages may already be present or will be fetched on demand"
+else
+  echo "${PKG_LIST}" | tr -d '[]"' | tr ',' '\n' | while IFS= read -r PKG_FILE; do
+    PKG_FILE=$(echo "${PKG_FILE}" | xargs)
+    [[ -z "${PKG_FILE}" ]] && continue
+    [[ "${PKG_FILE}" == *.tgz ]] || continue
+    if [[ -f "${PACKAGES_DIR}/${PKG_FILE}" ]]; then
+      log_info "  ${PKG_FILE} already present — skip"
+      continue
+    fi
+    log_info "  Downloading ${PKG_FILE}..."
+    if curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
+        "https://${GATEWAY}/join/packages/${PKG_FILE}" \
+        -o "${PACKAGES_DIR}/${PKG_FILE}"; then
+      log_info "  ${PKG_FILE} downloaded"
+    else
+      log_info "  WARNING: failed to download ${PKG_FILE} (non-fatal — node-agent will retry)"
+    fi
+  done
+fi
+chown -R globular:globular "${PACKAGES_DIR}" 2>/dev/null || true
+log_ok "Package artifacts ready"
+
+log_info "[4.4] Preparing ScyllaDB apt source (workflow owns the actual install)..."
 if [[ -n "${SCYLLA_GPG_B64}" && -n "${SCYLLA_APT_SOURCE}" ]]; then
   if [[ ! -f /etc/apt/keyrings/scylladb.gpg ]]; then
     mkdir -p /etc/apt/keyrings

@@ -20,6 +20,7 @@ type Deps struct {
 	JoinToken     http.Handler
 	JoinScript    http.Handler // GET /join — self-contained join script
 	JoinBin       http.Handler // GET /join/bin/<name> — binary downloads
+	JoinPackages  http.Handler // GET /join/packages/<name.tgz> — package downloads
 	JoinWorkflows http.Handler // GET /join/workflows/<name> — workflow definitions
 	CleanScript   http.Handler // GET /clean — node cleanup script (pre-rejoin wipe)
 	Nodes         http.Handler
@@ -34,6 +35,9 @@ func Mount(mux *http.ServeMux, d Deps) {
 	}
 	if d.JoinBin != nil {
 		mux.Handle("/join/bin/", d.JoinBin)
+	}
+	if d.JoinPackages != nil {
+		mux.Handle("/join/packages/", d.JoinPackages)
 	}
 	if d.JoinWorkflows != nil {
 		mux.Handle("/join/workflows/", d.JoinWorkflows)
