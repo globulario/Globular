@@ -1,12 +1,13 @@
 package cluster
 
 import (
+	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/globulario/services/golang/config"
 )
@@ -23,10 +24,9 @@ var allowedWorkflows = map[string]bool{
 	"release.remove.package.yaml":       true,
 }
 
-// NewJoinWorkflowsHandler serves workflow definition YAML files from MinIO
-// (globular-config/workflows/) or from the local filesystem as fallback.
-// This allows joining nodes to fetch workflow definitions via the gateway
-// without needing direct MinIO access.
+// NewJoinWorkflowsHandler serves workflow definition YAML files from etcd
+// (/globular/workflows/) or from the local filesystem as fallback.
+// All workflow definitions are stored in etcd — MinIO is not used.
 func NewJoinWorkflowsHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -55,24 +55,24 @@ func NewJoinWorkflowsHandler() http.Handler {
 			return
 		}
 
-		// Try MinIO first (globular-config/workflows/<name>).
-		data, err := config.GetClusterConfig("workflows/" + name)
-		if err == nil && len(data) > 0 {
-			w.Header().Set("Content-Type", "application/x-yaml")
-			w.Header().Set("Content-Disposition", "attachment; filename="+name)
-			w.Write(data)
-			return
-		}
-		if err != nil {
-			log.Printf("join/workflows/%s: MinIO fetch failed: %v — trying local", name, err)
+		// Primary: etcd /globular/workflows/<name>
+		if cli, err := config.GetEtcdClient(); err == nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			resp, etcdErr := cli.Get(ctx, "/globular/workflows/"+name)
+			cancel()
+			if etcdErr == nil && len(resp.Kvs) > 0 {
+				w.Header().Set("Content-Type", "application/x-yaml")
+				w.Header().Set("Content-Disposition", "attachment; filename="+name)
+				w.Write(resp.Kvs[0].Value)
+				return
+			}
 		}
 
-		// Fallback to local filesystem.
-		candidates := []string{
+		// Fallback: local filesystem (bootstrap window before etcd is seeded).
+		for _, path := range []string{
 			"/var/lib/globular/workflows/" + name,
 			"/usr/lib/globular/workflows/" + name,
-		}
-		for _, path := range candidates {
+		} {
 			http.ServeFile(w, r, path)
 			return
 		}
