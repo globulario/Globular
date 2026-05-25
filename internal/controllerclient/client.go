@@ -203,6 +203,19 @@ func (c *Client) GetClusterNetwork(ctx context.Context) (*cluster_controllerpb.C
 	return client.GetClusterNetwork(ctx, &cluster_controllerpb.GetClusterNetworkRequest{})
 }
 
+// RequestJoinAuthorization submits a v2 join authorization request to the
+// controller and returns the signed JoinPlan response. The gateway calls this
+// as a pure courier — it does not inspect or modify the plan.
+func (c *Client) RequestJoinAuthorization(ctx context.Context, req *cluster_controllerpb.JoinAuthorizationRequest) (*cluster_controllerpb.JoinAuthorizationResponse, error) {
+	conn, closeFn, err := c.dial(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer closeFn()
+	client := cluster_controllerpb.NewClusterControllerServiceClient(conn)
+	return client.RequestJoinAuthorization(ctx, req)
+}
+
 // Address returns the configured controller address.
 func (c *Client) Address() string {
 	if c == nil {

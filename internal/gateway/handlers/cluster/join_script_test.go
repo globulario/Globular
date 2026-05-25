@@ -16,8 +16,6 @@ func joinScriptForTest() string {
 		"FAKECAB64==",    // %[1]s CA cert
 		"10.0.0.1:8443",  // %[2]s gateway
 		"10.0.0.1:12000", // %[3]s controller
-		"",               // %[4]s scylla GPG (empty)
-		"",               // %[5]s scylla apt source (empty)
 	)
 }
 
@@ -259,8 +257,8 @@ func TestJoinScript_NoLocalhostPeerURLInEtcdYaml(t *testing.T) {
 func TestJoinScript_LoopbackPeerNormalization(t *testing.T) {
 	script := joinScriptForTest()
 
-	// The sed command that normalizes loopback peer URLs must be present.
-	if !strings.Contains(script, `127\\.0\\.0\\.1`) || !strings.Contains(script, "BOOTSTRAP_HOST") {
+	// The parameter expansion that normalizes loopback peer URLs must be present.
+	if !strings.Contains(script, "127.0.0.1/${BOOTSTRAP_HOST}") {
 		t.Error("join script must normalize loopback peer URLs in initial-cluster to BOOTSTRAP_HOST")
 	}
 }
@@ -444,8 +442,8 @@ func TestJoinScript_BashNSyntaxCheck(t *testing.T) {
 	}
 }
 
-// TestJoinScript_ShellcheckIfAvailable runs shellcheck on the expanded script
-// if shellcheck is installed. Not required for CI but catches common mistakes.
+// TestJoinScript_ShellcheckIfAvailable runs shellcheck on the expanded script.
+// Required for CI — the join script owns critical etcd operations.
 func TestJoinScript_ShellcheckIfAvailable(t *testing.T) {
 	if _, err := exec.LookPath("shellcheck"); err != nil {
 		t.Skip("shellcheck not found in PATH — skipping (install for stronger linting)")

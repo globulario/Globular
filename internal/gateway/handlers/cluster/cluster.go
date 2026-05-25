@@ -19,6 +19,7 @@ type HandlerDeps struct {
 type Deps struct {
 	JoinToken     http.Handler
 	JoinScript    http.Handler // GET /join — self-contained join script
+	JoinAuthorize http.Handler // POST /join/authorize — v2 JoinPlan courier
 	JoinBin       http.Handler // GET /join/bin/<name> — binary downloads
 	JoinPackages  http.Handler // GET /join/packages/<name.tgz> — package downloads
 	JoinWorkflows http.Handler // GET /join/workflows/<name> — workflow definitions
@@ -32,6 +33,9 @@ type Deps struct {
 func Mount(mux *http.ServeMux, d Deps) {
 	if d.JoinScript != nil {
 		mux.Handle("/join", d.JoinScript)
+	}
+	if d.JoinAuthorize != nil {
+		mux.Handle("/join/authorize", d.JoinAuthorize)
 	}
 	if d.JoinBin != nil {
 		mux.Handle("/join/bin/", d.JoinBin)

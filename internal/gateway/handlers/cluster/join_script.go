@@ -97,14 +97,20 @@ set -euo pipefail
 #   0 — Preflight:   token required, identity detection, targeted service stops
 #   1 — Directories: create layout, globular user (no state wipe)
 #   2 — PKI/Identity: CA cert, service cert, TLS smoke-test
-#   3 — Connectivity: DNS, /etc/hosts MinIO fallback, libnss, journald, node-agent state
-#   4 — Download+Join: globular-installer binary, workflows, packages,
-#                      etcd install+join (via installer etcd_join step)
-#   6 — node-agent:  install via installer, starts and auto-initiates join RPC
-#   7 — MinIO hold:  enforce objectstore topology contract
+#   3 — Connectivity: DNS, /etc/hosts MinIO fallback, libnss, journald
+#   3.6 — JoinPlan: POST /join/authorize → signed JoinPlan + join_id from controller
+#   3.7 — State:    write node-agent state.json including join_id
+#   4 — Download:   globular-installer binary, workflows, packages, etcd binary+unit
+#   5 — Etcd join:  ghost cleanup, member add, etcd.yaml, start, health gate, fork-detection
+#   6 — node-agent: write unit (After=globular-etcd), start; uses v2 path (join_id)
+#   7 — MinIO hold: enforce objectstore topology contract
 #
-# The node-agent reads join_token + controller_endpoint from its state file and
-# auto-initiates the RequestJoin RPC on startup. No CLI tool is needed.
+# Phase 3.6 is the JoinPlan authorization gate. The gateway is a courier only —
+# the controller assigns profiles, etcd intent, node_id, and signs the plan.
+# No cluster-affecting step (Phase 4+) runs before Phase 3.6 succeeds.
+#
+# The node-agent reads join_token + controller_endpoint + join_id from state
+# and auto-initiates the v2 join path on startup (no RequestJoin call needed).
 # After the join is approved the controller drives all further convergence:
 #   admitted → infra_preparing → etcd_ready → xds_ready →
 #   envoy_ready → storage_joining → workload_ready
@@ -153,8 +159,10 @@ log_phase() { echo ""; echo "═════════════════
 [[ "$(id -u)" -eq 0 ]] || die "This script must be run as root (sudo)"
 
 BOOTSTRAP_HOST=$(echo "${GATEWAY}" | cut -d: -f1)
+BOOTSTRAP_ETCD="https://${BOOTSTRAP_HOST}:2379"
 NODE_HOSTNAME=$(hostname)
 NODE_IP=$(hostname -I | awk '{print $1}')
+ETCD_NAME="${NODE_HOSTNAME}"
 PKI_DIR="${STATE_DIR}/pki/issued/services"
 ETCD_CACERT="${STATE_DIR}/pki/ca.crt"
 ETCD_CERT="${PKI_DIR}/service.crt"
@@ -372,8 +380,50 @@ CFGJSON
 chown -R globular:globular "${STATE_DIR}"
 chown globular:globular "${STATE_DIR}/keys"
 
-log_info "[3.6] Writing node-agent state (join token + controller endpoint)..."
+log_info "[3.6] Obtaining signed JoinPlan from controller (v2 authorization gate)..."
+# ────────────────────────────────────────────────────────────────────────────
+# Phase A.1: The gateway is a courier. The controller is the authority.
+# This call must succeed before any cluster-affecting step (Phase 4+).
+# Cluster-affecting steps: etcd member add, writing cluster membership config,
+# starting node-agent as a joined node, applying assigned profiles.
+# ────────────────────────────────────────────────────────────────────────────
 mkdir -p "${STATE_DIR}/nodeagent"
+
+AUTHORIZE_RESPONSE="${STATE_DIR}/nodeagent/join_authorize.json"
+
+# Build the authorization request JSON (no bash arrays; use printf for safety)
+AUTHORIZE_BODY=$(printf '{"join_token":"%%s","identity":{"hostname":"%%s","ips":["%%s"]}}' \
+  "${JOIN_TOKEN}" "${NODE_HOSTNAME}" "${NODE_IP}")
+
+curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
+  -X POST "https://${GATEWAY}/join/authorize" \
+  -H "Content-Type: application/json" \
+  -d "${AUTHORIZE_BODY}" \
+  -o "${AUTHORIZE_RESPONSE}" \
+  || die "join blocked: signed JoinPlan missing — failed to reach gateway /join/authorize"
+
+# Parse allowed field: handles both "allowed":true and "allowed": true
+JOIN_PLAN_ALLOWED=$(grep -oE '"allowed"\s*:\s*(true|false)' "${AUTHORIZE_RESPONSE}" \
+  | head -1 | grep -oE '(true|false)$' || echo "false")
+
+# Extract join_id and denied_reason from response JSON
+JOIN_ID=$(grep -oE '"join_id"\s*:\s*"[^"]*"' "${AUTHORIZE_RESPONSE}" \
+  | head -1 | sed 's/.*"join_id"\s*:\s*"\([^"]*\)".*/\1/' || echo "")
+
+DENIED_REASON=$(grep -oE '"denied_reason"\s*:\s*"[^"]*"' "${AUTHORIZE_RESPONSE}" \
+  | head -1 | sed 's/.*"denied_reason"\s*:\s*"\([^"]*\)".*/\1/' || echo "unknown")
+
+[[ "${JOIN_PLAN_ALLOWED}" == "true" ]] \
+  || die "join blocked: signed JoinPlan missing — controller denied: ${DENIED_REASON}"
+
+[[ -n "${JOIN_ID}" ]] \
+  || die "join blocked: signed JoinPlan missing — controller returned empty join_id"
+
+log_ok "join plan accepted: join_id=${JOIN_ID} generation=controller-authorized"
+
+log_info "[3.7] Writing node-agent state (join token + controller endpoint + join_id)..."
+# The join_id is included so the node-agent uses the v2 path (no RequestJoin call):
+# it polls GetJoinRequestStatus(join_id) directly without consuming the token again.
 cat > "${STATE_DIR}/nodeagent/state.json" <<STATEJSON
 {
   "controller_endpoint": "${CONTROLLER}",
@@ -381,13 +431,14 @@ cat > "${STATE_DIR}/nodeagent/state.json" <<STATEJSON
   "request_id": "",
   "node_id": "",
   "join_token": "${JOIN_TOKEN}",
+  "join_id": "${JOIN_ID}",
   "network_generation": 0,
   "cluster_domain": "globular.internal",
   "protocol": "https"
 }
 STATEJSON
 chown -R globular:globular "${STATE_DIR}/nodeagent"
-log_ok "node-agent state seeded (join_token set, controller=${CONTROLLER})"
+log_ok "node-agent state seeded (join_token set, join_id=${JOIN_ID}, controller=${CONTROLLER})"
 
 log_ok "Connectivity configured"
 
@@ -415,7 +466,7 @@ chown -R globular:globular "${STATE_DIR}/workflows" "${PACKAGES_DIR}" 2>/dev/nul
 log_ok "Workflows and packages ready"
 
 log_info "[4.4] Installing etcdctl (required by etcd cluster join step)..."
-ETCDCTL_PKG=$(ls "${PACKAGES_DIR}"/etcdctl_*_linux_amd64.tgz 2>/dev/null | head -1)
+ETCDCTL_PKG=$(find "${PACKAGES_DIR}" -maxdepth 1 -name "etcdctl_*_linux_amd64.tgz" 2>/dev/null | head -1)
 if [[ -n "${ETCDCTL_PKG}" ]]; then
   "${INSTALL_DIR}/globular-installer" install \
     --non-interactive \
@@ -427,31 +478,142 @@ else
   log_warn "etcdctl package not found — etcd join may fail if etcdctl is unavailable"
 fi
 
-log_info "[4.5] Installing etcd package via installer (includes cluster join)..."
-ETCD_PKG=$(ls "${PACKAGES_DIR}"/etcd_*_linux_amd64.tgz 2>/dev/null | head -1)
+log_info "[4.5] Installing etcd binary and service unit (cluster join in Phase 5)..."
+# join_id=${JOIN_ID} — Phase 3.6 validated the JoinPlan. Cluster-affecting steps start in Phase 5.
+ETCD_PKG=$(find "${PACKAGES_DIR}" -maxdepth 1 -name "etcd_*_linux_amd64.tgz" 2>/dev/null | head -1)
 if [[ -z "${ETCD_PKG}" ]]; then
   die "etcd package not found in ${PACKAGES_DIR} — Phase 4.2 download may have failed"
 fi
 mkdir -p "${STATE_DIR}/etcd"
 chown -R globular:globular "${STATE_DIR}/config" "${STATE_DIR}/etcd"
 "${INSTALL_DIR}/globular-installer" install \
-  --bootstrap-etcd "https://${BOOTSTRAP_HOST}:2379" \
   --non-interactive --verbose \
   "${ETCD_PKG}" \
-  || die "installer: etcd install + cluster join failed"
+  || die "installer: etcd binary installation failed"
 ln -sf "${INSTALL_DIR}/etcdctl" /usr/local/bin/etcdctl
-log_ok "etcd installed, joined cluster, and healthy"
+log_ok "etcd binary and service unit installed"
+
+# ============================================================================
+log_phase "5 — Etcd Cluster Join"
+# ============================================================================
+# All cluster-affecting etcd operations are explicit and auditable here.
+# Phase 3.6 (JoinPlan) already authorized this join. join_id=${JOIN_ID}
+
+log_info "[5.1] Checking for ghost etcd member (peer URL from prior failed join)..."
+GHOST_ID=$(etcdctl \
+  --endpoints="${BOOTSTRAP_ETCD}" \
+  --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
+  member list -o simple 2>/dev/null \
+  | awk -v peer="https://${NODE_IP}:2380" '$0 ~ peer {print $1}' | head -1 || true)
+if [[ -n "${GHOST_ID}" ]]; then
+  log_warn "ghost member detected (peer URL match): ${GHOST_ID} — removing before member add"
+  etcdctl \
+    --endpoints="${BOOTSTRAP_ETCD}" \
+    --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
+    member remove "${GHOST_ID}" \
+    || log_warn "ghost removal failed — member add may still succeed if peer URL was released"
+  log_ok "ghost member removed"
+fi
+
+log_info "[5.2] Fetching current cluster member list from ${BOOTSTRAP_ETCD}..."
+INITIAL_CLUSTER_RAW=$(etcdctl \
+  --endpoints="${BOOTSTRAP_ETCD}" \
+  --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
+  member list -o simple 2>/dev/null \
+  | awk '{print $3"="$4}' | paste -sd, || true)
+
+log_info "[5.3] Normalizing loopback peer URLs (bootstrap may have 127.0.0.1)..."
+INITIAL_CLUSTER="${INITIAL_CLUSTER_RAW//127.0.0.1/${BOOTSTRAP_HOST}}"
+log_ok "initial-cluster: ${INITIAL_CLUSTER}"
+
+log_info "[5.4] Writing etcd.yaml (initial-cluster-state: existing)..."
+mkdir -p "${STATE_DIR}/config"
+cat > "${STATE_DIR}/config/etcd.yaml" <<ETCDCFG
+name: ${ETCD_NAME}
+data-dir: ${STATE_DIR}/etcd
+
+initial-advertise-peer-urls: https://${NODE_IP}:2380
+listen-peer-urls: https://0.0.0.0:2380
+advertise-client-urls: https://${NODE_IP}:2379
+listen-client-urls: https://0.0.0.0:2379
+
+initial-cluster: ${INITIAL_CLUSTER},${ETCD_NAME}=https://${NODE_IP}:2380
+initial-cluster-state: "existing"
+
+client-transport-security:
+  cert-file: ${ETCD_CERT}
+  key-file: ${ETCD_KEY}
+  trusted-ca-file: ${ETCD_CACERT}
+  client-cert-auth: true
+
+peer-transport-security:
+  cert-file: ${ETCD_CERT}
+  key-file: ${ETCD_KEY}
+  trusted-ca-file: ${ETCD_CACERT}
+  client-cert-auth: true
+ETCDCFG
+chown globular:globular "${STATE_DIR}/config/etcd.yaml"
+chmod 640 "${STATE_DIR}/config/etcd.yaml"
+log_ok "etcd.yaml written (initial-cluster-state=existing, no loopback peer URLs)"
+
+log_info "[5.5] Adding ${ETCD_NAME} to cluster via etcdctl member add..."
+etcdctl \
+  --endpoints="${BOOTSTRAP_ETCD}" \
+  --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
+  member add "${ETCD_NAME}" \
+  --peer-urls="https://${NODE_IP}:2380" \
+  || die "etcd join failed: member add rejected by bootstrap cluster"
+log_ok "member add accepted: ${ETCD_NAME}"
+
+log_info "[5.6] Starting globular-etcd.service..."
+systemctl daemon-reload
+systemctl enable globular-etcd.service 2>/dev/null || true
+systemctl start globular-etcd.service \
+  || die "etcd join failed: systemctl start globular-etcd.service returned non-zero"
+
+log_info "[5.6.1] Waiting for local etcd to become healthy (max 60s)..."
+ETCD_OK=0
+for i in $(seq 1 60); do
+  if etcdctl \
+    --endpoints="https://${NODE_IP}:2379" \
+    --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
+    endpoint health >/dev/null 2>&1; then
+    ETCD_OK=1
+    break
+  fi
+  sleep 1
+done
+if [[ ${ETCD_OK} -ne 1 ]]; then
+  die "etcd did not become healthy after 60s — etcd join failed; check: journalctl -u globular-etcd"
+fi
+log_ok "etcd healthy on ${NODE_IP}:2379"
+
+log_info "[5.7] Verifying named member presence in cluster (anti-fork check)..."
+# Query BOOTSTRAP_ETCD — not local NODE_IP. A forked standalone etcd passes a local check;
+# only the bootstrap view proves the node actually joined the existing cluster.
+VISIBLE=$(etcdctl \
+  --endpoints="${BOOTSTRAP_ETCD}" \
+  --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
+  member list -o simple 2>/dev/null | awk '{print $3}' \
+  | grep -c "^${ETCD_NAME}$" || echo 0)
+if [[ "${VISIBLE}" -eq 0 ]]; then
+  die "etcd join failed: ${ETCD_NAME} is not visible in cluster member list from ${BOOTSTRAP_ETCD} — \
+this node may have forked its own cluster instead of joining the existing one; \
+wipe etcd data and retry with --repair-etcd"
+fi
+log_ok "member ${ETCD_NAME} confirmed visible in cluster (anti-fork verified)"
 
 # ============================================================================
 log_phase "6 — node-agent"
 # ============================================================================
-# Install and start the node-agent ONLY after etcd is verified healthy.
-# The node-agent reads join_token + controller_endpoint from the state file
-# written in Phase 3.6 and auto-initiates the RequestJoin RPC on startup.
-# No CLI tool is required — globularcli is not downloaded.
+# Install the node-agent binary, write a systemd unit that declares an
+# ordering dependency on globular-etcd.service, then start it.
+# The node-agent reads join_token + controller_endpoint + join_id from the
+# state file written in Phase 3.7 and uses the v2 path at startup:
+# it polls GetJoinRequestStatus(join_id) without calling RequestJoin again.
 
-log_info "[6.1] Installing globular-node-agent service unit via installer engine..."
-NODE_AGENT_PKG=$(ls "${PACKAGES_DIR}"/node-agent_*_linux_amd64.tgz "${PACKAGES_DIR}"/node_agent_*_linux_amd64.tgz 2>/dev/null | head -1)
+log_info "[6.1] Installing globular-node-agent binary via installer engine (join_id=${JOIN_ID})..."
+NODE_AGENT_PKG=$(find "${PACKAGES_DIR}" -maxdepth 1 \( -name "node-agent_*_linux_amd64.tgz" -o -name "node_agent_*_linux_amd64.tgz" \) 2>/dev/null | head -1)
 if [[ -z "${NODE_AGENT_PKG}" ]]; then
   die "node-agent package not found in ${PACKAGES_DIR} — Phase 4.2 download may have failed"
 fi
@@ -460,7 +622,34 @@ fi
   "${NODE_AGENT_PKG}" \
   || die "installer: node-agent install failed"
 
-log_info "[6.2] Waiting for node-agent to listen on :11000..."
+log_info "[6.2] Writing node-agent systemd unit (After=globular-etcd.service)..."
+NODE_AGENT_BIN=$(find "${INSTALL_DIR}" -maxdepth 1 \( -name "node_agent_server" -o -name "globular-node-agent" \) 2>/dev/null | head -1 || echo "${INSTALL_DIR}/node_agent_server")
+cat > "${SYSTEMD_DIR}/globular-node-agent.service" <<NAUNIT
+[Unit]
+Description=Globular Node Agent
+After=network-online.target globular-etcd.service
+Requires=network-online.target
+Requires=globular-etcd.service
+
+[Service]
+User=globular
+ExecStart=${NODE_AGENT_BIN} ${STATE_DIR}
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+NAUNIT
+systemctl daemon-reload
+systemctl enable globular-node-agent.service 2>/dev/null || true
+log_ok "node-agent unit written (Requires=globular-etcd.service)"
+
+log_info "[6.3] Starting globular-node-agent.service..."
+systemctl start globular-node-agent.service \
+  || log_warn "node-agent start returned non-zero — controller will retry join RPC"
+
+log_info "[6.4] Waiting for node-agent to listen on :11000..."
 AGENT_UP=0
 for i in $(seq 1 30); do
   if ss -tlnp 2>/dev/null | grep -q ":11000 "; then
