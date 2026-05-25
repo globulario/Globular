@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 )
 
 // NewJoinScriptHandler serves a self-contained shell script that bootstraps
@@ -44,18 +43,6 @@ func NewJoinScriptHandler(controllerAddr string, gatewayPort int) http.Handler {
 		}
 		caB64 := base64.StdEncoding.EncodeToString(caCert)
 
-		// Read ScyllaDB GPG key if available on this node.
-		scyllaGpgB64 := ""
-		if gpgKey, err := os.ReadFile("/etc/apt/keyrings/scylladb.gpg"); err == nil {
-			scyllaGpgB64 = base64.StdEncoding.EncodeToString(gpgKey)
-		}
-
-		// Read ScyllaDB apt source line if configured.
-		scyllaAptSource := ""
-		if src, err := os.ReadFile("/etc/apt/sources.list.d/scylla.list"); err == nil {
-			scyllaAptSource = strings.TrimSpace(string(src))
-		}
-
 		// Determine the gateway address the client connected to.
 		gatewayHost := r.Host
 		if gatewayHost == "" {
@@ -83,7 +70,7 @@ func NewJoinScriptHandler(controllerAddr string, gatewayPort int) http.Handler {
 		}
 
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		fmt.Fprintf(w, joinScript, caB64, gatewayAddr, ctrlAddr, scyllaGpgB64, scyllaAptSource)
+		fmt.Fprintf(w, joinScript, caB64, gatewayAddr, ctrlAddr)
 	})
 }
 
@@ -93,8 +80,6 @@ func NewJoinScriptHandler(controllerAddr string, gatewayPort int) http.Handler {
 //	%[1]s = base64 CA cert
 //	%[2]s = gateway address (host:port)
 //	%[3]s = controller address (host:port)
-//	%[4]s = base64 ScyllaDB GPG key (may be empty)
-//	%[5]s = ScyllaDB apt source line (may be empty)
 //
 // IMPORTANT: any literal %% in this string becomes % in the output script.
 // Use %% wherever the shell script needs a literal % (e.g. date format strings).
@@ -130,8 +115,6 @@ set -euo pipefail
 CA_B64="%[1]s"
 GATEWAY="%[2]s"
 CONTROLLER="%[3]s"
-SCYLLA_GPG_B64="%[4]s"
-SCYLLA_APT_SOURCE="%[5]s"
 
 # ── Runtime defaults ─────────────────────────────────────────────────────────
 JOIN_TOKEN=""
@@ -390,8 +373,8 @@ log_ok "Connectivity configured"
 log_phase "4 — Download Binaries and Workflows"
 # ============================================================================
 
-log_info "[4.1] Downloading core binaries..."
-for BIN in node_agent_server globularcli etcd etcdctl; do
+log_info "[4.1] Downloading bootstrap binaries (globular-installer + globularcli)..."
+for BIN in globular-installer globularcli; do
   curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
     "https://${GATEWAY}/join/bin/${BIN}" \
     -o "${INSTALL_DIR}/${BIN}"
@@ -399,8 +382,7 @@ for BIN in node_agent_server globularcli etcd etcdctl; do
   log_info "${BIN} installed"
 done
 ln -sf "${INSTALL_DIR}/globularcli" /usr/local/bin/globular
-ln -sf "${INSTALL_DIR}/etcdctl" /usr/local/bin/etcdctl
-log_ok "Binaries installed"
+log_ok "Bootstrap binaries installed"
 
 log_info "[4.2] Downloading workflow definitions..."
 for WF in node.join.yaml node.bootstrap.yaml node.repair.yaml \
@@ -443,20 +425,19 @@ else
   done
 fi
 chown -R globular:globular "${PACKAGES_DIR}" 2>/dev/null || true
-log_ok "Package artifacts ready"
+log_ok "Package artifacts ready — ScyllaDB debs are bundled in the package tarball (no apt source needed)"
 
-log_info "[4.4] Preparing ScyllaDB apt source (workflow owns the actual install)..."
-if [[ -n "${SCYLLA_GPG_B64}" && -n "${SCYLLA_APT_SOURCE}" ]]; then
-  if [[ ! -f /etc/apt/keyrings/scylladb.gpg ]]; then
-    mkdir -p /etc/apt/keyrings
-    echo "${SCYLLA_GPG_B64}" | base64 -d > /etc/apt/keyrings/scylladb.gpg
-    chmod 644 /etc/apt/keyrings/scylladb.gpg
-  fi
-  echo "${SCYLLA_APT_SOURCE}" > /etc/apt/sources.list.d/scylladb.list
-  log_ok "ScyllaDB apt source configured (install driven by controller workflow)"
-else
-  log_info "ScyllaDB GPG not provided — workflow will configure apt source on demand"
+log_info "[4.5] Installing etcd package (provides etcd + etcdctl binaries and the service unit)..."
+ETCD_PKG=$(ls "${PACKAGES_DIR}"/etcd_*_linux_amd64.tgz 2>/dev/null | head -1)
+if [[ -z "${ETCD_PKG}" ]]; then
+  die "etcd package not found in ${PACKAGES_DIR} — Phase 4.3 download may have failed"
 fi
+"${INSTALL_DIR}/globular-installer" install --skip-start \
+  --non-interactive --verbose \
+  "${ETCD_PKG}" \
+  || die "installer: etcd package install failed"
+ln -sf "${INSTALL_DIR}/etcdctl" /usr/local/bin/etcdctl
+log_ok "etcd + etcdctl installed, globular-etcd.service unit ready (not yet started)"
 
 # ============================================================================
 log_phase "5 — etcd Join"
@@ -635,33 +616,9 @@ printf '%%s\n' "https://${BOOTSTRAP_HOST}:2379" "https://${NODE_IP}:2379" \
   > "${STATE_DIR}/config/etcd_endpoints"
 chown globular:globular "${STATE_DIR}/config/etcd_endpoints"
 
-# [5.5] Install and start globular-etcd.service.
-log_info "[5.5] Installing globular-etcd.service..."
-cat > "${SYSTEMD_DIR}/globular-etcd.service" <<ETCDUNIT
-[Unit]
-Description=Globular etcd
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=globular
-Group=globular
-ExecStartPre=+/usr/bin/mkdir -p ${STATE_DIR}/etcd
-ExecStartPre=+/usr/bin/chown globular:globular ${STATE_DIR}/etcd
-ExecStartPre=+/usr/bin/chmod 0750 ${STATE_DIR}/etcd
-ExecStartPre=+/bin/sh -c 'chown globular:globular ${STATE_DIR}/pki/issued/services/service.key ${STATE_DIR}/pki/issued/services/service.crt 2>/dev/null || true'
-ExecStart=${INSTALL_DIR}/etcd --config-file ${STATE_DIR}/config/etcd.yaml
-Restart=on-failure
-RestartSec=2
-LimitNOFILE=524288
-
-[Install]
-WantedBy=multi-user.target
-ETCDUNIT
-
-systemctl daemon-reload
-systemctl enable globular-etcd.service
+# [5.5] Start etcd — unit was installed in Phase 4.5; etcd.yaml written above.
+# The installer's skip_if_exists on install-etcd-config preserved our etcd.yaml.
+log_info "[5.5] Starting globular-etcd.service..."
 systemctl start globular-etcd.service
 
 # [5.6] Wait for etcd to become healthy.
@@ -715,33 +672,15 @@ log_phase "6 — node-agent"
 # Start the node-agent ONLY after etcd is verified healthy.
 # The node-agent drives all subsequent package installs and service starts.
 
-log_info "[6.1] Installing globular-node-agent.service..."
-cat > "${SYSTEMD_DIR}/globular-node-agent.service" <<UNIT
-[Unit]
-Description=Globular node_agent
-After=network-online.target globular-etcd.service
-Wants=network-online.target
-Requires=globular-etcd.service
-
-[Service]
-Type=simple
-User=root
-Group=root
-WorkingDirectory=${STATE_DIR}/node_agent
-ExecStartPre=/bin/sh -c 'mkdir -p ${STATE_DIR}/node_agent'
-ExecStartPre=/bin/sh -c 'for i in \$(seq 1 60); do [ -f ${PKI_DIR}/service.crt ] && exit 0; sleep 1; done; echo "TLS cert not ready" >&2; exit 1'
-ExecStart=${INSTALL_DIR}/node_agent_server
-Restart=on-failure
-RestartSec=2
-LimitNOFILE=524288
-
-[Install]
-WantedBy=multi-user.target
-UNIT
-
-systemctl daemon-reload
-systemctl enable globular-node-agent.service
-systemctl start globular-node-agent.service
+log_info "[6.1] Installing globular-node-agent service unit via installer engine..."
+NODE_AGENT_PKG=$(ls "${PACKAGES_DIR}"/node_agent_*_linux_amd64.tgz 2>/dev/null | head -1)
+if [[ -z "${NODE_AGENT_PKG}" ]]; then
+  die "node_agent package not found in ${PACKAGES_DIR} — Phase 4.3 download may have failed"
+fi
+"${INSTALL_DIR}/globular-installer" install \
+  --non-interactive --verbose \
+  "${NODE_AGENT_PKG}" \
+  || die "installer: node-agent install failed"
 
 log_info "[6.2] Waiting for node-agent to listen on :11000..."
 AGENT_UP=0
