@@ -17,11 +17,7 @@ type binarySpec struct {
 }
 
 var allowedBinaries = map[string]binarySpec{
-	"node_agent_server":  {BinaryName: "node_agent_server"},
-	"globularcli":        {BinaryName: "globularcli"},
 	"globular-installer": {BinaryName: "globular-installer"},
-	"etcd":               {BinaryName: "etcd"},
-	"etcdctl":            {BinaryName: "etcdctl"},
 }
 
 // NewJoinBinHandler serves binaries for joining nodes directly from disk.
