@@ -398,35 +398,22 @@ curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
 chmod +x "${INSTALL_DIR}/globular-installer"
 log_ok "globular-installer installed"
 
-log_info "[4.2] Downloading workflow definitions..."
-for WF in node.join.yaml node.bootstrap.yaml node.repair.yaml \
-           release.apply.package.yaml release.apply.infrastructure.yaml \
-           release.remove.package.yaml cluster.reconcile.yaml day0.bootstrap.yaml; do
-  if curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
-    "https://${GATEWAY}/join/workflows/${WF}" \
-    -o "${STATE_DIR}/workflows/${WF}" 2>/dev/null; then
-    log_info "${WF} installed"
-  fi
-done
-cp "${STATE_DIR}/workflows/node.join.yaml" /tmp/node.join.yaml 2>/dev/null || true
-chown -R globular:globular "${STATE_DIR}/workflows" 2>/dev/null || true
-log_ok "Workflows installed"
-
-log_info "[4.3] Fetching package artifacts from gateway..."
+log_info "[4.2] Fetching workflows and packages from gateway..."
 PACKAGES_DIR="${STATE_DIR}/packages"
 "${INSTALL_DIR}/globular-installer" fetch \
   --gateway "https://${GATEWAY}" \
   --ca-cert "${STATE_DIR}/pki/ca.crt" \
+  --workflows-dir "${STATE_DIR}/workflows" \
   --dest "${PACKAGES_DIR}" \
   --verbose \
-  || die "failed to fetch packages from gateway"
-chown -R globular:globular "${PACKAGES_DIR}" 2>/dev/null || true
-log_ok "Package artifacts ready — ScyllaDB debs are bundled in the package tarball (no apt source needed)"
+  || die "failed to fetch artifacts from gateway"
+chown -R globular:globular "${STATE_DIR}/workflows" "${PACKAGES_DIR}" 2>/dev/null || true
+log_ok "Workflows and packages ready"
 
 log_info "[4.5] Installing etcd package (provides etcd + etcdctl binaries and the service unit)..."
 ETCD_PKG=$(ls "${PACKAGES_DIR}"/etcd_*_linux_amd64.tgz 2>/dev/null | head -1)
 if [[ -z "${ETCD_PKG}" ]]; then
-  die "etcd package not found in ${PACKAGES_DIR} — Phase 4.3 download may have failed"
+  die "etcd package not found in ${PACKAGES_DIR} — Phase 4.2 download may have failed"
 fi
 "${INSTALL_DIR}/globular-installer" install --skip-start \
   --non-interactive --verbose \
@@ -673,7 +660,7 @@ log_phase "6 — node-agent"
 log_info "[6.1] Installing globular-node-agent service unit via installer engine..."
 NODE_AGENT_PKG=$(ls "${PACKAGES_DIR}"/node_agent_*_linux_amd64.tgz 2>/dev/null | head -1)
 if [[ -z "${NODE_AGENT_PKG}" ]]; then
-  die "node_agent package not found in ${PACKAGES_DIR} — Phase 4.3 download may have failed"
+  die "node_agent package not found in ${PACKAGES_DIR} — Phase 4.2 download may have failed"
 fi
 "${INSTALL_DIR}/globular-installer" install \
   --non-interactive --verbose \

@@ -1,9 +1,11 @@
 package cluster
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/globulario/services/golang/config"
@@ -33,8 +35,21 @@ func NewJoinWorkflowsHandler() http.Handler {
 		}
 
 		name := strings.TrimPrefix(r.URL.Path, "/join/workflows/")
-		name = filepath.Base(name) // sanitize path traversal
+		name = strings.Trim(name, "/")
 
+		// GET /join/workflows/ → JSON list of available workflow names.
+		if name == "" {
+			names := make([]string, 0, len(allowedWorkflows))
+			for n := range allowedWorkflows {
+				names = append(names, n)
+			}
+			sort.Strings(names)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(names)
+			return
+		}
+
+		name = filepath.Base(name) // sanitize path traversal
 		if !allowedWorkflows[name] {
 			http.NotFound(w, r)
 			return
