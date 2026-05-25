@@ -414,6 +414,19 @@ PACKAGES_DIR="${STATE_DIR}/packages"
 chown -R globular:globular "${STATE_DIR}/workflows" "${PACKAGES_DIR}" 2>/dev/null || true
 log_ok "Workflows and packages ready"
 
+log_info "[4.4] Installing etcdctl (required by etcd cluster join step)..."
+ETCDCTL_PKG=$(ls "${PACKAGES_DIR}"/etcdctl_*_linux_amd64.tgz 2>/dev/null | head -1)
+if [[ -n "${ETCDCTL_PKG}" ]]; then
+  "${INSTALL_DIR}/globular-installer" install \
+    --non-interactive \
+    "${ETCDCTL_PKG}" \
+    || log_warn "etcdctl install failed (non-fatal, will retry via etcd package)"
+  ln -sf "${INSTALL_DIR}/etcdctl" /usr/local/bin/etcdctl
+  log_ok "etcdctl installed"
+else
+  log_warn "etcdctl package not found — etcd join may fail if etcdctl is unavailable"
+fi
+
 log_info "[4.5] Installing etcd package via installer (includes cluster join)..."
 ETCD_PKG=$(ls "${PACKAGES_DIR}"/etcd_*_linux_amd64.tgz 2>/dev/null | head -1)
 if [[ -z "${ETCD_PKG}" ]]; then
@@ -438,9 +451,9 @@ log_phase "6 — node-agent"
 # No CLI tool is required — globularcli is not downloaded.
 
 log_info "[6.1] Installing globular-node-agent service unit via installer engine..."
-NODE_AGENT_PKG=$(ls "${PACKAGES_DIR}"/node_agent_*_linux_amd64.tgz 2>/dev/null | head -1)
+NODE_AGENT_PKG=$(ls "${PACKAGES_DIR}"/node-agent_*_linux_amd64.tgz "${PACKAGES_DIR}"/node_agent_*_linux_amd64.tgz 2>/dev/null | head -1)
 if [[ -z "${NODE_AGENT_PKG}" ]]; then
-  die "node_agent package not found in ${PACKAGES_DIR} — Phase 4.2 download may have failed"
+  die "node-agent package not found in ${PACKAGES_DIR} — Phase 4.2 download may have failed"
 fi
 "${INSTALL_DIR}/globular-installer" install \
   --non-interactive --verbose \
