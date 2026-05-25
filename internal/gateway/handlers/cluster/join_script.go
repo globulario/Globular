@@ -12,13 +12,17 @@ import (
 // a new node to join the cluster. The script follows a strict Day-1 protocol:
 //
 //	Phase 0: Preflight       — token, identity, targeted service stops
-//	Phase 1: Binaries        — install binaries and unit files, no state write
+//	Phase 1: Directories     — create layout and globular user (no state wipe)
 //	Phase 2: PKI/Identity    — CA cert, service cert, TLS verification
 //	Phase 3: Connectivity    — DNS, /etc/hosts, libnss, journald, config.json, node-agent state
-//	Phase 4: Download        — binaries, workflows, packages
-//	Phase 5: etcd join       — ghost cleanup, member add, yaml, start, verify
-//	Phase 6: node-agent      — start after etcd verified, auto-initiates join RPC
+//	Phase 4: Download+Join   — fetch artifacts, install etcd (join handled by installer engine)
+//	Phase 6: node-agent      — install and start; auto-initiates join RPC via state file
 //	Phase 7: MinIO hold      — enforce objectstore topology contract
+//
+// The etcd cluster join (previously Phase 5) is now performed inside Phase 4.5
+// by the globular-installer engine via the etcd_join spec step type. The step
+// handles ghost cleanup, join-lock, member add, etcd.yaml, start, and membership
+// verification — all in typed Go code with proper error handling.
 //
 // Repair mode (etcd WAL damage):
 //
@@ -94,8 +98,8 @@ set -euo pipefail
 #   1 — Directories: create layout, globular user (no state wipe)
 #   2 — PKI/Identity: CA cert, service cert, TLS smoke-test
 #   3 — Connectivity: DNS, /etc/hosts MinIO fallback, libnss, journald, node-agent state
-#   4 — Download:    globular-installer binary, workflows, packages
-#   5 — etcd join:   ghost cleanup → member add → etcd.yaml → start → verify
+#   4 — Download+Join: globular-installer binary, workflows, packages,
+#                      etcd install+join (via installer etcd_join step)
 #   6 — node-agent:  install via installer, starts and auto-initiates join RPC
 #   7 — MinIO hold:  enforce objectstore topology contract
 #
@@ -410,244 +414,20 @@ PACKAGES_DIR="${STATE_DIR}/packages"
 chown -R globular:globular "${STATE_DIR}/workflows" "${PACKAGES_DIR}" 2>/dev/null || true
 log_ok "Workflows and packages ready"
 
-log_info "[4.5] Installing etcd package (provides etcd + etcdctl binaries and the service unit)..."
+log_info "[4.5] Installing etcd package via installer (includes cluster join)..."
 ETCD_PKG=$(ls "${PACKAGES_DIR}"/etcd_*_linux_amd64.tgz 2>/dev/null | head -1)
 if [[ -z "${ETCD_PKG}" ]]; then
   die "etcd package not found in ${PACKAGES_DIR} — Phase 4.2 download may have failed"
 fi
-"${INSTALL_DIR}/globular-installer" install --skip-start \
-  --non-interactive --verbose \
-  "${ETCD_PKG}" \
-  || die "installer: etcd package install failed"
-ln -sf "${INSTALL_DIR}/etcdctl" /usr/local/bin/etcdctl
-log_ok "etcd + etcdctl installed, globular-etcd.service unit ready (not yet started)"
-
-# ============================================================================
-log_phase "5 — etcd Join"
-# ============================================================================
-# Contract (always enforced):
-#   1. Remove ghost/stale member for this node's IP BEFORE member add.
-#   2. member add exactly once.
-#   3. etcd.yaml written with initial-cluster-state: existing — NEVER "new".
-#   4. etcd must reach healthy state or this script FAILS — no "continuing".
-#   5. Verify this node appears as a named member after join.
-
-export ETCDCTL_API=3
-BOOTSTRAP_ETCD="https://${BOOTSTRAP_HOST}:2379"
-ETCD_NAME=$(echo "${NODE_HOSTNAME}" | sed 's/[^a-zA-Z0-9_-]/-/g; s/^-//; s/-$//')
-[[ -n "${ETCD_NAME}" ]] || ETCD_NAME="node"
-
 mkdir -p "${STATE_DIR}/etcd"
 chown -R globular:globular "${STATE_DIR}/config" "${STATE_DIR}/etcd"
-
-# [5.1] Remove ghost member (unnamed or matching this IP) BEFORE member add.
-# A previous failed join may have left a peer URL registered without a name
-# (ghost member). This would block a new member add with the same peer URL.
-log_info "[5.1] Checking for ghost/stale etcd member at ${NODE_IP}:2380..."
-GHOST_ID=$("${INSTALL_DIR}/etcdctl" \
-  --endpoints="${BOOTSTRAP_ETCD}" \
-  --cacert="${ETCD_CACERT}" \
-  --cert="${ETCD_CERT}" \
-  --key="${ETCD_KEY}" \
-  member list 2>/dev/null \
-  | grep "${NODE_IP}" | awk -F',' '{print $1}' | xargs || true)
-
-if [[ -n "${GHOST_ID}" ]]; then
-  log_info "Removing stale member ${GHOST_ID} for ${NODE_IP}..."
-  "${INSTALL_DIR}/etcdctl" \
-    --endpoints="${BOOTSTRAP_ETCD}" \
-    --cacert="${ETCD_CACERT}" \
-    --cert="${ETCD_CERT}" \
-    --key="${ETCD_KEY}" \
-    member remove "${GHOST_ID}" \
-    || log_warn "member remove returned non-zero (may already be gone)"
-  log_ok "Stale member ${GHOST_ID} removed"
-else
-  log_info "No stale member found for ${NODE_IP}"
-fi
-
-# [5.2] Read current member list (named members only, excluding ghosts).
-# Build initial-cluster string BEFORE adding this node.
-log_info "[5.2] Reading current named etcd members..."
-MEMBER_LIST=$("${INSTALL_DIR}/etcdctl" \
-  --endpoints="${BOOTSTRAP_ETCD}" \
-  --cacert="${ETCD_CACERT}" \
-  --cert="${ETCD_CERT}" \
-  --key="${ETCD_KEY}" \
-  member list 2>/dev/null || true)
-
-INITIAL_CLUSTER=""
-while IFS=',' read -r _id _status name peerURLs _rest; do
-  name=$(echo "${name}" | xargs)
-  peerURLs=$(echo "${peerURLs}" | xargs)
-  # Skip unnamed (ghost) members — they corrupt the initial-cluster string.
-  [[ -z "${name}" ]] && continue
-  # Normalise any loopback peer URLs to the bootstrap host's real IP.
-  peerURLs=$(echo "${peerURLs}" | sed -E "s#https?://(127\\.0\\.0\\.1|localhost|\\[::1\\])#https://${BOOTSTRAP_HOST}#g")
-  [[ -n "${INITIAL_CLUSTER}" ]] && INITIAL_CLUSTER="${INITIAL_CLUSTER},"
-  INITIAL_CLUSTER="${INITIAL_CLUSTER}${name}=${peerURLs}"
-done <<< "${MEMBER_LIST}"
-
-# [5.2.5] Acquire join-in-progress lock to protect the new member from being
-# evicted by the controller's removeStaleMembers loop. There is a structural
-# race between this script's "etcdctl member add" (which immediately changes
-# raft membership) and the joining node's node-agent heartbeat (which puts
-# the node into /globular/nodes/). Between those two events the controller's
-# desired set does NOT contain this hostname, so the next stale-member sweep
-# classifies the freshly-added member as stale and removes it.
-#
-# Live incident: 2026-05-14, globule-nuc evicted within ~100ms of member-add.
-#
-# The lock is a leased key at /globular/etcd_joins/<sanitized_hostname>. The
-# controller's removeStaleMembers reads this prefix and skips eviction for
-# any member whose name appears in it. 300s lease covers the longest healthy
-# Day-1 join we've observed; if the script dies mid-way, the TTL self-cleans
-# the lock so a retry isn't blocked.
-#
-# Failure to acquire the lock is logged but not fatal — the original race is
-# narrow enough that most joins still succeed without it, and refusing to
-# proceed would convert a flaky-controller incident into a hard outage.
-log_info "[5.2.5] Acquiring etcd-join lock for ${ETCD_NAME}..."
-LOCK_LEASE_ID=$("${INSTALL_DIR}/etcdctl" \
-  --endpoints="${BOOTSTRAP_ETCD}" \
-  --cacert="${ETCD_CACERT}" \
-  --cert="${ETCD_CERT}" \
-  --key="${ETCD_KEY}" \
-  lease grant 300 2>/dev/null | awk '/granted/ {print $2}')
-
-if [[ -n "${LOCK_LEASE_ID}" ]]; then
-  if "${INSTALL_DIR}/etcdctl" \
-    --endpoints="${BOOTSTRAP_ETCD}" \
-    --cacert="${ETCD_CACERT}" \
-    --cert="${ETCD_CERT}" \
-    --key="${ETCD_KEY}" \
-    put "/globular/etcd_joins/${ETCD_NAME}" \
-    "{\"peer_url\":\"https://${NODE_IP}:2380\",\"started_unix\":$(date -u +%%s)}" \
-    --lease="${LOCK_LEASE_ID}" >/dev/null 2>&1; then
-    log_ok "join-lock acquired (lease=${LOCK_LEASE_ID}, ttl=300s)"
-  else
-    log_warn "failed to put join-lock — controller may evict during join"
-  fi
-else
-  log_warn "lease grant failed — proceeding without join-lock; if eviction occurs, retry with --repair-etcd"
-fi
-
-# [5.3] Add this node as a new etcd member.
-log_info "[5.3] Adding ${ETCD_NAME} (https://${NODE_IP}:2380) to etcd cluster..."
-ADD_OUT=$("${INSTALL_DIR}/etcdctl" \
-  --endpoints="${BOOTSTRAP_ETCD}" \
-  --cacert="${ETCD_CACERT}" \
-  --cert="${ETCD_CERT}" \
-  --key="${ETCD_KEY}" \
-  member add "${ETCD_NAME}" --peer-urls="https://${NODE_IP}:2380" 2>&1) || {
-  if echo "${ADD_OUT}" | grep -qi "already exists\|Peer URLs already exists"; then
-    log_info "peer URL already registered — continuing (previous partial join)"
-  else
-    die "etcd member add failed: ${ADD_OUT}"
-  fi
-}
-log_ok "etcd member add: ${ETCD_NAME}"
-
-# Append this node to the initial-cluster string.
-[[ -n "${INITIAL_CLUSTER}" ]] && INITIAL_CLUSTER="${INITIAL_CLUSTER},"
-INITIAL_CLUSTER="${INITIAL_CLUSTER}${ETCD_NAME}=https://${NODE_IP}:2380"
-
-# [5.4] Write etcd.yaml.
-# INVARIANT: initial-cluster-state MUST be "existing" for Day-1 joins.
-# "new" is only for the founding single-node bootstrap (Day-0). Writing "new"
-# on a joining node would fork the etcd cluster and destroy quorum.
-log_info "[5.4] Writing etcd.yaml (initial-cluster-state: existing)..."
-cat > "${STATE_DIR}/config/etcd.yaml" <<ETCDCFG
-name: "${ETCD_NAME}"
-data-dir: "${STATE_DIR}/etcd"
-
-listen-client-urls: "https://${NODE_IP}:2379"
-advertise-client-urls: "https://${NODE_IP}:2379"
-listen-peer-urls: "https://${NODE_IP}:2380"
-initial-advertise-peer-urls: "https://${NODE_IP}:2380"
-
-initial-cluster: "${INITIAL_CLUSTER}"
-initial-cluster-state: "existing"
-initial-cluster-token: "globular-etcd-cluster"
-
-quota-backend-bytes: 8589934592
-auto-compaction-mode: "periodic"
-auto-compaction-retention: "1h"
-snapshot-count: 10000
-
-# Client TLS — no client-cert-auth so etcdctl works without requiring a client cert.
-client-transport-security:
-  cert-file: "${ETCD_CERT}"
-  key-file: "${ETCD_KEY}"
-  client-cert-auth: false
-  auto-tls: false
-
-# Peer TLS — mutual auth between etcd members requires trusted-ca-file.
-peer-transport-security:
-  cert-file: "${ETCD_CERT}"
-  key-file: "${ETCD_KEY}"
-  client-cert-auth: false
-  trusted-ca-file: "${ETCD_CACERT}"
-  auto-tls: false
-
-logger: "zap"
-ETCDCFG
-chown globular:globular "${STATE_DIR}/config/etcd.yaml"
-
-# Write etcd endpoint list for other services that dial it directly.
-printf '%%s\n' "https://${BOOTSTRAP_HOST}:2379" "https://${NODE_IP}:2379" \
-  > "${STATE_DIR}/config/etcd_endpoints"
-chown globular:globular "${STATE_DIR}/config/etcd_endpoints"
-
-# [5.5] Start etcd — unit was installed in Phase 4.5; etcd.yaml written above.
-# The installer's skip_if_exists on install-etcd-config preserved our etcd.yaml.
-log_info "[5.5] Starting globular-etcd.service..."
-systemctl start globular-etcd.service
-
-# [5.6] Wait for etcd to become healthy.
-# This is a HARD requirement — node-agent must not start until etcd is up.
-# If etcd does not become healthy, print the journal and fail loudly.
-log_info "[5.6] Waiting for etcd to become healthy (max 60s)..."
-ETCD_OK=0
-for i in $(seq 1 30); do
-  if "${INSTALL_DIR}/etcdctl" \
-    --endpoints="https://${NODE_IP}:2379" \
-    --cacert="${ETCD_CACERT}" \
-    --cert="${ETCD_CERT}" \
-    --key="${ETCD_KEY}" \
-    endpoint health 2>/dev/null | grep -q "is healthy"; then
-    ETCD_OK=1
-    break
-  fi
-  sleep 2
-done
-
-if [[ ${ETCD_OK} -ne 1 ]]; then
-  echo "" >&2
-  echo "  FAIL: etcd did not become healthy after 60s" >&2
-  echo "  Last journal entries:" >&2
-  journalctl -u globular-etcd.service --no-pager -n 40 >&2 || true
-  echo "" >&2
-  die "etcd join failed. If the WAL is damaged, retry with --repair-etcd."
-fi
-log_ok "etcd healthy"
-
-# [5.7] Verify this node appears as a named member — queried from the BOOTSTRAP
-# cluster, not local etcd. A locally-healthy etcd that forked its own cluster
-# would pass a local check; only the bootstrap view proves actual cluster join.
-log_info "[5.7] Verifying named member presence..."
-MEMBER_CHECK=$("${INSTALL_DIR}/etcdctl" \
-  --endpoints="${BOOTSTRAP_ETCD}" \
-  --cacert="${ETCD_CACERT}" \
-  --cert="${ETCD_CERT}" \
-  --key="${ETCD_KEY}" \
-  member list 2>/dev/null || true)
-
-if echo "${MEMBER_CHECK}" | grep -q "${ETCD_NAME}"; then
-  log_ok "etcd member '${ETCD_NAME}' confirmed in cluster"
-else
-  die "etcd join failed: '${ETCD_NAME}' not visible from bootstrap cluster (${BOOTSTRAP_ETCD}). Local etcd may have forked its own cluster — use --repair-etcd to retry."
-fi
+"${INSTALL_DIR}/globular-installer" install \
+  --bootstrap-etcd "https://${BOOTSTRAP_HOST}:2379" \
+  --non-interactive --verbose \
+  "${ETCD_PKG}" \
+  || die "installer: etcd install + cluster join failed"
+ln -sf "${INSTALL_DIR}/etcdctl" /usr/local/bin/etcdctl
+log_ok "etcd installed, joined cluster, and healthy"
 
 # ============================================================================
 log_phase "6 — node-agent"
