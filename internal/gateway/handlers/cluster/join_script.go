@@ -14,12 +14,11 @@ import (
 //	Phase 0: Preflight       — token, identity, targeted service stops
 //	Phase 1: Binaries        — install binaries and unit files, no state write
 //	Phase 2: PKI/Identity    — CA cert, service cert, TLS verification
-//	Phase 3: Connectivity    — DNS, /etc/hosts, libnss, journald, config.json
-//	Phase 4: Download        — binaries, workflows, apt sources
+//	Phase 3: Connectivity    — DNS, /etc/hosts, libnss, journald, config.json, node-agent state
+//	Phase 4: Download        — binaries, workflows, packages
 //	Phase 5: etcd join       — ghost cleanup, member add, yaml, start, verify
-//	Phase 6: node-agent      — start after etcd verified, wait for :11000
-//	Phase 7: Cluster join    — join RPC, DNS A record
-//	Phase 8: MinIO hold      — enforce objectstore topology contract
+//	Phase 6: node-agent      — start after etcd verified, auto-initiates join RPC
+//	Phase 7: MinIO hold      — enforce objectstore topology contract
 //
 // Repair mode (etcd WAL damage):
 //
@@ -94,14 +93,15 @@ set -euo pipefail
 #   0 — Preflight:   token required, identity detection, targeted service stops
 #   1 — Directories: create layout, globular user (no state wipe)
 #   2 — PKI/Identity: CA cert, service cert, TLS smoke-test
-#   3 — Connectivity: DNS, /etc/hosts MinIO fallback, libnss, journald
-#   4 — Download:    binaries, workflows, ScyllaDB apt source
+#   3 — Connectivity: DNS, /etc/hosts MinIO fallback, libnss, journald, node-agent state
+#   4 — Download:    globular-installer binary, workflows, packages
 #   5 — etcd join:   ghost cleanup → member add → etcd.yaml → start → verify
-#   6 — node-agent:  start AFTER etcd healthy, wait for :11000
-#   7 — Cluster join: join RPC, DNS A record
-#   8 — MinIO hold:  enforce objectstore topology contract
+#   6 — node-agent:  install via installer, starts and auto-initiates join RPC
+#   7 — MinIO hold:  enforce objectstore topology contract
 #
-# After Phase 6 the controller drives all further convergence:
+# The node-agent reads join_token + controller_endpoint from its state file and
+# auto-initiates the RequestJoin RPC on startup. No CLI tool is needed.
+# After the join is approved the controller drives all further convergence:
 #   admitted → infra_preparing → etcd_ready → xds_ready →
 #   envoy_ready → storage_joining → workload_ready
 #
@@ -367,22 +367,36 @@ CFGJSON
 
 chown -R globular:globular "${STATE_DIR}"
 chown globular:globular "${STATE_DIR}/keys"
+
+log_info "[3.6] Writing node-agent state (join token + controller endpoint)..."
+mkdir -p "${STATE_DIR}/nodeagent"
+cat > "${STATE_DIR}/nodeagent/state.json" <<STATEJSON
+{
+  "controller_endpoint": "${CONTROLLER}",
+  "controller_insecure": false,
+  "request_id": "",
+  "node_id": "",
+  "join_token": "${JOIN_TOKEN}",
+  "network_generation": 0,
+  "cluster_domain": "globular.internal",
+  "protocol": "https"
+}
+STATEJSON
+chown -R globular:globular "${STATE_DIR}/nodeagent"
+log_ok "node-agent state seeded (join_token set, controller=${CONTROLLER})"
+
 log_ok "Connectivity configured"
 
 # ============================================================================
 log_phase "4 — Download Binaries and Workflows"
 # ============================================================================
 
-log_info "[4.1] Downloading bootstrap binaries (globular-installer + globularcli)..."
-for BIN in globular-installer globularcli; do
-  curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
-    "https://${GATEWAY}/join/bin/${BIN}" \
-    -o "${INSTALL_DIR}/${BIN}"
-  chmod +x "${INSTALL_DIR}/${BIN}"
-  log_info "${BIN} installed"
-done
-ln -sf "${INSTALL_DIR}/globularcli" /usr/local/bin/globular
-log_ok "Bootstrap binaries installed"
+log_info "[4.1] Downloading bootstrap binary (globular-installer)..."
+curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
+  "https://${GATEWAY}/join/bin/globular-installer" \
+  -o "${INSTALL_DIR}/globular-installer"
+chmod +x "${INSTALL_DIR}/globular-installer"
+log_ok "globular-installer installed"
 
 log_info "[4.2] Downloading workflow definitions..."
 for WF in node.join.yaml node.bootstrap.yaml node.repair.yaml \
@@ -669,8 +683,10 @@ fi
 # ============================================================================
 log_phase "6 — node-agent"
 # ============================================================================
-# Start the node-agent ONLY after etcd is verified healthy.
-# The node-agent drives all subsequent package installs and service starts.
+# Install and start the node-agent ONLY after etcd is verified healthy.
+# The node-agent reads join_token + controller_endpoint from the state file
+# written in Phase 3.6 and auto-initiates the RequestJoin RPC on startup.
+# No CLI tool is required — globularcli is not downloaded.
 
 log_info "[6.1] Installing globular-node-agent service unit via installer engine..."
 NODE_AGENT_PKG=$(ls "${PACKAGES_DIR}"/node_agent_*_linux_amd64.tgz 2>/dev/null | head -1)
@@ -697,32 +713,7 @@ fi
 log_ok "node-agent running"
 
 # ============================================================================
-log_phase "7 — Cluster Join RPC and DNS"
-# ============================================================================
-
-log_info "[7.1] Sending join request to controller..."
-JOIN_ERR=$(globular cluster join \
-  --join-token "${JOIN_TOKEN}" \
-  --controller "${CONTROLLER}" \
-  --node "${NODE_IP}:11000" \
-  --insecure 2>&1) || {
-  if echo "${JOIN_ERR}" | grep -q "hostname already present"; then
-    log_ok "Node already registered with controller (idempotent re-join)"
-  else
-    log_warn "[7.1] Join RPC failed: ${JOIN_ERR}"
-    exit 1
-  fi
-}
-log_ok "Join request sent"
-
-log_info "[7.2] Registering DNS A record..."
-globular dns a set "${NODE_HOSTNAME}.globular.internal." "${NODE_IP}" \
-  --dns "${BOOTSTRAP_HOST}:10007" 2>/dev/null \
-  && log_ok "DNS ${NODE_HOSTNAME}.globular.internal → ${NODE_IP}" \
-  || log_warn "DNS registration failed — controller will reconcile"
-
-# ============================================================================
-log_phase "8 — MinIO / Objectstore Hold Enforcement"
+log_phase "7 — MinIO / Objectstore Hold Enforcement"
 # ============================================================================
 # The join script MUST NOT start globular-minio.service.
 # Objectstore topology is exclusively governed by ObjectStoreDesiredState in
@@ -730,7 +721,7 @@ log_phase "8 — MinIO / Objectstore Hold Enforcement"
 # The controller and node-agent start MinIO ONLY when this node is admitted
 # as an objectstore member by an approved TopologyTransition.
 
-log_info "[8.1] Enforcing MinIO hold (objectstore topology contract)..."
+log_info "[7.1] Enforcing MinIO hold (objectstore topology contract)..."
 if systemctl is-active --quiet globular-minio.service 2>/dev/null; then
   log_warn "globular-minio.service is active — stopping (topology contract violation)"
   systemctl stop globular-minio.service 2>/dev/null || true
@@ -749,13 +740,14 @@ echo "╚═══════════════════════�
 echo ""
 echo "  Identity:     ${NODE_HOSTNAME} (${NODE_IP})"
 echo "  etcd:         healthy, member '${ETCD_NAME}'"
-echo "  node-agent:   running"
+echo "  node-agent:   running, auto-initiating join RPC"
 echo "  MinIO:        held (not a topology member)"
 echo ""
-echo "  The controller now drives bootstrap convergence:"
+echo "  The node-agent is submitting the join request to the controller."
+echo "  Once approved, the controller drives bootstrap convergence:"
 echo "    admitted → infra_preparing → etcd_ready →"
 echo "    xds_ready → envoy_ready → storage_joining → workload_ready"
 echo ""
-echo "  Monitor: globular cluster nodes list"
+echo "  Monitor from any cluster node: globular cluster nodes list"
 echo ""
 `
