@@ -495,14 +495,20 @@ log_ok "tarball extracted"
 cp "${TARBALL_DIR}/globular-installer" "${INSTALL_DIR}/globular-installer"
 chmod +x "${INSTALL_DIR}/globular-installer"
 
-PACKAGES_DIR="${TARBALL_DIR}/packages"
+log_info "[4.3] Staging packages to ${STATE_DIR}/packages/ ..."
+# Move all packages to their canonical location so the node-agent can install
+# them locally during convergence without re-fetching from the repository service.
+mkdir -p "${STATE_DIR}/packages"
+mv "${TARBALL_DIR}/packages/"* "${STATE_DIR}/packages/"
+chown -R globular:globular "${STATE_DIR}/packages"
+PACKAGES_DIR="${STATE_DIR}/packages"
 
-log_info "[4.3] Copying workflows to state dir..."
+log_info "[4.4] Copying workflows to state dir..."
 cp -r "${TARBALL_DIR}/workflows/." "${STATE_DIR}/workflows/"
 chown -R globular:globular "${STATE_DIR}/workflows"
 log_ok "globular-installer, packages, and workflows ready"
 
-log_info "[4.4] Installing etcdctl (required by etcd cluster join step)..."
+log_info "[4.5] Installing etcdctl (required by etcd cluster join step)..."
 ETCDCTL_PKG=$(find "${PACKAGES_DIR}" -maxdepth 1 -name "etcdctl_*_linux_amd64.tgz" 2>/dev/null | head -1)
 if [[ -n "${ETCDCTL_PKG}" ]]; then
   "${INSTALL_DIR}/globular-installer" install \
@@ -515,7 +521,7 @@ else
   log_warn "etcdctl package not found — etcd join may fail if etcdctl is unavailable"
 fi
 
-log_info "[4.5] Installing etcd binary and service unit (cluster join in Phase 5)..."
+log_info "[4.6] Installing etcd binary and service unit (cluster join in Phase 5)..."
 # join_id=${JOIN_ID} — Phase 3.6 validated the JoinPlan. Cluster-affecting steps start in Phase 5.
 ETCD_PKG=$(find "${PACKAGES_DIR}" -maxdepth 1 -name "etcd_*_linux_amd64.tgz" 2>/dev/null | head -1)
 if [[ -z "${ETCD_PKG}" ]]; then

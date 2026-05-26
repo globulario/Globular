@@ -202,14 +202,13 @@ func TestJoinAuthorize_JoinScriptLogsJoinPlanAccepted(t *testing.T) {
 func TestJoinAuthorize_JoinScriptLogsJoinIDAtClusterAffectingSteps(t *testing.T) {
 	script := joinScriptForTest()
 
-	// Phase 4.5 (etcd join) must log the join_id.
-	etcdJoinBlock := extractScriptBlock(script, "[4.5]", "[4.6]")
+	// Phase 5 (etcd cluster join — first cluster-affecting step) must log the join_id.
+	etcdJoinBlock := extractScriptBlock(script, "5 — Etcd Cluster Join", "log_phase")
 	if etcdJoinBlock == "" {
-		// Phase 4.6 may not exist; fall back to end of phase 4
-		etcdJoinBlock = extractScriptBlock(script, "[4.5]", "log_phase")
+		etcdJoinBlock = extractScriptBlock(script, "[5.1]", "[5.2]")
 	}
 	if !containsString(etcdJoinBlock, "JOIN_ID") && !containsString(etcdJoinBlock, "join_id") {
-		t.Error("Phase 4.5 (etcd join — cluster-affecting) must reference join_id")
+		t.Error("Phase 5 (etcd cluster join — cluster-affecting) must reference join_id")
 	}
 
 	// Phase 6 (node-agent install) must log the join_id.
