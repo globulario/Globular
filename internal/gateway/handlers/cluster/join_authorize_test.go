@@ -245,8 +245,12 @@ func TestJoinAuthorize_JoinScriptBlocksOnValidationFailure(t *testing.T) {
 
 	// The /join/authorize call must use die (not log_warn) on failure.
 	// This guarantees no cluster-affecting step can run after a failed gate.
-	authorizeFailMsg := `die "join blocked: signed JoinPlan missing — failed to reach gateway /join/authorize"`
-	if !containsString(script, authorizeFailMsg) {
+	// Check for any die() call that blocks on /join/authorize failure — the
+	// script has several (network error, gateway error, denied, missing join_id).
+	hasDieOnAuthorizeFailure := containsString(script, `die "join blocked: network error reaching gateway /join/authorize"`) ||
+		containsString(script, `die "join blocked: signed JoinPlan missing`) ||
+		containsString(script, `die "join blocked: controller denied`)
+	if !hasDieOnAuthorizeFailure {
 		t.Error("join script must use die() — not log_warn() — on /join/authorize failure\n" +
 			"reason: a soft failure would allow cluster-affecting steps to proceed without a valid JoinPlan")
 	}

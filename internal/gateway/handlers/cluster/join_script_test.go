@@ -16,6 +16,7 @@ func joinScriptForTest() string {
 		"FAKECAB64==",    // %[1]s CA cert
 		"10.0.0.1:8443",  // %[2]s gateway
 		"10.0.0.1:12000", // %[3]s controller
+		"1.2.0",          // %[4]s platform version
 	)
 }
 

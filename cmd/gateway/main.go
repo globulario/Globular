@@ -30,6 +30,11 @@ import (
 
 const gatewayServiceID = "gateway.GatewayService"
 
+// Version is set at build time via -ldflags "-X main.Version=x.y.z".
+// This value is embedded in the join script so Day-1 nodes know which
+// GitHub release to fetch globular-installer from if the gateway can't serve it.
+var Version = "0.0.0-dev"
+
 var (
 	maxUpload           = flag.Int64("max-upload", 2<<30, "max upload size in bytes")
 	rateRPS             = flag.Int("rate-rps", 50, "max requests/sec per client; <=0 disables throttling")
@@ -174,12 +179,13 @@ func main() {
 	}
 
 	handlerSet := gatewayhandlers.New(globule, gatewayhandlers.HandlerConfig{
-		MaxUpload:      finalCfg.MaxUpload,
-		RateRPS:        finalCfg.RateRPS,
-		RateBurst:      finalCfg.RateBurst,
-		ControllerAddr: globpkg.ControllerAddress(),
-		EnvoyHTTPAddr:  strings.TrimSpace(finalCfg.EnvoyHTTPAddr),
-		Mode:           mode,
+		MaxUpload:       finalCfg.MaxUpload,
+		RateRPS:         finalCfg.RateRPS,
+		RateBurst:       finalCfg.RateBurst,
+		ControllerAddr:  globpkg.ControllerAddress(),
+		EnvoyHTTPAddr:   strings.TrimSpace(finalCfg.EnvoyHTTPAddr),
+		Mode:            mode,
+		PlatformVersion: Version,
 	})
 	mux := handlerSet.Router(logger)
 

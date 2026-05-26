@@ -31,7 +31,7 @@ import (
 // Usage (fresh Day-1 join):
 //
 //	curl -sfL https://<gateway>:8443/join -k | sudo bash -s -- --token <join-token>
-func NewJoinScriptHandler(controllerAddr string, gatewayPort int) http.Handler {
+func NewJoinScriptHandler(controllerAddr string, gatewayPort int, platformVersion string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -73,7 +73,7 @@ func NewJoinScriptHandler(controllerAddr string, gatewayPort int) http.Handler {
 		}
 
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		fmt.Fprintf(w, joinScript, caB64, gatewayAddr, ctrlAddr)
+		fmt.Fprintf(w, joinScript, caB64, gatewayAddr, ctrlAddr, platformVersion)
 	})
 }
 
@@ -83,6 +83,7 @@ func NewJoinScriptHandler(controllerAddr string, gatewayPort int) http.Handler {
 //	%[1]s = base64 CA cert
 //	%[2]s = gateway address (host:port)
 //	%[3]s = controller address (host:port)
+//	%[4]s = platform version (e.g. "1.2.88") — used for GitHub installer fallback
 //
 // IMPORTANT: any literal %% in this string becomes % in the output script.
 // Use %% wherever the shell script needs a literal % (e.g. date format strings).
@@ -395,12 +396,21 @@ AUTHORIZE_RESPONSE="${STATE_DIR}/nodeagent/join_authorize.json"
 AUTHORIZE_BODY=$(printf '{"join_token":"%%s","identity":{"hostname":"%%s","ips":["%%s"]}}' \
   "${JOIN_TOKEN}" "${NODE_HOSTNAME}" "${NODE_IP}")
 
-curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
+# Use -w to capture HTTP status separately; do NOT use -f so the response body
+# is always written to AUTHORIZE_RESPONSE regardless of HTTP status code.
+# This lets us extract denied_reason from a 403 instead of hiding it.
+AUTHORIZE_HTTP_STATUS=$(curl -sL --cacert "${STATE_DIR}/pki/ca.crt" \
   -X POST "https://${GATEWAY}/join/authorize" \
   -H "Content-Type: application/json" \
   -d "${AUTHORIZE_BODY}" \
   -o "${AUTHORIZE_RESPONSE}" \
-  || die "join blocked: signed JoinPlan missing — failed to reach gateway /join/authorize"
+  -w "%%{http_code}" 2>/dev/null) \
+  || die "join blocked: network error reaching gateway /join/authorize"
+
+if [[ "${AUTHORIZE_HTTP_STATUS}" -ge 500 ]]; then
+  GATEWAY_ERR=$(head -1 "${AUTHORIZE_RESPONSE}" 2>/dev/null || true)
+  die "join blocked: gateway error (HTTP ${AUTHORIZE_HTTP_STATUS}) — ${GATEWAY_ERR}"
+fi
 
 # Parse allowed field: handles both "allowed":true and "allowed": true
 JOIN_PLAN_ALLOWED=$(grep -oE '"allowed"\s*:\s*(true|false)' "${AUTHORIZE_RESPONSE}" \
@@ -414,7 +424,7 @@ DENIED_REASON=$(grep -oE '"denied_reason"\s*:\s*"[^"]*"' "${AUTHORIZE_RESPONSE}"
   | head -1 | sed 's/.*"denied_reason"\s*:\s*"\([^"]*\)".*/\1/' || echo "unknown")
 
 [[ "${JOIN_PLAN_ALLOWED}" == "true" ]] \
-  || die "join blocked: signed JoinPlan missing — controller denied: ${DENIED_REASON}"
+  || die "join blocked: controller denied — ${DENIED_REASON}"
 
 [[ -n "${JOIN_ID}" ]] \
   || die "join blocked: signed JoinPlan missing — controller returned empty join_id"
@@ -447,9 +457,57 @@ log_phase "4 — Download Binaries and Workflows"
 # ============================================================================
 
 log_info "[4.1] Downloading bootstrap binary (globular-installer)..."
-curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
+# Try gateway first (works in air-gapped environments).
+# Fall back to GitHub releases if the gateway can't serve the binary or
+# returns a truncated file (< 1 MB). The platform version is embedded by
+# the gateway at script-generation time from its own build version.
+PLATFORM_VERSION="%[4]s"
+INSTALLER_MIN_BYTES=1048576  # 1 MB — guards against the 32 KB truncation bug
+
+GW_INSTALLER_OK=0
+if curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
   "https://${GATEWAY}/join/bin/globular-installer" \
-  -o "${INSTALL_DIR}/globular-installer"
+  -o "${INSTALL_DIR}/globular-installer"; then
+  GW_INSTALLER_OK=1
+else
+  log_warn "[4.1] gateway could not serve globular-installer — will try GitHub fallback"
+fi
+
+if [[ ${GW_INSTALLER_OK} -eq 1 ]]; then
+  SZ=$(stat -c%%s "${INSTALL_DIR}/globular-installer" 2>/dev/null || echo 0)
+  if [[ ${SZ} -lt ${INSTALLER_MIN_BYTES} ]]; then
+    log_warn "[4.1] globular-installer from gateway is too small (${SZ} bytes) — truncated; trying GitHub fallback"
+    GW_INSTALLER_OK=0
+  fi
+fi
+
+if [[ ${GW_INSTALLER_OK} -ne 1 ]]; then
+  # Guard: we need a real release version to build a valid GitHub URL.
+  if [[ -z "${PLATFORM_VERSION}" || "${PLATFORM_VERSION}" == "0.0.0-dev" || "${PLATFORM_VERSION}" == "0.0.0-detect" ]]; then
+    die "globular-installer unavailable from gateway and no valid platform version for GitHub fallback (version=${PLATFORM_VERSION})"
+  fi
+
+  log_info "[4.1.fallback] Fetching globular-installer from GitHub releases (v${PLATFORM_VERSION})..."
+  # Download the standalone binary asset — much faster than the full 500 MB tarball.
+  GH_BIN="globular-installer-${PLATFORM_VERSION}-linux-amd64"
+  GH_BASE="https://github.com/globulario/services/releases/download/v${PLATFORM_VERSION}"
+
+  curl -sfL "${GH_BASE}/${GH_BIN}" -o "${INSTALL_DIR}/globular-installer" \
+    || die "GitHub fallback failed: could not download ${GH_BIN} from v${PLATFORM_VERSION}"
+  curl -sfL "${GH_BASE}/${GH_BIN}.sha256" -o "/tmp/${GH_BIN}.sha256" \
+    || die "GitHub fallback failed: could not download checksum for ${GH_BIN}"
+
+  # Verify checksum — the sha256 file uses the standalone binary name.
+  EXPECTED_SUM=$(awk '{print $1}' "/tmp/${GH_BIN}.sha256")
+  ACTUAL_SUM=$(sha256sum "${INSTALL_DIR}/globular-installer" | awk '{print $1}')
+  if [[ "${EXPECTED_SUM}" != "${ACTUAL_SUM}" ]]; then
+    die "GitHub fallback failed: checksum mismatch for ${GH_BIN} (expected ${EXPECTED_SUM}, got ${ACTUAL_SUM})"
+  fi
+
+  rm -f "/tmp/${GH_BIN}.sha256"
+  log_ok "[4.1.fallback] globular-installer fetched from GitHub (v${PLATFORM_VERSION})"
+fi
+
 chmod +x "${INSTALL_DIR}/globular-installer"
 log_ok "globular-installer installed"
 
@@ -503,8 +561,8 @@ log_info "[5.1] Checking for ghost etcd member (peer URL from prior failed join)
 GHOST_ID=$(etcdctl \
   --endpoints="${BOOTSTRAP_ETCD}" \
   --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
-  member list -o simple 2>/dev/null \
-  | awk -v peer="https://${NODE_IP}:2380" '$0 ~ peer {print $1}' | head -1 || true)
+  member list 2>/dev/null \
+  | awk -F', ' -v peer="https://${NODE_IP}:2380" '$4==peer {print $1}' | head -1 || true)
 if [[ -n "${GHOST_ID}" ]]; then
   log_warn "ghost member detected (peer URL match): ${GHOST_ID} — removing before member add"
   etcdctl \
@@ -519,8 +577,8 @@ log_info "[5.2] Fetching current cluster member list from ${BOOTSTRAP_ETCD}..."
 INITIAL_CLUSTER_RAW=$(etcdctl \
   --endpoints="${BOOTSTRAP_ETCD}" \
   --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
-  member list -o simple 2>/dev/null \
-  | awk '{print $3"="$4}' | paste -sd, || true)
+  member list 2>/dev/null \
+  | awk -F', ' 'NF>=4 && $3!="" {print $3"="$4}' | paste -sd, || true)
 
 log_info "[5.3] Normalizing loopback peer URLs (bootstrap may have 127.0.0.1)..."
 INITIAL_CLUSTER="${INITIAL_CLUSTER_RAW//127.0.0.1/${BOOTSTRAP_HOST}}"
@@ -594,7 +652,7 @@ log_info "[5.7] Verifying named member presence in cluster (anti-fork check)..."
 VISIBLE=$(etcdctl \
   --endpoints="${BOOTSTRAP_ETCD}" \
   --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
-  member list -o simple 2>/dev/null | awk '{print $3}' \
+  member list 2>/dev/null | awk -F', ' 'NF>=4 {print $3}' \
   | grep -c "^${ETCD_NAME}$" || echo 0)
 if [[ "${VISIBLE}" -eq 0 ]]; then
   die "etcd join failed: ${ETCD_NAME} is not visible in cluster member list from ${BOOTSTRAP_ETCD} — \

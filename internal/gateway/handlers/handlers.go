@@ -26,12 +26,13 @@ var serviceConfigCache = cfgHandlers.NewServiceConfigCache()
 
 // HandlerConfig holds knobs consumed by the HTTP surface.
 type HandlerConfig struct {
-	MaxUpload      int64
-	RateRPS        int
-	RateBurst      int
-	ControllerAddr string
-	EnvoyHTTPAddr  string
-	Mode           string
+	MaxUpload       int64
+	RateRPS         int
+	RateBurst       int
+	ControllerAddr  string
+	EnvoyHTTPAddr   string
+	Mode            string
+	PlatformVersion string // injected by ldflags; used in join script for GitHub installer fallback
 }
 
 // GatewayHandlers owns the HTTP middleware, providers, and wiring logic.
@@ -287,7 +288,7 @@ func (h *GatewayHandlers) wireCluster(mux *http.ServeMux, wrap func(http.Handler
 	pkgDir := "/var/lib/globular/packages"
 	clusterHandlers.Mount(mux, clusterHandlers.Deps{
 		JoinToken:     wrap(clusterHandlers.NewJoinTokenHandler(deps)),
-		JoinScript:    clusterHandlers.NewJoinScriptHandler(h.cfg.ControllerAddr, h.globule.PortHTTPS),
+		JoinScript:    clusterHandlers.NewJoinScriptHandler(h.cfg.ControllerAddr, h.globule.PortHTTPS, h.cfg.PlatformVersion),
 		JoinAuthorize: clusterHandlers.NewJoinAuthorizeHandler(deps),
 		JoinBin:       clusterHandlers.NewJoinBinHandler(binDir),
 		JoinPackages:  clusterHandlers.NewJoinPackagesHandler(pkgDir),
