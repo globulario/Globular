@@ -284,15 +284,10 @@ func (h *GatewayHandlers) wireCluster(mux *http.ServeMux, wrap func(http.Handler
 	deps := clusterHandlers.HandlerDeps{
 		Controller: controllerclient.New(h.cfg.ControllerAddr),
 	}
-	binDir := "/usr/lib/globular/bin"
-	pkgDir := "/var/lib/globular/packages"
 	clusterHandlers.Mount(mux, clusterHandlers.Deps{
 		JoinToken:     wrap(clusterHandlers.NewJoinTokenHandler(deps)),
 		JoinScript:    clusterHandlers.NewJoinScriptHandler(h.cfg.ControllerAddr, h.globule.PortHTTPS, h.cfg.PlatformVersion),
 		JoinAuthorize: clusterHandlers.NewJoinAuthorizeHandler(deps),
-		JoinBin:       clusterHandlers.NewJoinBinHandler(binDir),
-		JoinPackages:  clusterHandlers.NewJoinPackagesHandler(pkgDir),
-		JoinWorkflows: clusterHandlers.NewJoinWorkflowsHandler(),
 		CleanScript:   clusterHandlers.NewCleanScriptHandler(),
 		Nodes:         wrap(clusterHandlers.NewNodesHandler(deps)),
 		NodeActions:   wrap(clusterHandlers.NewNodeActionsHandler(deps)),

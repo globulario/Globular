@@ -15,7 +15,7 @@ import (
 //	Phase 1: Directories     — create layout and globular user (no state wipe)
 //	Phase 2: PKI/Identity    — CA cert, service cert, TLS verification
 //	Phase 3: Connectivity    — DNS, /etc/hosts, libnss, journald, config.json, node-agent state
-//	Phase 4: Download+Join   — fetch artifacts, install etcd (join handled by installer engine)
+//	Phase 4: Download        — GitHub release tarball (same as Day-0): installer, packages, workflows
 //	Phase 6: node-agent      — install and start; auto-initiates join RPC via state file
 //	Phase 7: MinIO hold      — enforce objectstore topology contract
 //
@@ -83,7 +83,7 @@ func NewJoinScriptHandler(controllerAddr string, gatewayPort int, platformVersio
 //	%[1]s = base64 CA cert
 //	%[2]s = gateway address (host:port)
 //	%[3]s = controller address (host:port)
-//	%[4]s = platform version (e.g. "1.2.88") — used for GitHub installer fallback
+//	%[4]s = platform version (e.g. "1.2.88") — used to build the GitHub release tarball URL
 //
 // IMPORTANT: any literal %% in this string becomes % in the output script.
 // Use %% wherever the shell script needs a literal % (e.g. date format strings).
@@ -101,7 +101,7 @@ set -euo pipefail
 #   3 — Connectivity: DNS, /etc/hosts MinIO fallback, libnss, journald
 #   3.6 — JoinPlan: POST /join/authorize → signed JoinPlan + join_id from controller
 #   3.7 — State:    write node-agent state.json including join_id
-#   4 — Download:   globular-installer binary, workflows, packages, etcd binary+unit
+#   4 — Download:   GitHub release tarball → globular-installer, packages, workflows
 #   5 — Etcd join:  ghost cleanup, member add, etcd.yaml, start, health gate, fork-detection
 #   6 — node-agent: write unit (After=globular-etcd), start; uses v2 path (join_id)
 #   7 — MinIO hold: enforce objectstore topology contract
@@ -453,75 +453,54 @@ log_ok "node-agent state seeded (join_token set, join_id=${JOIN_ID}, controller=
 log_ok "Connectivity configured"
 
 # ============================================================================
-log_phase "4 — Download Binaries and Workflows"
+log_phase "4 — Download Release Tarball from GitHub"
 # ============================================================================
+# Use the same release tarball as Day-0. It contains globular-installer,
+# all packages, and all workflow definitions — no gateway package serving needed.
 
-log_info "[4.1] Downloading bootstrap binary (globular-installer)..."
-# Try gateway first (works in air-gapped environments).
-# Fall back to GitHub releases if the gateway can't serve the binary or
-# returns a truncated file (< 1 MB). The platform version is embedded by
-# the gateway at script-generation time from its own build version.
 PLATFORM_VERSION="%[4]s"
-INSTALLER_MIN_BYTES=1048576  # 1 MB — guards against the 32 KB truncation bug
 
-GW_INSTALLER_OK=0
-if curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
-  "https://${GATEWAY}/join/bin/globular-installer" \
-  -o "${INSTALL_DIR}/globular-installer"; then
-  GW_INSTALLER_OK=1
-else
-  log_warn "[4.1] gateway could not serve globular-installer — will try GitHub fallback"
+if [[ -z "${PLATFORM_VERSION}" || "${PLATFORM_VERSION}" == "0.0.0-dev" || "${PLATFORM_VERSION}" == "0.0.0-detect" ]]; then
+  die "cannot download release tarball: no valid platform version (version=${PLATFORM_VERSION})"
 fi
 
-if [[ ${GW_INSTALLER_OK} -eq 1 ]]; then
-  SZ=$(stat -c%%s "${INSTALL_DIR}/globular-installer" 2>/dev/null || echo 0)
-  if [[ ${SZ} -lt ${INSTALLER_MIN_BYTES} ]]; then
-    log_warn "[4.1] globular-installer from gateway is too small (${SZ} bytes) — truncated; trying GitHub fallback"
-    GW_INSTALLER_OK=0
-  fi
+TARBALL_NAME="globular-${PLATFORM_VERSION}-linux-amd64.tar.gz"
+TARBALL_URL="https://github.com/globulario/services/releases/download/v${PLATFORM_VERSION}/${TARBALL_NAME}"
+TARBALL_TMP="/tmp/${TARBALL_NAME}"
+TARBALL_DIR="/tmp/globular-${PLATFORM_VERSION}"
+
+log_info "[4.1] Downloading ${TARBALL_NAME} from GitHub..."
+curl -sfL "${TARBALL_URL}" -o "${TARBALL_TMP}" \
+  || die "could not download ${TARBALL_NAME} from GitHub v${PLATFORM_VERSION}"
+curl -sfL "${TARBALL_URL}.sha256" -o "${TARBALL_TMP}.sha256" \
+  || die "could not download checksum for ${TARBALL_NAME}"
+
+EXPECTED_SUM=$(awk '{print $1}' "${TARBALL_TMP}.sha256")
+ACTUAL_SUM=$(sha256sum "${TARBALL_TMP}" | awk '{print $1}')
+if [[ "${EXPECTED_SUM}" != "${ACTUAL_SUM}" ]]; then
+  die "tarball checksum mismatch (expected ${EXPECTED_SUM}, got ${ACTUAL_SUM})"
 fi
+rm -f "${TARBALL_TMP}.sha256"
+log_ok "tarball verified (sha256 ok)"
 
-if [[ ${GW_INSTALLER_OK} -ne 1 ]]; then
-  # Guard: we need a real release version to build a valid GitHub URL.
-  if [[ -z "${PLATFORM_VERSION}" || "${PLATFORM_VERSION}" == "0.0.0-dev" || "${PLATFORM_VERSION}" == "0.0.0-detect" ]]; then
-    die "globular-installer unavailable from gateway and no valid platform version for GitHub fallback (version=${PLATFORM_VERSION})"
-  fi
+log_info "[4.2] Extracting tarball..."
+mkdir -p "${TARBALL_DIR}"
+tar -xzf "${TARBALL_TMP}" -C "${TARBALL_DIR}" --strip-components=1
+rm -f "${TARBALL_TMP}"
+log_ok "tarball extracted"
 
-  log_info "[4.1.fallback] Fetching globular-installer from GitHub releases (v${PLATFORM_VERSION})..."
-  # Download the standalone binary asset — much faster than the full 500 MB tarball.
-  GH_BIN="globular-installer-${PLATFORM_VERSION}-linux-amd64"
-  GH_BASE="https://github.com/globulario/services/releases/download/v${PLATFORM_VERSION}"
+[[ -x "${TARBALL_DIR}/globular-installer" ]] || die "globular-installer not found in tarball"
+[[ -d "${TARBALL_DIR}/packages" ]]           || die "packages/ not found in tarball"
 
-  curl -sfL "${GH_BASE}/${GH_BIN}" -o "${INSTALL_DIR}/globular-installer" \
-    || die "GitHub fallback failed: could not download ${GH_BIN} from v${PLATFORM_VERSION}"
-  curl -sfL "${GH_BASE}/${GH_BIN}.sha256" -o "/tmp/${GH_BIN}.sha256" \
-    || die "GitHub fallback failed: could not download checksum for ${GH_BIN}"
-
-  # Verify checksum — the sha256 file uses the standalone binary name.
-  EXPECTED_SUM=$(awk '{print $1}' "/tmp/${GH_BIN}.sha256")
-  ACTUAL_SUM=$(sha256sum "${INSTALL_DIR}/globular-installer" | awk '{print $1}')
-  if [[ "${EXPECTED_SUM}" != "${ACTUAL_SUM}" ]]; then
-    die "GitHub fallback failed: checksum mismatch for ${GH_BIN} (expected ${EXPECTED_SUM}, got ${ACTUAL_SUM})"
-  fi
-
-  rm -f "/tmp/${GH_BIN}.sha256"
-  log_ok "[4.1.fallback] globular-installer fetched from GitHub (v${PLATFORM_VERSION})"
-fi
-
+cp "${TARBALL_DIR}/globular-installer" "${INSTALL_DIR}/globular-installer"
 chmod +x "${INSTALL_DIR}/globular-installer"
-log_ok "globular-installer installed"
 
-log_info "[4.2] Fetching workflows and packages from gateway..."
-PACKAGES_DIR="${STATE_DIR}/packages"
-"${INSTALL_DIR}/globular-installer" fetch \
-  --gateway "https://${GATEWAY}" \
-  --ca-cert "${STATE_DIR}/pki/ca.crt" \
-  --workflows-dir "${STATE_DIR}/workflows" \
-  --dest "${PACKAGES_DIR}" \
-  --verbose \
-  || die "failed to fetch artifacts from gateway"
-chown -R globular:globular "${STATE_DIR}/workflows" "${PACKAGES_DIR}" 2>/dev/null || true
-log_ok "Workflows and packages ready"
+PACKAGES_DIR="${TARBALL_DIR}/packages"
+
+log_info "[4.3] Copying workflows to state dir..."
+cp -r "${TARBALL_DIR}/workflows/." "${STATE_DIR}/workflows/"
+chown -R globular:globular "${STATE_DIR}/workflows"
+log_ok "globular-installer, packages, and workflows ready"
 
 log_info "[4.4] Installing etcdctl (required by etcd cluster join step)..."
 ETCDCTL_PKG=$(find "${PACKAGES_DIR}" -maxdepth 1 -name "etcdctl_*_linux_amd64.tgz" 2>/dev/null | head -1)
