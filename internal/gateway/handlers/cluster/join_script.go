@@ -100,7 +100,8 @@ set -euo pipefail
 #   2 — PKI/Identity: CA cert, service cert, TLS smoke-test
 #   3 — Connectivity: DNS, /etc/hosts MinIO fallback, libnss, journald
 #   3.6 — JoinPlan: POST /join/authorize → signed JoinPlan + join_id from controller
-#   3.7 — State:    write node-agent state.json including join_id
+#   3.7 — Seeds:    write etcd_endpoints file so ScyllaDB post-install finds seeds
+#   3.8 — State:    write node-agent state.json including join_id
 #   4 — Download:   GitHub release tarball → globular-installer, packages, workflows
 #   5 — Etcd join:  ghost cleanup, member add, etcd.yaml, start, health gate, fork-detection
 #   6 — node-agent: write unit (After=globular-etcd), start; uses v2 path (join_id)
@@ -431,7 +432,17 @@ DENIED_REASON=$(grep -oE '"denied_reason"\s*:\s*"[^"]*"' "${AUTHORIZE_RESPONSE}"
 
 log_ok "join plan accepted: join_id=${JOIN_ID} generation=controller-authorized"
 
-log_info "[3.7] Writing node-agent state (join token + controller endpoint + join_id)..."
+log_info "[3.7] Writing etcd endpoints file (seed for ScyllaDB post-install)..."
+# ScyllaDB's post-install reads this file to discover seed nodes.
+# Without it the file is absent and ScyllaDB falls back to the local IP only,
+# bootstrapping a standalone cluster instead of joining the existing ring.
+# The node-agent's recovery path only writes this file after 3 heartbeat
+# failures, which is too late — it must exist before storage_joining triggers.
+echo "https://${BOOTSTRAP_HOST}:2379" > "${STATE_DIR}/config/etcd_endpoints"
+chown globular:globular "${STATE_DIR}/config/etcd_endpoints"
+log_ok "etcd_endpoints seeded with bootstrap host (${BOOTSTRAP_HOST})"
+
+log_info "[3.8] Writing node-agent state (join token + controller endpoint + join_id)..."
 # The join_id is included so the node-agent uses the v2 path (no RequestJoin call):
 # it polls GetJoinRequestStatus(join_id) directly without consuming the token again.
 cat > "${STATE_DIR}/nodeagent/state.json" <<STATEJSON
@@ -652,7 +663,7 @@ log_phase "6 — node-agent"
 # Install the node-agent binary, write a systemd unit that declares an
 # ordering dependency on globular-etcd.service, then start it.
 # The node-agent reads join_token + controller_endpoint + join_id from the
-# state file written in Phase 3.7 and uses the v2 path at startup:
+# state file written in Phase 3.8 and uses the v2 path at startup:
 # it polls GetJoinRequestStatus(join_id) without calling RequestJoin again.
 
 log_info "[6.1] Installing globular-node-agent binary via installer engine (join_id=${JOIN_ID})..."
