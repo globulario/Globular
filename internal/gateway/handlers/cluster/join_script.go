@@ -547,6 +547,16 @@ chown -R globular:globular "${STATE_DIR}/config" "${STATE_DIR}/etcd"
 ln -sf "${INSTALL_DIR}/etcdctl" /usr/local/bin/etcdctl
 log_ok "etcd binary and service unit installed"
 
+# The installer may have started etcd immediately with a default single-node
+# bootstrap config (initial-cluster-state=new). Stop it and wipe any data it
+# created so Phase 5 can write the proper join config and start clean.
+log_info "[4.6.1] Stopping installer-started etcd and wiping transient bootstrap data..."
+systemctl stop globular-etcd.service 2>/dev/null || true
+rm -rf "${STATE_DIR}/etcd"
+mkdir -p "${STATE_DIR}/etcd"
+chown globular:globular "${STATE_DIR}/etcd"
+log_ok "installer-started etcd stopped; data dir reset for cluster join"
+
 # ============================================================================
 log_phase "5 — Etcd Cluster Join"
 # ============================================================================
