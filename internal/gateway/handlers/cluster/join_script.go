@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -31,6 +32,29 @@ import (
 // Usage (fresh Day-1 join):
 //
 //	curl -sfL https://<gateway>:8443/join -k | sudo bash -s -- --token <join-token>
+//
+// activePlatformVersion reads the platform_release from the local
+// release-index.json written by 'globular repo sync'. This ensures Day-1
+// always downloads the version the cluster is actually running, not the version
+// the gateway binary was compiled at (which only changes when gateway code
+// changes, not on every platform release).
+//
+// Falls back to the binary's own version so Day-0 bootstrap still works before
+// repo sync has been run.
+func activePlatformVersion(binaryVersion string) string {
+	data, err := os.ReadFile("/var/lib/globular/release-index.json")
+	if err != nil {
+		return binaryVersion
+	}
+	var idx struct {
+		PlatformRelease string `json:"platform_release"`
+	}
+	if err := json.Unmarshal(data, &idx); err != nil || idx.PlatformRelease == "" {
+		return binaryVersion
+	}
+	return idx.PlatformRelease
+}
+
 func NewJoinScriptHandler(controllerAddr string, gatewayPort int, platformVersion string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -73,7 +97,7 @@ func NewJoinScriptHandler(controllerAddr string, gatewayPort int, platformVersio
 		}
 
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		fmt.Fprintf(w, joinScript, caB64, gatewayAddr, ctrlAddr, platformVersion)
+		fmt.Fprintf(w, joinScript, caB64, gatewayAddr, ctrlAddr, activePlatformVersion(platformVersion))
 	})
 }
 
