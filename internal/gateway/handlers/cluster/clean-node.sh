@@ -30,6 +30,62 @@ log_success() { echo "  ✓ $*"; }
 log_warn() { echo "  ⚠ $*"; }
 log_step() { echo ""; echo "━━━ $* ━━━"; echo ""; }
 
+# hard_stop_scylla — kills ScyllaDB completely before any wipe.
+# Fails closed (exits non-zero) if Scylla cannot be killed within 10s, because
+# a live Scylla process can recreate /var/lib/scylla state during the wipe.
+hard_stop_scylla() {
+    log_info "Hard-stopping ScyllaDB before wipe..."
+
+    # Stop and disable all Scylla systemd units.
+    for unit in scylla-server.service scylla-node-exporter.service scylla-tune-sched.service \
+                scylla-manager.service scylla-manager-agent.service; do
+        systemctl stop "${unit}" 2>/dev/null || true
+        systemctl disable "${unit}" 2>/dev/null || true
+        systemctl kill -s SIGKILL "${unit}" 2>/dev/null || true
+    done
+
+    # Stop any Scylla timers.
+    for timer in $(systemctl list-timers 'scylla-*' --no-pager --no-legend --plain 2>/dev/null | awk '{print $NF}'); do
+        systemctl stop "${timer}" 2>/dev/null || true
+    done
+
+    # Kill by exact process name (comm field).
+    pkill -9 -x scylla 2>/dev/null || true
+    pkill -9 -x scylla-manager 2>/dev/null || true
+    pkill -9 -x scylla-manager-agent 2>/dev/null || true
+
+    # Wait up to 10 s for all Scylla processes to exit.
+    for i in $(seq 1 10); do
+        if ! pgrep -af 'scylla' >/dev/null 2>&1; then
+            log_success "No ScyllaDB process remains"
+            return 0
+        fi
+        sleep 1
+    done
+
+    log_warn "ScyllaDB processes still alive after hard stop:"
+    pgrep -af 'scylla' || true
+    die "Refusing to wipe /var/lib/scylla while ScyllaDB may still be running. Kill the process manually and rerun."
+}
+
+# assert_scylla_wiped — verifies all Scylla on-disk state was removed.
+# Fails closed if any path still exists, preventing a false "ready for Day-1 join" message.
+assert_scylla_wiped() {
+    local failed=0
+    for path in /var/lib/scylla /etc/scylla /etc/scylla.d; do
+        if [[ -e "${path}" ]]; then
+            log_warn "Scylla path still exists after wipe: ${path}"
+            failed=1
+        fi
+    done
+
+    if [[ "${failed}" -eq 1 ]]; then
+        die "ScyllaDB wipe incomplete; refusing to mark node ready for Day-1 join"
+    fi
+
+    log_success "ScyllaDB local state fully removed"
+}
+
 # Must be root
 [[ $EUID -eq 0 ]] || die "This script must be run as root (use sudo)"
 
@@ -212,8 +268,10 @@ for unit in $(systemctl list-units 'globular-*' --no-pager --no-legend --plain 2
   systemctl disable "$unit" 2>/dev/null || true
 done
 
-# Stop ScyllaDB
-for unit in scylla-server.service scylla-node-exporter.service scylla-tune-sched.service; do
+# Stop ScyllaDB (best-effort via systemctl; hard_stop_scylla below does the
+# definitive kill and verifies no process remains before we wipe anything).
+for unit in scylla-server.service scylla-node-exporter.service scylla-tune-sched.service \
+            scylla-manager.service scylla-manager-agent.service; do
   if systemctl is-active --quiet "$unit" 2>/dev/null || systemctl is-enabled --quiet "$unit" 2>/dev/null; then
     log_info "Stopping $unit"
     systemctl stop "$unit" 2>/dev/null || true
@@ -227,6 +285,11 @@ for timer in $(systemctl list-timers 'scylla-*' --no-pager --no-legend --plain 2
   systemctl stop "$timer" 2>/dev/null || true
   systemctl disable "$timer" 2>/dev/null || true
 done
+
+# Hard-kill ScyllaDB — must succeed before any wipe begins.
+# This is a non-negotiable gate: a live Scylla process can recreate system
+# table state in /var/lib/scylla even while the directory is being wiped.
+hard_stop_scylla
 
 # ── Phase 2: Force-kill survivors ─────────────────────────────────────────────
 
@@ -301,6 +364,8 @@ done
 # scratch on rejoin. Keeping the binary causes a race: systemd auto-starts
 # scylla-server before the node-agent can take control, and Scylla hangs on
 # SIGTERM while loading system tables requiring a manual SIGKILL.
+# Package purge runs BEFORE directory wipe so the package manager's postrm
+# scripts cannot restart or recreate Scylla state during the rm -rf below.
 if dpkg -l 'scylla*' 2>/dev/null | grep -q '^ii'; then
   log_info "Removing ScyllaDB packages (node-agent will reinstall on rejoin)"
   DEBIAN_FRONTEND=noninteractive apt-get remove -y --purge 'scylla*' 2>/dev/null || \
@@ -308,13 +373,18 @@ if dpkg -l 'scylla*' 2>/dev/null | grep -q '^ii'; then
   log_success "ScyllaDB packages removed"
 fi
 
-# Wipe all ScyllaDB state and data
+# Wipe all ScyllaDB state and data.
+# hard_stop_scylla already confirmed no Scylla process is alive, so this wipe
+# is race-free.
 for dir in /var/lib/scylla /etc/scylla /etc/scylla.d; do
   if [[ -d "$dir" ]]; then
     rm -rf "$dir"
     log_success "Removed $dir"
   fi
 done
+
+# Assert the wipe is complete before we declare the node ready for Day-1 join.
+assert_scylla_wiped
 
 # etcd data
 if [[ -d /var/lib/etcd ]]; then
