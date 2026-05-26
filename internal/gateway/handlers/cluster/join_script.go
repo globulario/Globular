@@ -701,6 +701,13 @@ fi
 log_ok "node-agent running"
 
 # ============================================================================
+log_phase "6.5 — Cleanup installation tarball"
+# ============================================================================
+log_info "[6.5] Removing extracted tarball (no longer needed)..."
+rm -rf "${TARBALL_DIR}"
+log_ok "Tarball cleaned up"
+
+# ============================================================================
 log_phase "7 — MinIO / Objectstore Hold Enforcement"
 # ============================================================================
 # The join script MUST NOT start globular-minio.service.
