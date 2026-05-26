@@ -315,8 +315,16 @@ REMOVED=0
 for unit_file in /etc/systemd/system/globular-*.service; do
   [[ -f "$unit_file" ]] || continue
   rm -f "$unit_file"
+  rm -f "${unit_file}.sha256"
   log_success "Removed $(basename "$unit_file")"
   REMOVED=$((REMOVED + 1))
+done
+
+# Remove any orphaned sha256 sidecars whose unit file was already gone.
+for sha_file in /etc/systemd/system/globular-*.service.sha256; do
+  [[ -f "$sha_file" ]] || continue
+  rm -f "$sha_file"
+  log_success "Removed orphaned $(basename "$sha_file")"
 done
 
 # Remove drop-in dirs
