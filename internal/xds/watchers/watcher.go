@@ -292,43 +292,37 @@ func (w *Watcher) SetACMEPaths(certPath, keyPath string) {
 	w.initializeCertReconciler()
 }
 
-// initializeCertReconciler creates the CertReconciler if all required config is available.
+// initializeCertReconciler creates the CertReconciler if at least
+// one certificate source is available. v1.2.179: internal-cert
+// signalling moved from /globular/pki/bundles/{domain} etcd watch to
+// filesystem watch on /var/lib/globular/pki/issued/services/{cert,key}
+// + /var/lib/globular/pki/ca.crt — node_agent writes those files
+// during cert issuance, so xDS can detect rotation locally without
+// reading a foreign owner's etcd prefix.
 func (w *Watcher) initializeCertReconciler() {
-	// Need at least one certificate source to watch
-	hasEtcd := w.etcdClient != nil
+	internalCert := pathIfExists(config.GetLocalServerCertificatePath())
+	internalKey := pathIfExists(config.GetLocalServerKeyPath())
+	internalCA := pathIfExists(config.GetLocalCACertificate())
+	hasInternal := internalCert != "" || internalKey != "" || internalCA != ""
 	hasACME := w.acmeCertPath != "" && w.acmeKeyPath != ""
 
-	if !hasEtcd && !hasACME {
+	if !hasInternal && !hasACME {
 		return
 	}
 
-	// Determine domain for etcd key
-	// VIOLATION INV-1.8: Domain-based key (future: use cert ID)
-	domain := ""
-	if w.clusterNetwork != nil && w.clusterNetwork.Spec != nil {
-		domain = w.clusterNetwork.Spec.ClusterDomain
-	}
-	if domain == "" && w.controllerAddr != "" && !w.clusterNetworkReady() {
-		// Wait until cluster network is fetched to avoid nil deref / incorrect domain
-		w.certInitPending = true
-		return
-	}
-	if domain == "" {
-		domain = "globular.internal" // Hardcoded fallback
-	}
-
-	// Create reconciler if not already created
+	// Create reconciler if not already created.
 	if w.certReconciler == nil {
 		w.certReconciler = NewCertReconciler(
 			w.logger,
-			w.etcdClient,
-			domain,
+			internalCert,
+			internalKey,
+			internalCA,
 			w.acmeCertPath,
 			w.acmeKeyPath,
 		)
 		if w.logger != nil {
 			w.logger.Info("certificate reconciler initialized",
-				"has_etcd", hasEtcd,
+				"has_internal", hasInternal,
 				"has_acme", hasACME)
 		}
 	}

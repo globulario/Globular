@@ -3,12 +3,18 @@ package watchers
 import (
 	"log/slog"
 	"testing"
-
-	cluster_controllerpb "github.com/globulario/services/golang/cluster_controller/cluster_controllerpb"
 )
 
-// TestCertReconcilerWaitsForClusterNetwork ensures reconciler creation defers until cluster config exists.
-func TestCertReconcilerWaitsForClusterNetwork(t *testing.T) {
+// TestCertReconcilerCreatesWhenACMEConfigured asserts that the
+// reconciler is created as soon as any cert source (internal or
+// ACME) is available. v1.2.179: the prior wait-for-cluster-domain
+// branch is gone — initializeCertReconciler no longer needs a
+// cluster domain because cert change detection moved off the
+// /globular/pki/bundles/{domain} etcd key onto filesystem paths
+// that are domain-independent (service.crt / service.key / ca.crt
+// live under the same well-known directory regardless of cluster
+// domain).
+func TestCertReconcilerCreatesWhenACMEConfigured(t *testing.T) {
 	w := &Watcher{
 		logger:         slog.Default(),
 		controllerAddr: "controller:443",
@@ -17,17 +23,8 @@ func TestCertReconcilerWaitsForClusterNetwork(t *testing.T) {
 	}
 
 	w.initializeCertReconciler()
-	if w.certReconciler != nil {
-		t.Fatalf("expected certReconciler to be nil while cluster network missing")
-	}
-	if !w.certInitPending {
-		t.Fatalf("expected certInitPending to be true when cluster not ready")
-	}
-
-	w.clusterNetwork = &cluster_controllerpb.ClusterNetwork{Spec: &cluster_controllerpb.ClusterNetworkSpec{ClusterDomain: "example.local"}}
-	w.initializeCertReconciler()
 	if w.certReconciler == nil {
-		t.Fatalf("expected certReconciler to be created after cluster network available")
+		t.Fatalf("expected certReconciler to be created immediately when ACME paths are configured")
 	}
 	if w.certInitPending {
 		t.Fatalf("certInitPending should be false after initialization")

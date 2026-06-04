@@ -1,19 +1,17 @@
 package watchers
 
 import (
-	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
-
-	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // TestCertReconcilerLifecycle tests basic lifecycle operations.
+// v1.2.179: signature change — NewCertReconciler no longer takes an
+// etcdClient; cert change detection moved to filesystem watch.
 func TestCertReconcilerLifecycle(t *testing.T) {
-	reconciler := NewCertReconciler(nil, nil, "test.domain", "", "")
+	reconciler := NewCertReconciler(nil, "", "", "", "", "")
 
 	if err := reconciler.Start(); err != nil {
 		t.Fatalf("Start failed: %v", err)
@@ -57,8 +55,8 @@ MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg1234567890
 		t.Fatalf("write key: %v", err)
 	}
 
-	// Create reconciler
-	reconciler := NewCertReconciler(nil, nil, "", certPath, keyPath)
+	// Create reconciler — internal-cert paths empty, ACME paths set.
+	reconciler := NewCertReconciler(nil, "", "", "", certPath, keyPath)
 	if err := reconciler.Start(); err != nil {
 		t.Fatalf("Start failed: %v", err)
 	}
@@ -76,24 +74,56 @@ MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg1234567890
 	// Wait for change event (with timeout)
 	select {
 	case <-reconciler.ACMEChangedChan():
-		t.Log("✓ ACME certificate change detected via filesystem watch")
+		t.Log("ACME certificate change detected via filesystem watch")
 	case <-time.After(5 * time.Second):
 		t.Error("timeout waiting for ACME certificate change event")
 	}
 }
 
-// TestCertReconcilerEtcdWatch tests etcd watching (requires mock or skip).
-func TestCertReconcilerEtcdWatch(t *testing.T) {
-	// This test requires a real etcd instance or mock
-	// For now, just test that the reconciler can be created with etcd client
-	t.Skip("Requires etcd instance - manual test only")
+// TestCertReconcilerInternalFileWatch tests filesystem watching for
+// the internal cluster-CA-issued cert/key/CA files. This is the
+// v1.2.179 replacement for the prior etcd-watch test.
+func TestCertReconcilerInternalFileWatch(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "cert-reconciler-internal-*")
+	if err != nil {
+		t.Fatalf("create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
 
-	// In a real test environment with etcd:
-	// 1. Create etcd client
-	// 2. Write initial certificate generation
-	// 3. Start reconciler
-	// 4. Update certificate generation in etcd
-	// 5. Verify change event received
+	certPath := filepath.Join(tmpDir, "service.crt")
+	keyPath := filepath.Join(tmpDir, "service.key")
+	caPath := filepath.Join(tmpDir, "ca.crt")
+
+	if err := os.WriteFile(certPath, []byte("initial cert content"), 0644); err != nil {
+		t.Fatalf("write cert: %v", err)
+	}
+	if err := os.WriteFile(keyPath, []byte("initial key content"), 0600); err != nil {
+		t.Fatalf("write key: %v", err)
+	}
+	if err := os.WriteFile(caPath, []byte("initial ca content"), 0644); err != nil {
+		t.Fatalf("write ca: %v", err)
+	}
+
+	reconciler := NewCertReconciler(nil, certPath, keyPath, caPath, "", "")
+	if err := reconciler.Start(); err != nil {
+		t.Fatalf("Start failed: %v", err)
+	}
+	defer reconciler.Stop()
+
+	// Wait for initialization.
+	time.Sleep(500 * time.Millisecond)
+
+	// Rotate the cert content.
+	if err := os.WriteFile(certPath, []byte("rotated cert content"), 0644); err != nil {
+		t.Fatalf("write rotated cert: %v", err)
+	}
+
+	select {
+	case <-reconciler.CertChangedChan():
+		t.Log("internal certificate change detected via filesystem watch")
+	case <-time.After(5 * time.Second):
+		t.Error("timeout waiting for internal certificate change event")
+	}
 }
 
 // TestCertReconcilerInitialization tests state initialization.
@@ -115,7 +145,7 @@ func TestCertReconcilerInitialization(t *testing.T) {
 		t.Fatalf("write key: %v", err)
 	}
 
-	reconciler := NewCertReconciler(nil, nil, "", certPath, keyPath)
+	reconciler := NewCertReconciler(nil, "", "", "", certPath, keyPath)
 	if err := reconciler.Start(); err != nil {
 		t.Fatalf("Start failed: %v", err)
 	}
@@ -137,25 +167,6 @@ func TestCertReconcilerInitialization(t *testing.T) {
 		t.Error("key hash should be initialized")
 	}
 
-	t.Logf("✓ Certificate reconciler initialized with hashes: cert=%s, key=%s",
+	t.Logf("Certificate reconciler initialized with hashes: cert=%s, key=%s",
 		certHash[:8], keyHash[:8])
-}
-
-// Helper to create a mock etcd client (if needed for tests).
-func createMockEtcdClient(t *testing.T) *clientv3.Client {
-	t.Skip("Mock etcd client not implemented")
-	return nil
-}
-
-// Helper to write certificate bundle to etcd.
-func writeCertBundle(ctx context.Context, client *clientv3.Client, domain string, generation uint64) error {
-	key := "/globular/pki/bundles/" + domain
-	value, err := json.Marshal(map[string]interface{}{
-		"generation": generation,
-	})
-	if err != nil {
-		return err
-	}
-	_, err = client.Put(ctx, key, string(value))
-	return err
 }

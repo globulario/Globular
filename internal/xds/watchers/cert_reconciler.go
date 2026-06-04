@@ -1,38 +1,62 @@
+// @awareness namespace=globular.platform
+// @awareness component=platform_xds.cert_reconciler
+// @awareness file_role=event_driven_cert_change_signaller_via_filesystem_watch
+// @awareness enforces=globular.platform:invariant.four_layer.truth_read_via_owner_rpc_not_direct_storage
+// @awareness risk=high
 package watchers
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log/slog"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// CertReconciler watches for certificate changes via etcd and filesystem events.
-// Replaces polling with event-driven reconciliation (v1 conformance INV-6).
+// CertReconciler watches for certificate changes via the local
+// filesystem and signals xDS to rebuild its snapshot.
+//
+// History: prior to v1.2.179 this reconciler watched the etcd key
+// /globular/pki/bundles/{domain} directly via clientv3. That prefix
+// is owned by node_agent's internal/certs package
+// (services/golang/node_agent/node_agent_server/internal/certs/etcd_kv.go::PutBundle),
+// so xDS reading raw etcd violated
+// invariant:four_layer.truth_read_via_owner_rpc_not_direct_storage.
+//
+// The migration switches to filesystem-based change detection: node-
+// agent already writes the rotated cert / key / CA files to disk at
+// /var/lib/globular/pki/issued/services/{service.crt, service.key}
+// and /var/lib/globular/pki/ca.crt as part of its normal cert-issue
+// flow. xDS watches those files via fsnotify and hashes their
+// contents to suppress noise from atomic-rename `Create` events.
+//
+// Latency: comparable to the previous etcd Watch (sub-second). The
+// fsnotify path has the additional bonus that an air-gapped install
+// (no etcd routing for cert events) is unaffected.
 type CertReconciler struct {
-	logger     *slog.Logger
-	etcdClient *clientv3.Client
+	logger *slog.Logger
 
 	// Event channels
-	certChanged chan struct{} // Signal channel for certificate changes
+	certChanged chan struct{} // Signal channel for internal certificate changes
 	acmeChanged chan struct{} // Signal channel for ACME certificate changes
 
 	// State tracking
-	mu                 sync.RWMutex
-	lastCertGeneration uint64
-	lastACMECertHash   string
-	lastACMEKeyHash    string
+	mu                   sync.RWMutex
+	lastInternalCertHash string
+	lastInternalKeyHash  string
+	lastInternalCAHash   string
+	lastACMECertHash     string
+	lastACMEKeyHash      string
 
-	// Configuration
-	domain       string // For etcd key (TODO: replace with cert ID in future)
-	acmeCertPath string
-	acmeKeyPath  string
+	// Configuration — local filesystem paths only. No etcd, no
+	// foreign-prefix reads.
+	internalCertPath string // e.g. /var/lib/globular/pki/issued/services/service.crt
+	internalKeyPath  string // e.g. /var/lib/globular/pki/issued/services/service.key
+	internalCAPath   string // e.g. /var/lib/globular/pki/ca.crt
+	acmeCertPath     string
+	acmeKeyPath      string
 
 	// Lifecycle
 	ctx    context.Context
@@ -40,8 +64,12 @@ type CertReconciler struct {
 	wg     sync.WaitGroup
 }
 
-// NewCertReconciler creates a certificate reconciler with event-driven watching.
-func NewCertReconciler(logger *slog.Logger, etcdClient *clientv3.Client, domain, acmeCertPath, acmeKeyPath string) *CertReconciler {
+// NewCertReconciler creates a certificate reconciler with event-driven
+// filesystem watching. All path arguments are optional: an empty
+// internalCertPath/internalKeyPath/internalCAPath leaves the internal
+// watcher idle; an empty acmeCertPath/acmeKeyPath leaves the ACME
+// watcher idle.
+func NewCertReconciler(logger *slog.Logger, internalCertPath, internalKeyPath, internalCAPath, acmeCertPath, acmeKeyPath string) *CertReconciler {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -49,27 +77,30 @@ func NewCertReconciler(logger *slog.Logger, etcdClient *clientv3.Client, domain,
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &CertReconciler{
-		logger:       logger,
-		etcdClient:   etcdClient,
-		certChanged:  make(chan struct{}, 1),
-		acmeChanged:  make(chan struct{}, 1),
-		domain:       domain,
-		acmeCertPath: acmeCertPath,
-		acmeKeyPath:  acmeKeyPath,
-		ctx:          ctx,
-		cancel:       cancel,
+		logger:           logger,
+		certChanged:      make(chan struct{}, 1),
+		acmeChanged:      make(chan struct{}, 1),
+		internalCertPath: internalCertPath,
+		internalKeyPath:  internalKeyPath,
+		internalCAPath:   internalCAPath,
+		acmeCertPath:     acmeCertPath,
+		acmeKeyPath:      acmeKeyPath,
+		ctx:              ctx,
+		cancel:           cancel,
 	}
 }
 
 // Start begins watching for certificate changes.
 func (r *CertReconciler) Start() error {
-	// Start etcd watcher for internal certificates
-	if r.etcdClient != nil && r.domain != "" {
+	// Start filesystem watcher for internal (cluster-CA-issued)
+	// certificates. Requires at least one of the three internal
+	// paths to be configured.
+	if r.internalCertPath != "" || r.internalKeyPath != "" || r.internalCAPath != "" {
 		r.wg.Add(1)
-		go r.watchEtcdCertificate()
+		go r.watchInternalCertificates()
 	}
 
-	// Start filesystem watcher for ACME certificates
+	// Start filesystem watcher for ACME certificates.
 	if r.acmeCertPath != "" && r.acmeKeyPath != "" {
 		r.wg.Add(1)
 		go r.watchACMECertificates()
@@ -94,110 +125,143 @@ func (r *CertReconciler) ACMEChangedChan() <-chan struct{} {
 	return r.acmeChanged
 }
 
-// watchEtcdCertificate watches etcd for certificate generation changes.
-// v1 Conformance (INV-6.1): Event-driven certificate rotation via etcd Watch.
-func (r *CertReconciler) watchEtcdCertificate() {
+// watchInternalCertificates watches the local cert, key, and CA files
+// for changes. Uses fsnotify on the containing directories (necessary
+// for atomic-rename detection — writers typically write to a tmp file
+// then `mv` over the target, which fsnotify reports as a Create on
+// the target, not a Write).
+//
+// Hash comparison prevents spurious signals when the file is touched
+// without content change. Debounce timer collapses rapid write/create
+// pairs into a single signal.
+func (r *CertReconciler) watchInternalCertificates() {
 	defer r.wg.Done()
 
-	// VIOLATION INV-1.8: Domain-based persistent state key
-	// TODO: Use /globular/pki/certs/{cert_id} instead
-	key := fmt.Sprintf("/globular/pki/bundles/%s", r.domain)
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		r.logger.Error("failed to create internal-cert filesystem watcher", "err", err)
+		return
+	}
+	defer watcher.Close()
 
-	r.logger.Info("starting etcd certificate watcher", "key", key)
-
-	// Initialize current generation
-	if err := r.initializeCertGeneration(key); err != nil {
-		r.logger.Warn("failed to initialize certificate generation", "err", err)
+	// Build the unique set of directories we need to watch — fsnotify
+	// monitors directory entries, so any change to a file inside the
+	// watched dir surfaces here.
+	watched := make(map[string]bool)
+	for _, p := range []string{r.internalCertPath, r.internalKeyPath, r.internalCAPath} {
+		if p == "" {
+			continue
+		}
+		dir := filepath.Dir(p)
+		if watched[dir] {
+			continue
+		}
+		if err := watcher.Add(dir); err != nil {
+			r.logger.Warn("failed to watch internal-cert directory",
+				"dir", dir, "err", err)
+			continue
+		}
+		watched[dir] = true
+	}
+	if len(watched) == 0 {
+		r.logger.Warn("internal-cert watcher started without any reachable directory — no signals will be emitted")
+		return
 	}
 
-	// Create watch channel
-	watchChan := r.etcdClient.Watch(r.ctx, key)
+	r.logger.Info("starting internal-cert filesystem watcher",
+		"cert", r.internalCertPath,
+		"key", r.internalKeyPath,
+		"ca", r.internalCAPath)
+
+	r.initializeInternalHashes()
+
+	const debounceDuration = 1 * time.Second
+	var debounceTimer *time.Timer
 
 	for {
 		select {
 		case <-r.ctx.Done():
-			r.logger.Info("etcd certificate watcher stopped")
+			r.logger.Info("internal-cert watcher stopped")
 			return
 
-		case watchResp := <-watchChan:
-			if watchResp.Err() != nil {
-				r.logger.Error("etcd watch error", "err", watchResp.Err())
-				// Retry with backoff
-				time.Sleep(5 * time.Second)
-				watchChan = r.etcdClient.Watch(r.ctx, key)
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+			if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Rename) == 0 {
 				continue
 			}
-
-			for _, event := range watchResp.Events {
-				if event.Type == clientv3.EventTypePut {
-					if r.handleCertGenerationChange(event.Kv.Value) {
-						// Signal certificate change (non-blocking)
-						select {
-						case r.certChanged <- struct{}{}:
-						default:
-							// Already pending, skip
-						}
+			// Filter to events on the paths we care about.
+			if event.Name != r.internalCertPath &&
+				event.Name != r.internalKeyPath &&
+				event.Name != r.internalCAPath {
+				continue
+			}
+			if debounceTimer != nil {
+				debounceTimer.Stop()
+			}
+			triggerName := event.Name
+			debounceTimer = time.AfterFunc(debounceDuration, func() {
+				if r.checkInternalHashChange() {
+					select {
+					case r.certChanged <- struct{}{}:
+						r.logger.Info("internal certificate change detected", "file", triggerName)
+					default:
+						// Already pending, skip.
 					}
 				}
+			})
+
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
 			}
+			r.logger.Error("internal-cert filesystem watch error", "err", err)
 		}
 	}
 }
 
-// initializeCertGeneration reads the current certificate generation from etcd.
-func (r *CertReconciler) initializeCertGeneration(key string) error {
-	ctx, cancel := context.WithTimeout(r.ctx, 5*time.Second)
-	defer cancel()
-
-	resp, err := r.etcdClient.Get(ctx, key)
-	if err != nil {
-		return err
-	}
-
-	if len(resp.Kvs) == 0 {
-		r.logger.Info("no certificate bundle found in etcd", "key", key)
-		return nil
-	}
-
-	var payload struct {
-		Generation uint64 `json:"generation"`
-	}
-	if err := json.Unmarshal(resp.Kvs[0].Value, &payload); err != nil {
-		return fmt.Errorf("parse certificate generation: %w", err)
-	}
+// initializeInternalHashes computes and stores the initial hashes of
+// the three internal cert files. Missing files leave the
+// corresponding hash empty — checkInternalHashChange interprets an
+// empty-to-nonempty transition as a change (first cert delivery).
+func (r *CertReconciler) initializeInternalHashes() {
+	certHash := computeFileHash(r.internalCertPath)
+	keyHash := computeFileHash(r.internalKeyPath)
+	caHash := computeFileHash(r.internalCAPath)
 
 	r.mu.Lock()
-	r.lastCertGeneration = payload.Generation
+	r.lastInternalCertHash = certHash
+	r.lastInternalKeyHash = keyHash
+	r.lastInternalCAHash = caHash
 	r.mu.Unlock()
 
-	r.logger.Info("certificate generation initialized", "generation", payload.Generation)
-	return nil
+	r.logger.Info("internal-cert hashes initialized",
+		"cert_present", certHash != "",
+		"key_present", keyHash != "",
+		"ca_present", caHash != "")
 }
 
-// handleCertGenerationChange processes a certificate generation change event.
-// Returns true if generation actually changed.
-func (r *CertReconciler) handleCertGenerationChange(value []byte) bool {
-	var payload struct {
-		Generation uint64 `json:"generation"`
-	}
-	if err := json.Unmarshal(value, &payload); err != nil {
-		r.logger.Warn("failed to parse certificate generation", "err", err)
-		return false
-	}
+// checkInternalHashChange recomputes hashes and reports whether any
+// changed. Updates stored hashes on change.
+func (r *CertReconciler) checkInternalHashChange() bool {
+	certHash := computeFileHash(r.internalCertPath)
+	keyHash := computeFileHash(r.internalKeyPath)
+	caHash := computeFileHash(r.internalCAPath)
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if payload.Generation != r.lastCertGeneration {
-		r.logger.Info("certificate generation changed",
-			"old", r.lastCertGeneration,
-			"new", payload.Generation,
-			"domain", r.domain)
-		r.lastCertGeneration = payload.Generation
-		return true
-	}
+	changed := certHash != r.lastInternalCertHash ||
+		keyHash != r.lastInternalKeyHash ||
+		caHash != r.lastInternalCAHash
 
-	return false
+	if changed {
+		r.lastInternalCertHash = certHash
+		r.lastInternalKeyHash = keyHash
+		r.lastInternalCAHash = caHash
+	}
+	return changed
 }
 
 // watchACMECertificates watches filesystem for ACME certificate changes.
