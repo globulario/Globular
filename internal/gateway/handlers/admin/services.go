@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/globulario/Globular/internal/controllerclient"
 	config_ "github.com/globulario/services/golang/config"
 )
 
@@ -486,37 +487,44 @@ func fetchIPHostMap(ctx context.Context, prom *promClient) map[string]string {
 	return out
 }
 
-// fetchClusterNodeMap reads the cluster controller state from etcd and returns
-// a map of IP → hostname for every registered cluster node.
+// fetchClusterNodeMap returns the IP → hostname map for every
+// registered cluster node by calling the cluster_controller's typed
+// ListNodes RPC.
+//
+// History: prior to this refactor the function read
+// /globular/clustercontroller/state directly from etcd. That key is
+// owned by cluster_controller (its persistence layer), so the
+// gateway reading raw etcd violated
+// invariant:four_layer.truth_read_via_owner_rpc_not_direct_storage.
+// ListNodes is the existing typed surface the controller already
+// exposes for node enumeration; its NodeRecord.Identity carries the
+// same Hostname + Ips fields the prior code parsed out of the
+// persisted state blob.
+//
+// Best-effort: dial or RPC errors return an empty map so callers
+// (fetchIPHostMap, …) fall back to Prometheus labels — matches the
+// prior etcd-error behaviour.
 func fetchClusterNodeMap(ctx context.Context) map[string]string {
 	out := make(map[string]string)
-	cli, err := config_.GetEtcdClient()
-	if err != nil || cli == nil {
+	addr := config_.ResolveServiceAddr("cluster_controller.ClusterControllerService", "")
+	if addr == "" {
 		return out
 	}
-
-	resp, err := cli.Get(ctx, "/globular/clustercontroller/state")
-	if err != nil || len(resp.Kvs) == 0 {
+	client := controllerclient.New(addr)
+	resp, err := client.ListNodes(ctx)
+	if err != nil || resp == nil {
 		return out
 	}
-
-	var state struct {
-		Nodes map[string]struct {
-			Identity struct {
-				Hostname string   `json:"hostname"`
-				Ips      []string `json:"ips"`
-			} `json:"identity"`
-		} `json:"nodes"`
-	}
-	if err := json.Unmarshal(resp.Kvs[0].Value, &state); err != nil {
-		return out
-	}
-	for _, n := range state.Nodes {
-		hostname := strings.TrimSpace(n.Identity.Hostname)
+	for _, n := range resp.GetNodes() {
+		identity := n.GetIdentity()
+		if identity == nil {
+			continue
+		}
+		hostname := strings.TrimSpace(identity.GetHostname())
 		if hostname == "" {
 			continue
 		}
-		for _, ip := range n.Identity.Ips {
+		for _, ip := range identity.GetIps() {
 			ip = strings.TrimSpace(ip)
 			if ip != "" {
 				out[ip] = hostname
