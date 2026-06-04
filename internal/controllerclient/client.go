@@ -216,6 +216,23 @@ func (c *Client) RequestJoinAuthorization(ctx context.Context, req *cluster_cont
 	return client.RequestJoinAuthorization(ctx, req)
 }
 
+// GetRoutingRefresh polls the controller for its current
+// routing-refresh epoch. xDS, the gateway, and other routing-aware
+// components use this RPC to detect leader changes instead of
+// watching /globular/routing/refresh-generation directly — anchored
+// by invariant:four_layer.truth_read_via_owner_rpc_not_direct_storage.
+// The controller leader-forwards internally so callers always receive
+// the authoritative leader's epoch.
+func (c *Client) GetRoutingRefresh(ctx context.Context) (*cluster_controllerpb.GetRoutingRefreshResponse, error) {
+	conn, closeFn, err := c.dial(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer closeFn()
+	client := cluster_controllerpb.NewClusterControllerServiceClient(conn)
+	return client.GetRoutingRefresh(ctx, &cluster_controllerpb.GetRoutingRefreshRequest{})
+}
+
 // Address returns the configured controller address.
 func (c *Client) Address() string {
 	if c == nil {

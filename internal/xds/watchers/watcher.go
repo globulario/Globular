@@ -274,8 +274,12 @@ func (w *Watcher) SetEtcdClient(client *clientv3.Client) {
 	// Initialize certificate reconciler if we have enough information
 	w.initializeCertReconciler()
 
-	// Initialize routing reconciler for leader-change routing refresh
-	w.routingReconciler = newRoutingReconciler(w.logger, client)
+	// Initialize routing reconciler for leader-change routing refresh.
+	// v1.2.177: routes through cluster_controller.GetRoutingRefresh
+	// typed RPC instead of watching /globular/routing/refresh-generation
+	// in etcd. controllerAddr may be empty in some boot orders; the
+	// reconciler degrades silently in that case.
+	w.routingReconciler = newRoutingReconciler(w.logger, w.controllerAddr)
 }
 
 // SetACMEPaths configures ACME certificate paths for rotation tracking.
