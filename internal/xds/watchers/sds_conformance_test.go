@@ -1,14 +1,11 @@
 package watchers
 
 import (
-	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -24,8 +21,6 @@ import (
 	"github.com/globulario/Globular/internal/controlplane"
 	"github.com/globulario/Globular/internal/xds/builder"
 	"github.com/globulario/Globular/internal/xds/secrets"
-	"github.com/globulario/Globular/internal/xds/server"
-	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // Test certificate data (self-signed, generated at init for testing only)
@@ -388,82 +383,18 @@ func TestClusterUsesSDS(t *testing.T) {
 	}
 }
 
-// TestCertificateRotationTriggersSnapshot verifies that cert generation changes trigger snapshot updates.
-func TestCertificateRotationTriggersSnapshot(t *testing.T) {
-	// This test requires a real etcd instance - skip if not available
-	if os.Getenv("ETCD_ENDPOINTS") == "" {
-		t.Skip("Skipping: ETCD_ENDPOINTS not set (integration test)")
-	}
-
-	ctx := context.Background()
-
-	// Create etcd client
-	etcdClient, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{os.Getenv("ETCD_ENDPOINTS")},
-		DialTimeout: 5 * time.Second,
-	})
-	if err != nil {
-		t.Fatalf("etcd connection failed: %v", err)
-	}
-	defer etcdClient.Close()
-
-	// Create test server
-	xdsServer := server.New(nil, ctx)
-
-	// Create watcher
-	watcher := New(nil, xdsServer, "", "test-node", 1*time.Second, DownstreamTLSDisabled, "")
-	watcher.SetEtcdClient(etcdClient)
-
-	// Set initial certificate generation in etcd
-	domain := "test.globular.internal"
-	key := fmt.Sprintf("/globular/pki/bundles/%s", domain)
-
-	bundle1 := map[string]interface{}{
-		"generation": 1,
-		"updated_ms": time.Now().UnixMilli(),
-	}
-	data1, _ := json.Marshal(bundle1)
-	_, err = etcdClient.Put(ctx, key, string(data1))
-	if err != nil {
-		t.Fatalf("failed to set initial generation: %v", err)
-	}
-
-	// Check generation (should initialize)
-	changed1 := watcher.checkCertificateGeneration(ctx)
-	if changed1 {
-		t.Error("first check should not detect change (initialization)")
-	}
-
-	if watcher.lastCertGeneration != 1 {
-		t.Errorf("expected lastCertGeneration=1, got %d", watcher.lastCertGeneration)
-	}
-
-	// Update certificate generation
-	bundle2 := map[string]interface{}{
-		"generation": 2,
-		"updated_ms": time.Now().UnixMilli(),
-	}
-	data2, _ := json.Marshal(bundle2)
-	_, err = etcdClient.Put(ctx, key, string(data2))
-	if err != nil {
-		t.Fatalf("failed to update generation: %v", err)
-	}
-
-	// Check generation again (should detect change)
-	changed2 := watcher.checkCertificateGeneration(ctx)
-	if !changed2 {
-		t.Error("second check should detect generation change")
-	}
-
-	if watcher.lastCertGeneration != 2 {
-		t.Errorf("expected lastCertGeneration=2, got %d", watcher.lastCertGeneration)
-	}
-
-	t.Logf("✓ Certificate rotation detection works: 1 → 2")
-
-	// Clean up
-	_, _ = etcdClient.Delete(ctx, key)
-}
+// TestCertificateRotationTriggersSnapshot was removed in v1.2.178
+// along with watcher.checkCertificateGeneration. The fallback etcd
+// polling path it exercised violated
+// invariant:four_layer.truth_read_via_owner_rpc_not_direct_storage
+// (/globular/pki/bundles/* is owned by the security/PKI service,
+// not xDS) and was a no-op in practice: it bailed when w.etcdClient
+// was nil, which is the same condition that left w.certReconciler
+// nil and triggered the fallback.
+//
+// Modern path: cert_reconciler.go emits change events on its own
+// channel; tests should exercise that (cert_reconciler_test.go
+// covers the event-driven path).
 
 // TestSecretContentHash verifies that secret hashes change when content changes.
 func TestSecretContentHash(t *testing.T) {

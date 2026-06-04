@@ -208,9 +208,10 @@ type Watcher struct {
 	lastMetricsLog     time.Time       // timestamp of last metrics log
 
 	// Certificate rotation tracking (SDS)
-	etcdClient            *clientv3.Client // etcd client for cert generation tracking
-	lastCertGeneration    uint64           // DEPRECATED: use certReconciler
-	certGenerationChecked bool             // DEPRECATED: use certReconciler
+	etcdClient *clientv3.Client // etcd client for cert generation tracking
+	// lastCertGeneration / certGenerationChecked removed in v1.2.178
+	// along with checkCertificateGeneration — see that function's
+	// removal note.
 
 	// ACME certificate rotation tracking (file-based hash polling)
 	acmeCertPath     string // Path to ACME fullchain.pem
@@ -491,17 +492,15 @@ func (w *Watcher) sync(ctx context.Context) error {
 		w.logger.Info("protocol changed", "from", prevProtocol, "to", w.protocol)
 	}
 
-	// v1 Conformance (INV-6): Certificate rotation now handled by CertReconciler
-	// Events are delivered via channels in Run loop (event-driven, not polling)
-	// Old polling functions (checkCertificateGeneration, checkACMECertificateRotation)
-	// are deprecated and only called if reconciler is not configured (backward compat)
+	// Certificate rotation is handled by CertReconciler (event-driven via
+	// channels in the Run loop). The legacy etcd-polling fallback
+	// (checkCertificateGeneration) was removed in v1.2.178 — it violated
+	// invariant:four_layer.truth_read_via_owner_rpc_not_direct_storage and
+	// was a no-op in practice because both it and the reconciler share the
+	// same w.etcdClient prerequisite. The ACME file-hash fallback below is
+	// retained: it reads xDS's own filesystem cache, not a foreign owner's
+	// etcd prefix.
 	if w.certReconciler == nil {
-		// Fallback to polling if reconciler not configured
-		certChanged := w.checkCertificateGeneration(ctx)
-		if certChanged && w.logger != nil {
-			w.logger.Info("certificate rotation detected - forcing snapshot update")
-		}
-
 		acmeChanged := w.checkACMECertificateRotation(w.acmeCertPath, w.acmeKeyPath)
 		if acmeChanged && w.logger != nil {
 			w.logger.Info("ACME certificate rotation detected - forcing snapshot update")
@@ -2318,80 +2317,19 @@ func (w *Watcher) clusterNetworkReady() bool {
 		strings.TrimSpace(w.clusterNetwork.Spec.ClusterDomain) != ""
 }
 
-// checkCertificateGeneration checks if certificate generation has changed in etcd.
-// Returns true if generation changed (snapshot should be rebuilt).
-func (w *Watcher) checkCertificateGeneration(ctx context.Context) bool {
-	if w.etcdClient == nil {
-		return false
-	}
-
-	// v1 Conformance: Domain-based etcd keys (violations INV-1.8, INV-1.9)
-	// TODO: This violates v1 invariants - certificate tracking should use cert IDs
-	// Current implementation uses domain in etcd key: /globular/pki/bundles/{domain}
-	// This couples certificate lifecycle to domain configuration
-	// v1 Solution: Use /globular/pki/certs/{cert_id} with stable IDs
-	//
-	// For now, keeping existing behavior but documenting violation
-	// Full fix requires PKI service refactor to use certificate IDs
-	var domain string
-	if w.clusterNetwork != nil && w.clusterNetwork.Spec != nil {
-		domain = w.clusterNetwork.Spec.ClusterDomain
-	}
-	if domain == "" {
-		// VIOLATION INV-1.9: Hardcoded internal domain
-		// Should use clusterID instead of domain name
-		domain = "globular.internal"
-	}
-
-	// VIOLATION INV-1.8: Domain-based persistent state key
-	// Query etcd for certificate generation (domain-partitioned)
-	key := fmt.Sprintf("/globular/pki/bundles/%s", domain)
-	resp, err := w.etcdClient.Get(ctx, key)
-	if err != nil {
-		if w.logger != nil && w.certGenerationChecked {
-			w.logger.Debug("failed to check certificate generation", "err", err, "domain", domain)
-		}
-		return false
-	}
-
-	if len(resp.Kvs) == 0 {
-		return false
-	}
-
-	// Parse generation from bundle JSON
-	var payload struct {
-		Generation uint64 `json:"generation"`
-	}
-	if err := json.Unmarshal(resp.Kvs[0].Value, &payload); err != nil {
-		if w.logger != nil {
-			w.logger.Warn("failed to parse certificate generation", "err", err)
-		}
-		return false
-	}
-
-	// Check if generation changed
-	if !w.certGenerationChecked {
-		w.lastCertGeneration = payload.Generation
-		w.certGenerationChecked = true
-		if w.logger != nil {
-			w.logger.Info("certificate generation initialized", "generation", payload.Generation, "domain", domain)
-		}
-		return false
-	}
-
-	if payload.Generation != w.lastCertGeneration {
-		if w.logger != nil {
-			w.logger.Info("certificate generation changed - rebuilding snapshot",
-				"old", w.lastCertGeneration,
-				"new", payload.Generation,
-				"domain", domain)
-		}
-		w.lastCertGeneration = payload.Generation
-		return true
-	}
-
-	return false
-}
+// checkCertificateGeneration was a fallback polling path that read
+// /globular/pki/bundles/{domain} directly from etcd. Removed in
+// v1.2.178: the function was already a no-op in practice (it bailed
+// when w.etcdClient == nil, which is exactly the condition that
+// would leave w.certReconciler == nil and cause the fallback to
+// run). Plus reading /globular/pki/* from xDS violated
+// invariant:four_layer.truth_read_via_owner_rpc_not_direct_storage —
+// that prefix is owned by the security/PKI service, never by xDS.
+//
+// Modern path: cert_reconciler.go consumes change events
+// (event-driven). If a future xDS install ever needs an additional
+// generation source, add it as a typed RPC on the owner — not a
+// generic etcd primitive.
 
 // computeFileHash computes SHA256 hash of file content.
 // Returns empty string if file cannot be read.
