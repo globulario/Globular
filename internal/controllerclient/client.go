@@ -216,6 +216,24 @@ func (c *Client) RequestJoinAuthorization(ctx context.Context, req *cluster_cont
 	return client.RequestJoinAuthorization(ctx, req)
 }
 
+// ListExternalDomains returns every external-domain spec the
+// controller's embedded domain reconciler manages, paired with the
+// reconciliation status. xDS (and future consumers) call this RPC
+// instead of scanning /globular/domains/v1/* in etcd directly —
+// anchored by invariant:four_layer.truth_read_via_owner_rpc_not_direct_storage.
+// The response carries only the fields xDS actually consumes
+// (fqdn, ingress_enabled, ingress_service, ingress_port,
+// acme_enabled, status_phase).
+func (c *Client) ListExternalDomains(ctx context.Context) (*cluster_controllerpb.ListExternalDomainsResponse, error) {
+	conn, closeFn, err := c.dial(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer closeFn()
+	client := cluster_controllerpb.NewClusterControllerServiceClient(conn)
+	return client.ListExternalDomains(ctx, &cluster_controllerpb.ListExternalDomainsRequest{})
+}
+
 // GetRoutingRefresh polls the controller for its current
 // routing-refresh epoch. xDS, the gateway, and other routing-aware
 // components use this RPC to detect leader changes instead of

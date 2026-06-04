@@ -568,88 +568,47 @@ func (w *Watcher) fetchClusterNetwork(ctx context.Context) error {
 	return nil
 }
 
-// loadExternalDomains retrieves external domain specs from etcd and filters to ready domains (PR3c)
-// Updated to read from separate spec/status keys (PR-A)
+// loadExternalDomains retrieves external domain specs via the
+// controller's typed ListExternalDomains RPC and filters to ready
+// domains. v1.2.181 + 1.2.182: replaces the prior two-step etcd
+// scan (/globular/domains/v1/* prefix + per-domain /status) — that
+// prefix is owned by the controller's embedded domain reconciler, so
+// xDS reading raw etcd violated
+// invariant:four_layer.truth_read_via_owner_rpc_not_direct_storage.
+//
+// The controller's handler uses the same typed EtcdDomainStore the
+// reconciler uses; latency is one RPC instead of N+1 etcd Gets.
 func (w *Watcher) loadExternalDomains(ctx context.Context) ([]ExternalDomainRuntime, error) {
-	if w.etcdClient == nil {
-		// etcd client not yet available — attempt to connect.
-		// This handles the case where etcd was down at xDS startup but
-		// has since recovered; without this retry, external domains would
-		// remain empty until xDS is manually restarted.
-		client, err := config.GetEtcdClient()
-		if err != nil {
-			return nil, nil // still not available — try again next cycle
-		}
-		w.SetEtcdClient(client)
-		w.logger.Info("etcd client connected (deferred)")
+	if w.controllerAddr == "" {
+		// Controller endpoint not known yet — degrade silently to the
+		// previous "no external domains" behaviour. Next sync cycle
+		// retries.
+		return nil, nil
 	}
 
-	// Load domain specs from etcd (exclude /status subkeys)
-	resp, err := w.etcdClient.Get(ctx, "/globular/domains/v1/", clientv3.WithPrefix())
+	client := controllerclient.New(w.controllerAddr)
+	resp, err := client.ListExternalDomains(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list external domains from etcd: %w", err)
+		return nil, fmt.Errorf("ListExternalDomains: %w", err)
 	}
 
 	var domains []ExternalDomainRuntime
-	for _, kv := range resp.Kvs {
-		// Skip status keys (separate from spec)
-		if strings.HasSuffix(string(kv.Key), "/status") {
+	for _, entry := range resp.GetDomains() {
+		// Filter: only include domains with ingress enabled.
+		if !entry.GetIngressEnabled() {
+			continue
+		}
+		// Filter: only include domains with ACME enabled.
+		if !entry.GetAcmeEnabled() {
+			continue
+		}
+		// Filter: only include domains the reconciler marked Ready.
+		// This ensures certificate files exist before we reference them.
+		if entry.GetStatusPhase() != "Ready" {
 			continue
 		}
 
-		var spec struct {
-			FQDN string `json:"fqdn"`
-			ACME struct {
-				Enabled bool `json:"enabled"`
-			} `json:"acme"`
-			Ingress struct {
-				Enabled bool   `json:"enabled"`
-				Service string `json:"service"`
-				Port    int    `json:"port"`
-			} `json:"ingress"`
-		}
-
-		if err := json.Unmarshal(kv.Value, &spec); err != nil {
-			w.logger.Warn("failed to unmarshal external domain spec", "key", string(kv.Key), "err", err)
-			continue
-		}
-
-		// Filter: only include domains with ingress enabled
-		if !spec.Ingress.Enabled {
-			continue
-		}
-
-		// Filter: only include domains with ACME enabled
-		if !spec.ACME.Enabled {
-			continue
-		}
-
-		// Load status from separate key to check if domain is ready (PR-A)
-		statusKey := string(kv.Key) + "/status"
-		statusResp, err := w.etcdClient.Get(ctx, statusKey)
-		if err != nil {
-			w.logger.Warn("failed to read domain status", "fqdn", spec.FQDN, "err", err)
-			continue
-		}
-
-		if len(statusResp.Kvs) == 0 {
-			// No status yet - domain not ready
-			continue
-		}
-
-		var status struct {
-			Phase string `json:"phase"`
-		}
-		if err := json.Unmarshal(statusResp.Kvs[0].Value, &status); err != nil {
-			w.logger.Warn("failed to unmarshal domain status", "fqdn", spec.FQDN, "err", err)
-			continue
-		}
-
-		// Filter: only include domains with status "Ready"
-		// This ensures certificate files exist before we try to reference them
-		if status.Phase != "Ready" {
-			continue
-		}
+		fqdn := entry.GetFqdn()
 
 		// Build certificate paths using canonical PKI locations.
 		// Primary: /var/lib/globular/pki/acme/{domain}/ (etcd-synced)
@@ -658,10 +617,10 @@ func (w *Watcher) loadExternalDomains(ctx context.Context) ([]ExternalDomainRunt
 		// Fallback: /var/lib/globular/config/tls/acme/{domain}/ (symlink)
 		var certFile, keyFile, chainFile string
 		for _, dir := range []string{
-			fmt.Sprintf("/var/lib/globular/pki/acme/%s", spec.FQDN),
-			fmt.Sprintf("/var/lib/globular/pki/letsencrypt/%s", spec.FQDN),
-			fmt.Sprintf("/var/lib/globular/domains/%s", spec.FQDN),
-			fmt.Sprintf("/var/lib/globular/config/tls/acme/%s", spec.FQDN),
+			fmt.Sprintf("/var/lib/globular/pki/acme/%s", fqdn),
+			fmt.Sprintf("/var/lib/globular/pki/letsencrypt/%s", fqdn),
+			fmt.Sprintf("/var/lib/globular/domains/%s", fqdn),
+			fmt.Sprintf("/var/lib/globular/config/tls/acme/%s", fqdn),
 		} {
 			cf := fmt.Sprintf("%s/fullchain.pem", dir)
 			kf := fmt.Sprintf("%s/privkey.pem", dir)
@@ -673,31 +632,31 @@ func (w *Watcher) loadExternalDomains(ctx context.Context) ([]ExternalDomainRunt
 			}
 		}
 
-		// Verify certificate files exist
+		// Verify certificate files exist.
 		if certFile == "" || keyFile == "" {
 			w.logger.Warn("external domain certificate files missing",
-				"fqdn", spec.FQDN)
+				"fqdn", fqdn)
 			continue
 		}
 
-		// Determine backend service and port
-		service := strings.TrimSpace(spec.Ingress.Service)
+		// Determine backend service and port.
+		service := strings.TrimSpace(entry.GetIngressService())
 		if service == "" {
 			service = "gateway" // Default to gateway
 		}
-		port := spec.Ingress.Port
+		port := int(entry.GetIngressPort())
 		if port == 0 {
 			port = 8080 // Default to gateway HTTP port
 		}
 
-		// Include ACME issuer (chain.pem) if available
+		// Include ACME issuer (chain.pem) if available.
 		acmeIssuer := ""
 		if fileExists(chainFile) {
 			acmeIssuer = chainFile
 		}
 
 		domains = append(domains, ExternalDomainRuntime{
-			FQDN:       spec.FQDN,
+			FQDN:       fqdn,
 			CertDir:    certFile[:strings.LastIndex(certFile, "/")],
 			CertFile:   certFile,
 			KeyFile:    keyFile,
