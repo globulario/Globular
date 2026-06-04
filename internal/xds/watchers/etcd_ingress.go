@@ -1,4 +1,36 @@
+// @awareness namespace=globular.platform
+// @awareness component=platform_xds.etcd_ingress
+// @awareness file_role=xds_self_owned_legacy_etcd_ingress_config_parser
+// @awareness risk=low
 package watchers
+
+// etcd_ingress.go — parser for the LEGACY xDS-self-owned ingress
+// configuration space rooted at /globular/xds/v1/. The audit's
+// V9 entry flagged these reads as "conditional"; this comment is
+// the resolution.
+//
+// Ownership: the /globular/xds/v1/* prefix is owned by xDS
+// itself. No service in either repository (services or Globular)
+// writes to this prefix. Operators populate it manually as a
+// pre-Day-0 bootstrap configuration mechanism — typed
+// alternatives have since landed (cluster_controller.ListExternalDomains
+// in v1.2.181; cluster_controller.GetIngressStatus in v1.2.184)
+// and are the modern path. The legacy path remains read-only here
+// and is gated by an explicit cfg.EtcdEndpoints opt-in in
+// watcher.go::buildIngressSpec; absent that opt-in, the
+// FallbackConfig path is used instead.
+//
+// Because xDS is the OWNER of /globular/xds/v1/*, these reads
+// are NOT four-layer violations — the principle the audit
+// enforces (invariant:four_layer.truth_read_via_owner_rpc_not_direct_storage)
+// is about non-owners reading owned prefixes. An owner reading
+// its own prefix is its prerogative; the principle does not
+// require an owner to use a typed RPC against itself.
+//
+// Future deprecation: this entire path is a candidate for
+// removal once all live deployments confirm they no longer
+// rely on the operator-bootstrap pre-Day-0 etcd seed. Tracked
+// follow-up; not a blocker for the v1.2.x authority sweep.
 
 import (
 	"context"
