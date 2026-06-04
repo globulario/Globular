@@ -362,26 +362,20 @@ func (w *Watcher) Run(ctx context.Context) error {
 		w.logger.Info("routing reconciler started")
 	}
 
-	// Watch etcd for ACME cert distribution updates.
-	// When a cert is published to /globular/acme/certs/<fqdn> by the domain
-	// reconciler (on the leader), all nodes receive the event and rebuild
-	// the xDS snapshot so Envoy picks up the new cert immediately.
+	// Watch the local filesystem for ACME cert distribution updates.
+	// v1.2.180: prior implementation watched /globular/acme/certs/* in
+	// etcd directly — that prefix is owned by the domain service
+	// (services/golang/domain/reconciler.go::publishCertToEtcd), so
+	// the consumer reading raw etcd violated
+	// invariant:four_layer.truth_read_via_owner_rpc_not_direct_storage.
+	//
+	// node_agent already runs domain.WatchACMECerts which syncs etcd
+	// → local disk under /var/lib/globular/pki/acme/{fqdn}/. xDS
+	// detects rotation by walking that tree every 5s, hashing each
+	// fullchain.pem, and signalling on any change. ACME rotation is
+	// a rare event (every 60-90 days) so 5s polling is acceptable.
 	acmeEtcdChan := make(chan struct{}, 1)
-	if w.etcdClient != nil {
-		go func() {
-			wch := w.etcdClient.Watch(ctx, "/globular/acme/certs/", clientv3.WithPrefix())
-			for wresp := range wch {
-				for _, ev := range wresp.Events {
-					if ev.Type == clientv3.EventTypePut {
-						select {
-						case acmeEtcdChan <- struct{}{}:
-						default:
-						}
-					}
-				}
-			}
-		}()
-	}
+	go w.watchACMECertDirectory(ctx, acmeEtcdChan)
 
 	if err := w.sync(ctx); err != nil && !errors.Is(err, errNoChange) {
 		w.logger.Warn("initial xDS sync failed", "err", err)
@@ -2303,6 +2297,101 @@ func (w *Watcher) gatewayTLSPaths() (string, string, string, bool) {
 	}
 	ca := pathIfExists(config.GetLocalCACertificate())
 	return cert, key, ca, true
+}
+
+// watchACMECertDirectory polls /var/lib/globular/pki/acme/*/fullchain.pem
+// on a 5-second cadence, hashes each file, and signals the supplied
+// channel on any change. Replaces the prior etcd Watch on
+// /globular/acme/certs/* (owned by the domain service —
+// invariant:four_layer.truth_read_via_owner_rpc_not_direct_storage).
+// node_agent's domain.WatchACMECerts keeps the local tree in sync with
+// etcd, so this watcher sees the same events with one extra hop of
+// indirection.
+//
+// ACME rotation is rare (every 60-90 days per cert), so 5s polling is
+// well within the acceptable detection latency. The watcher exits when
+// ctx is canceled.
+func (w *Watcher) watchACMECertDirectory(ctx context.Context, signal chan<- struct{}) {
+	const (
+		acmeRoot     = "/var/lib/globular/pki/acme"
+		pollInterval = 5 * time.Second
+	)
+
+	lastHashes := map[string]string{} // fqdn → fullchain hash
+
+	scan := func() (map[string]string, bool) {
+		entries, err := os.ReadDir(acmeRoot)
+		if err != nil {
+			// Directory may not exist yet (pre-first-ACME-issue). Not
+			// an error — just no signal yet.
+			return nil, false
+		}
+		next := map[string]string{}
+		changed := false
+		for _, e := range entries {
+			if !e.IsDir() {
+				continue
+			}
+			fqdn := e.Name()
+			fullchain := filepath.Join(acmeRoot, fqdn, "fullchain.pem")
+			h := computeFileHash(fullchain)
+			if h == "" {
+				continue
+			}
+			next[fqdn] = h
+			if lastHashes[fqdn] != h {
+				changed = true
+			}
+		}
+		// Detect removed FQDNs as well — rare but worth surfacing.
+		if !changed {
+			for fqdn := range lastHashes {
+				if _, still := next[fqdn]; !still {
+					changed = true
+					break
+				}
+			}
+		}
+		return next, changed
+	}
+
+	// Initial scan establishes the baseline; no signal emitted.
+	if h, _ := scan(); h != nil {
+		lastHashes = h
+		if w.logger != nil {
+			w.logger.Info("ACME cert directory baseline established",
+				"root", acmeRoot,
+				"fqdns", len(lastHashes))
+		}
+	}
+
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			next, changed := scan()
+			if next == nil {
+				continue
+			}
+			if changed {
+				lastHashes = next
+				if w.logger != nil {
+					w.logger.Info("ACME cert directory change detected",
+						"root", acmeRoot,
+						"fqdns", len(lastHashes))
+				}
+				select {
+				case signal <- struct{}{}:
+				default:
+					// Already pending, skip.
+				}
+			}
+		}
+	}
 }
 
 func (w *Watcher) clusterNetworkReady() bool {
