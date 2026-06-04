@@ -2098,108 +2098,54 @@ func serviceKeyFromName(grpcName string) string {
 	return normalizeDNSLabel(key)
 }
 
+// buildServiceResourcesFromEtcd retrieves the merged service-registry
+// view via the controller's typed ListServices RPC. v1.2.182:
+// replaces the prior raw etcd scan of /globular/services/* — that
+// prefix is owned by the cluster_controller (writers PutInstance /
+// PutConfig in config/etcd_service_config.go), so xDS reading raw
+// etcd violated
+// invariant:four_layer.truth_read_via_owner_rpc_not_direct_storage.
+//
+// The controller's handler delegates to config.GetServicesConfigurations
+// which merges /globular/services/{id}/config with
+// /globular/services/{id}/instances/{node} per the same shape the
+// prior xDS code constructed inline. Wire format is JSON-per-service
+// to preserve the dynamic-schema service-config shape.
+//
+// The cfg.EtcdEndpoints argument is preserved for signature
+// compatibility but no longer consulted. The function name keeps
+// "FromEtcd" for call-site stability; consider a rename when the
+// remaining call sites can be updated together.
 func (w *Watcher) buildServiceResourcesFromEtcd(ctx context.Context, cfg *XDSConfig) ([]map[string]any, error) {
-	if cfg == nil || len(cfg.EtcdEndpoints) == 0 {
+	if w.controllerAddr == "" {
+		// Controller endpoint not known yet — preserve the prior
+		// "no services to publish yet" behaviour.
 		return nil, nil
 	}
 
-	etcdCfg := clientv3.Config{
-		Endpoints:   cfg.EtcdEndpoints,
-		DialTimeout: 5 * time.Second,
-	}
-
-	// TLS is mandatory for etcd connections
-	tlsCfg, err := config.GetEtcdTLS()
-	if err != nil {
-		return nil, fmt.Errorf("etcd TLS configuration required: %w", err)
-	}
-	etcdCfg.TLS = tlsCfg
-
-	cli, err := clientv3.New(etcdCfg)
-	if err != nil {
-		return nil, err
-	}
-	defer cli.Close()
-
-	etcdCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	client := controllerclient.New(w.controllerAddr)
+	rpcCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-
-	resp, err := cli.Get(etcdCtx, "/globular/services/", clientv3.WithPrefix())
+	resp, err := client.ListServices(rpcCtx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ListServices: %w", err)
 	}
-	if resp.Count == 0 {
+	raw := resp.GetServicesJson()
+	if len(raw) == 0 {
 		return nil, nil
 	}
 
-	// Parse etcd keys into config and instance data, grouped by service ID.
-	// Key structure:
-	//   /globular/services/{id}/config              — shared service definition
-	//   /globular/services/{id}/runtime             — legacy shared runtime (single-node)
-	//   /globular/services/{id}/instances/{node}     — per-node endpoint data
-	type svcData struct {
-		config    map[string]any
-		instances []map[string]any
-	}
-	byID := map[string]*svcData{}
-
-	for _, kv := range resp.Kvs {
-		key := string(kv.Key)
-		rest := strings.TrimPrefix(key, "/globular/services/")
-		if rest == key {
-			continue // not under our prefix
-		}
-		parts := strings.SplitN(rest, "/", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		id, leaf := parts[0], parts[1]
-
-		if byID[id] == nil {
-			byID[id] = &svcData{}
-		}
-		sd := byID[id]
-
+	services := make([]map[string]any, 0, len(raw))
+	for _, s := range raw {
 		var data map[string]any
-		if err := json.Unmarshal(kv.Value, &data); err != nil {
+		if err := json.Unmarshal([]byte(s), &data); err != nil {
 			if w.logger != nil {
-				w.logger.Warn("failed to unmarshal service from etcd", "key", key, "err", err)
+				w.logger.Warn("failed to unmarshal service from ListServices",
+					"err", err)
 			}
 			continue
 		}
-
-		switch {
-		case leaf == "config":
-			sd.config = data
-		case strings.HasPrefix(leaf, "instances/"):
-			sd.instances = append(sd.instances, data)
-			// runtime keys are ignored when instances exist
-		}
-	}
-
-	services := make([]map[string]any, 0, len(byID))
-	for _, sd := range byID {
-		if sd.config == nil {
-			continue
-		}
-		if len(sd.instances) > 0 {
-			// Multi-node: produce one entry per instance with the shared
-			// config merged with per-node Address/Port/State.
-			for _, inst := range sd.instances {
-				merged := make(map[string]any, len(sd.config)+len(inst))
-				for k, v := range sd.config {
-					merged[k] = v
-				}
-				// Instance fields override config (Address, Port, State, Process).
-				for k, v := range inst {
-					merged[k] = v
-				}
-				services = append(services, merged)
-			}
-		} else {
-			// Legacy single-node: use config as-is.
-			services = append(services, sd.config)
-		}
+		services = append(services, data)
 	}
 	return services, nil
 }

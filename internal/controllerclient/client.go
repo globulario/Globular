@@ -216,6 +216,22 @@ func (c *Client) RequestJoinAuthorization(ctx context.Context, req *cluster_cont
 	return client.RequestJoinAuthorization(ctx, req)
 }
 
+// ListServices returns the merged service-registry view as a list
+// of JSON strings (config + per-node instance fields merged per
+// service). xDS calls this RPC instead of scanning
+// /globular/services/* in etcd directly — anchored by
+// invariant:four_layer.truth_read_via_owner_rpc_not_direct_storage.
+// Consumers json.Unmarshal each string into map[string]any.
+func (c *Client) ListServices(ctx context.Context) (*cluster_controllerpb.ListServicesResponse, error) {
+	conn, closeFn, err := c.dial(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer closeFn()
+	client := cluster_controllerpb.NewClusterControllerServiceClient(conn)
+	return client.ListServices(ctx, &cluster_controllerpb.ListServicesRequest{})
+}
+
 // ListExternalDomains returns every external-domain spec the
 // controller's embedded domain reconciler manages, paired with the
 // reconciliation status. xDS (and future consumers) call this RPC
