@@ -720,7 +720,8 @@ Requires=network-online.target
 Requires=globular-etcd.service
 
 [Service]
-User=globular
+User=root
+Group=root
 ExecStart=${NODE_AGENT_BIN} ${STATE_DIR}
 Restart=on-failure
 RestartSec=5
