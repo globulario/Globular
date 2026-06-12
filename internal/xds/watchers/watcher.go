@@ -232,7 +232,8 @@ type Watcher struct {
 // controllerAddr is optional - if provided, enables DNS-based service routing in cluster mode.
 func New(logger *slog.Logger, srv *server.XDSServer, configPath, nodeID string, interval time.Duration, downstreamMode DownstreamTLSMode, controllerAddr string) *Watcher {
 	if logger == nil {
-		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+		// Default logs to stderr; stdout is reserved for machine-readable output.
+		logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
 	if srv == nil {
 		logger.Warn("xDS watcher created without server")
