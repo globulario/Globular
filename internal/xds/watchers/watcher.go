@@ -1151,6 +1151,23 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 		// Create prefix route (EXISTING - backward compatibility)
 		routes = append(routes, builder.Route{Prefix: "/" + serviceName + "/", Cluster: clusterName})
 
+		// Co-hosted services: a single process can serve more than one gRPC
+		// service on the same endpoint (e.g. ai_memory also serves
+		// behavioral_memory.BehavioralMemoryService). Each hosted name needs its
+		// own prefix route to the same cluster; without it, requests to the
+		// co-hosted service have no gateway route and fall through to the HTML
+		// catch-all (HTTP 200 text/html) even though the backend serves them.
+		for _, hosted := range hostedServiceNames(instances[0]) {
+			if hosted == "" || hosted == serviceName {
+				continue
+			}
+			routes = append(routes, builder.Route{Prefix: "/" + hosted + "/", Cluster: clusterName})
+			w.logger.Debug("created co-hosted service route",
+				"host_service", serviceName,
+				"hosted_service", hosted,
+				"cluster", clusterName)
+		}
+
 		// Create subdomain routes — one entry per IngressDomain so that both
 		// "event.globule-ryzen.globular.cloud" and "event.globular.cloud"
 		// (or any other listed ingress domain) all hit the same cluster.
@@ -1191,6 +1208,41 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 	}
 
 	return clusters, routes, nil
+}
+
+// hostedServiceNames extracts the optional "HostedServices" list from a service
+// config map — the additional gRPC service names a process serves beyond its
+// primary Name. Values arrive as []interface{} (etcd JSON) or []string (local
+// config); both are handled. Returns nil when absent or malformed.
+func hostedServiceNames(instance map[string]interface{}) []string {
+	if instance == nil {
+		return nil
+	}
+	raw, ok := instance["HostedServices"]
+	if !ok || raw == nil {
+		return nil
+	}
+	switch v := raw.(type) {
+	case []string:
+		out := make([]string, 0, len(v))
+		for _, s := range v {
+			if s = strings.TrimSpace(s); s != "" {
+				out = append(out, s)
+			}
+		}
+		return out
+	case []interface{}:
+		out := make([]string, 0, len(v))
+		for _, e := range v {
+			if s, ok := e.(string); ok {
+				if s = strings.TrimSpace(s); s != "" {
+					out = append(out, s)
+				}
+			}
+		}
+		return out
+	}
+	return nil
 }
 
 func (w *Watcher) buildLegacyGatewayResources(xdsCfg *XDSConfig) ([]builder.Cluster, []builder.Route, builder.Listener, uint32, bool, error) {
