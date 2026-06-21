@@ -3,7 +3,32 @@ package watchers
 import (
 	"reflect"
 	"testing"
+
+	"github.com/globulario/Globular/internal/xds/builder"
 )
+
+// xds_emits_routes_for_hosted_services: each declared HostedServices entry must
+// produce a prefix route to the host service's cluster, so a co-hosted gRPC
+// service (behavioral_memory on the ai_memory process) is reachable through the
+// gateway instead of falling through to the HTML catch-all.
+func TestHostedServiceRoutes(t *testing.T) {
+	const svc = "ai_memory.AiMemoryService"
+	const cluster = "ai_memory_AiMemoryService_cluster"
+
+	got := hostedServiceRoutes(map[string]interface{}{
+		"HostedServices": []interface{}{"behavioral_memory.BehavioralMemoryService", svc, ""},
+	}, svc, cluster)
+
+	want := []builder.Route{{Prefix: "/behavioral_memory.BehavioralMemoryService/", Cluster: cluster}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("hostedServiceRoutes = %+v, want %+v (self-name and empty must be skipped)", got, want)
+	}
+
+	// No HostedServices => no extra routes.
+	if r := hostedServiceRoutes(map[string]interface{}{"Name": svc}, svc, cluster); len(r) != 0 {
+		t.Fatalf("expected no routes when HostedServices absent, got %+v", r)
+	}
+}
 
 // hostedServiceNames must handle the etcd-JSON shape ([]interface{}), the
 // local-config shape ([]string), and absence — so a co-hosted gRPC service

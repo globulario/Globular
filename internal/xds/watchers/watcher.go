@@ -1157,14 +1157,12 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 		// own prefix route to the same cluster; without it, requests to the
 		// co-hosted service have no gateway route and fall through to the HTML
 		// catch-all (HTTP 200 text/html) even though the backend serves them.
-		for _, hosted := range hostedServiceNames(instances[0]) {
-			if hosted == "" || hosted == serviceName {
-				continue
-			}
-			routes = append(routes, builder.Route{Prefix: "/" + hosted + "/", Cluster: clusterName})
+		hostedRoutes := hostedServiceRoutes(instances[0], serviceName, clusterName)
+		routes = append(routes, hostedRoutes...)
+		for _, hr := range hostedRoutes {
 			w.logger.Debug("created co-hosted service route",
 				"host_service", serviceName,
-				"hosted_service", hosted,
+				"route_prefix", hr.Prefix,
 				"cluster", clusterName)
 		}
 
@@ -1208,6 +1206,20 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 	}
 
 	return clusters, routes, nil
+}
+
+// hostedServiceRoutes builds one prefix route per declared co-hosted gRPC
+// service name, each targeting the host service's cluster. Skips empty names and
+// the host's own name. Pure — unit-tested.
+func hostedServiceRoutes(instance map[string]interface{}, serviceName, clusterName string) []builder.Route {
+	var out []builder.Route
+	for _, hosted := range hostedServiceNames(instance) {
+		if hosted == "" || hosted == serviceName {
+			continue
+		}
+		out = append(out, builder.Route{Prefix: "/" + hosted + "/", Cluster: clusterName})
+	}
+	return out
 }
 
 // hostedServiceNames extracts the optional "HostedServices" list from a service
