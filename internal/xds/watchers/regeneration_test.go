@@ -152,11 +152,17 @@ func snapshotHasDomain(snap *cache_v3.Snapshot, domain string) bool {
 	return false
 }
 
+// listenerHasCanonicalTLS verifies a listener's TLS material points at the
+// CANONICAL cert location. AUTHORITY = code: the canonical internal cert moved to
+// pki/issued/services/service.crt (config.CanonicalTLSPaths / INV-PKI-1); the old
+// hard-coded "/config/tls/" literal was stale. Asserting against CanonicalTLSPaths
+// keeps this robust to future relocations and matches where ensureTLSFiles writes.
 func listenerHasCanonicalTLS(snap *cache_v3.Snapshot) bool {
+	_, canonicalCert, _, _ := config.CanonicalTLSPaths(config.GetRuntimeConfigDir())
 	ln := snap.GetResources(resource_v3.ListenerType)
 	for _, res := range ln {
 		if l, ok := res.(*listener_v3.Listener); ok {
-			if strings.Contains(l.String(), "/config/tls/") {
+			if strings.Contains(l.String(), canonicalCert) {
 				return true
 			}
 		}

@@ -219,8 +219,14 @@ func TestServeWithContentType_OtherFiles(t *testing.T) {
 		t.Error("expected transformed=false for .txt file")
 	}
 
-	if ct := w.Header().Get("Content-Type"); ct != "" {
-		t.Errorf("expected no Content-Type for .txt, got %s", ct)
+	// AUTHORITY = code: serveWithContentType sets a corrected Content-Type for
+	// known extensions via the mimeByExtension override table (serve.go:62-66),
+	// added after this test was written. A .txt file is now served as text/plain
+	// (correct) instead of being left for downstream sniffing; transformed stays
+	// false (no body rewrite). The old "expect empty Content-Type" assertion was
+	// stale. No suppression contract requires handlers to omit the type.
+	if ct := w.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/plain") {
+		t.Errorf("expected text/plain Content-Type for .txt, got %q", ct)
 	}
 }
 
