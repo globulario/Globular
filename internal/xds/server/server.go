@@ -57,7 +57,9 @@ type XDSServer struct {
 // New builds a managed xDS server instance.
 func New(logger *slog.Logger, ctx context.Context) *XDSServer {
 	if logger == nil {
-		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		// Default logs to stderr; stdout is reserved for machine-readable output
+		// (e.g. the --describe JSON the node agent parses for port preflight).
+		logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 			Level: slog.LevelInfo,
 		}))
 	}

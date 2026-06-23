@@ -83,7 +83,9 @@ func main() {
 			}
 		}
 	}
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
+	// Logs go to stderr; stdout is reserved for machine-readable output such as
+	// the --describe JSON the node agent parses for port preflight.
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel}))
 
 	if xdsCfg != nil {
 		logger.Info("loaded service config", "path", *serviceConfigPath)

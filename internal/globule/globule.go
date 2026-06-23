@@ -101,7 +101,9 @@ type Globule struct {
 // HTTP handlers/mux are wired elsewhere; we don’t touch net/http servers here.
 func New(logger *slog.Logger) *Globule {
 	if logger == nil {
-		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		// Logs go to stderr; stdout is reserved for machine-readable output
+		// (e.g. --describe JSON consumed by the node agent's port preflight).
+		logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 			Level: slog.LevelError,
 		}))
 	}
@@ -317,6 +319,11 @@ func (g *Globule) BootstrapTLSAndDNS(ctx context.Context) error {
 }
 
 // PrintBanner prints the ASCII logo with Globular metadata.
+//
+// The banner is decorative, human-facing output and MUST go to stderr, never
+// stdout. stdout is reserved for machine-readable output (the --describe JSON
+// the node agent parses for port preflight). A banner line on stdout corrupts
+// that JSON ("invalid character 'G'") and silently disables port preflight.
 func PrintBanner(version string, build int) {
 	platform := runtime.GOOS + "/" + runtime.GOARCH
 	now := time.Now().Format(time.RFC1123)
@@ -328,7 +335,7 @@ func PrintBanner(version string, build int) {
 		fmt.Sprintf("Started at: %s", now),
 	}
 	for _, l := range lines {
-		color.Green.Println(l)
+		fmt.Fprintln(os.Stderr, color.Green.Sprint(l))
 	}
-	fmt.Println(strings.Repeat("-", 100))
+	fmt.Fprintln(os.Stderr, strings.Repeat("-", 100))
 }
