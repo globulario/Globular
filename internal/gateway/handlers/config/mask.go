@@ -50,15 +50,22 @@ func isSecretOptionKey(key string) bool {
 	return strings.Contains(lower, "secret") || strings.Contains(lower, "password")
 }
 
-// MaskValue masks a string, showing only the first 2 chars.
+// MaskValue fully masks a secret value, revealing nothing about its contents
+// or length. Returns "" for empty input so callers can distinguish "unset".
+//
+// SECURITY: this function is used ONLY to mask secret fields (MaskConfigSecrets /
+// maskDestination — secretKeys like OAuth2ClientSecret, Password, SecretKey,
+// ApiToken, …). It previously returned maskPrefix+v[:2]+"..." which leaked the
+// first TWO characters of every secret through the config API — exactly what the
+// MasksSecret test was defending against. A partial "hint" mask is never safe for
+// a credential, so it now emits a constant full mask. The result still begins with
+// maskPrefix so IsMaskedValue (used by UnmaskPatch to avoid overwriting secrets)
+// keeps working.
 func MaskValue(v string) string {
-	if len(v) > 2 {
-		return maskPrefix + v[:2] + "..."
+	if v == "" {
+		return ""
 	}
-	if len(v) > 0 {
-		return maskPrefix
-	}
-	return ""
+	return "********"
 }
 
 // IsMaskedValue returns true if the value looks like it was masked by us.

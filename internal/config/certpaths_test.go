@@ -25,14 +25,20 @@ func TestNewCertPathsBaseNormalization(t *testing.T) {
 }
 
 func TestCertPaths_InternalPaths(t *testing.T) {
+	// INV-PKI-1: internal service identity is the canonical PKI cert
+	// (/var/lib/globular/pki/issued/services/service.{crt,key}), NOT the
+	// config/tls serving paths. This test was stale — it predated commit
+	// 662ebbd "fix(config): use canonical PKI paths for service certificates",
+	// which moved the code (and 8 production call sites) onto the PKI paths.
+	// Aligned to the code's canonical invariant.
 	cp := NewCertPaths("/var/lib/globular")
-	if got := cp.InternalServerCert(); got != filepath.Join("/var/lib/globular", "config", "tls", "fullchain.pem") {
+	if got := cp.InternalServerCert(); got != filepath.Join("/var/lib/globular", "pki", "issued", "services", "service.crt") {
 		t.Fatalf("InternalServerCert=%q", got)
 	}
-	if got := cp.InternalServerKey(); got != filepath.Join("/var/lib/globular", "config", "tls", "privkey.pem") {
+	if got := cp.InternalServerKey(); got != filepath.Join("/var/lib/globular", "pki", "issued", "services", "service.key") {
 		t.Fatalf("InternalServerKey=%q", got)
 	}
-	if got := cp.InternalCABundle(); got != filepath.Join("/var/lib/globular", "config", "tls", "ca.pem") {
+	if got := cp.InternalCABundle(); got != filepath.Join("/var/lib/globular", "pki", "ca.pem") {
 		t.Fatalf("InternalCABundle=%q", got)
 	}
 }
