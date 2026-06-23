@@ -171,7 +171,13 @@ func WriteBootstrap(path string, opt BootstrapOptions) error {
 }
 
 // detectOutboundIP returns the local IP used for outbound connections.
-func detectOutboundIP() string {
+//
+// Declared as a package var (not a plain func) so tests can stub host discovery
+// and assert deterministic bootstrap output. Production behavior is unchanged:
+// MarshalBootstrap auto-detects the node's advertised IP when XDSHost is empty
+// or loopback. A test that wants a fixed host stubs this to return "" (→ the
+// loopback fallback) or a fixture IP — no live `net.Dial` in the test path.
+var detectOutboundIP = func() string {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
 		return ""

@@ -8,6 +8,13 @@ import (
 )
 
 func TestMarshalBootstrapStaticCluster(t *testing.T) {
+	// Hermetic: pin host discovery so the assertion is deterministic instead of
+	// the runner's live outbound IP (detectOutboundIP does net.Dial 8.8.8.8).
+	// Returning "" exercises the loopback fallback, matching the XDSHost below.
+	origDetect := detectOutboundIP
+	detectOutboundIP = func() string { return "" }
+	t.Cleanup(func() { detectOutboundIP = origDetect })
+
 	tmp := t.TempDir()
 	cert := filepath.Join(tmp, "crt.pem")
 	key := filepath.Join(tmp, "key.pem")
