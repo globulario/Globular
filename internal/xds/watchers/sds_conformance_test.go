@@ -595,7 +595,11 @@ func TestNoFileBasedTLSWhenSDSEnabled(t *testing.T) {
 // TestACMECertificateUsesPublicIngressCert verifies that ACME certificates
 // (identified by fullchain.pem naming) use the public-ingress-cert secret name
 // instead of internal-server-cert when SDS is enabled.
-func TestACMECertificateUsesPublicIngressCert(t *testing.T) {
+// TestACMELookingListener_DefaultChainServesInternalCert is the post-6070dd4
+// conformance guard (renamed from TestACMECertificateUsesPublicIngressCert,
+// which asserted the removed, mTLS-breaking model). See the inline AUTHORITY note
+// below; per-domain SNI / ext-cert coverage lives in external_domains_test.go.
+func TestACMELookingListener_DefaultChainServesInternalCert(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Create ACME certificate files (using fullchain.pem naming convention)
@@ -656,8 +660,17 @@ func TestACMECertificateUsesPublicIngressCert(t *testing.T) {
 		t.Fatal("snapshot should contain listeners")
 	}
 
-	// Verify listener uses public-ingress-cert secret (not internal-server-cert)
-	foundPublicIngressSecret := false
+	// AUTHORITY = code (6070dd4 "default filter chain must serve internal cert,
+	// not LE cert"). This test was stale: it asserted the OLD, bug-causing model
+	// where an ACME-looking listener cert (fullchain.pem) put public-ingress-cert
+	// on the DEFAULT filter chain — which made service-to-service mTLS verify
+	// against the LE cert and broke MCP/file/RBAC. 6070dd4 fixed that: the default
+	// chain always serves internal-server-cert; external/ACME domains are served
+	// by per-domain SNI filter chains (ext-cert/<fqdn>), covered by
+	// internal/xds/builder/external_domains_test.go. So the correct conformance
+	// property here is the inverse: an ACME-looking listener cert must NEVER put
+	// the LE/public cert on the default chain.
+	foundDefaultInternalCert := false
 	for _, resource := range listeners {
 		listener, ok := resource.(*listener_v3.Listener)
 		if !ok {
@@ -681,21 +694,22 @@ func TestACMECertificateUsesPublicIngressCert(t *testing.T) {
 				continue
 			}
 
-			// Verify SDS secret configs reference public-ingress-cert
 			sdsConfigs := tlsContext.CommonTlsContext.TlsCertificateSdsSecretConfigs
 			if len(sdsConfigs) == 0 {
-				t.Error("ACME listener should have tls_certificate_sds_secret_configs")
+				t.Error("listener filter chain should have tls_certificate_sds_secret_configs")
 				continue
 			}
 
+			// With no ExternalDomains, the only filter chain is the default one,
+			// which MUST serve internal-server-cert — never the LE/public cert.
 			secretName := sdsConfigs[0].Name
-			if secretName == "public-ingress-cert" {
-				foundPublicIngressSecret = true
-				t.Logf("✓ ACME listener uses public-ingress-cert secret")
-			} else if secretName == "internal-server-cert" {
-				t.Error("ACME listener (fullchain.pem) should use public-ingress-cert, not internal-server-cert")
+			if secretName == "internal-server-cert" {
+				foundDefaultInternalCert = true
+				t.Logf("✓ default filter chain serves internal-server-cert (LE cert stays off the default chain)")
+			} else if secretName == "public-ingress-cert" {
+				t.Error("regression: default filter chain serves public-ingress-cert (LE cert) — this breaks service-to-service mTLS (6070dd4). The LE cert belongs on a per-domain SNI chain, not the default chain.")
 			} else {
-				t.Errorf("ACME listener has unexpected secret name: %s", secretName)
+				t.Errorf("default filter chain has unexpected secret name: %s", secretName)
 			}
 
 			// Verify ADS config
@@ -705,24 +719,24 @@ func TestACMECertificateUsesPublicIngressCert(t *testing.T) {
 				t.Error("SDS config should use ADS")
 			}
 
-			// Verify no file-based TLS
+			// Verify no file-based TLS (SDS implies secret-delivered certs).
 			for _, tlsCert := range tlsContext.CommonTlsContext.TlsCertificates {
 				if tlsCert.CertificateChain != nil {
 					if _, ok := tlsCert.CertificateChain.Specifier.(*core_v3.DataSource_Filename); ok {
-						t.Error("ACME listener uses file-based TLS when SDS is enabled - this is illegal")
+						t.Error("listener uses file-based TLS when SDS is enabled - this is illegal")
 					}
 				}
 				if tlsCert.PrivateKey != nil {
 					if _, ok := tlsCert.PrivateKey.Specifier.(*core_v3.DataSource_Filename); ok {
-						t.Error("ACME listener uses file-based TLS key when SDS is enabled - this is illegal")
+						t.Error("listener uses file-based TLS key when SDS is enabled - this is illegal")
 					}
 				}
 			}
 		}
 	}
 
-	if !foundPublicIngressSecret {
-		t.Error("no listener found using public-ingress-cert secret for ACME certificate")
+	if !foundDefaultInternalCert {
+		t.Error("no default filter chain found serving internal-server-cert (6070dd4 contract)")
 	}
 }
 

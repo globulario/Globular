@@ -450,19 +450,29 @@ func NewServeFile(p ServeProvider) http.Handler {
 		info.minioCfg = minioCfg
 		isUsersPath := strings.HasPrefix(rqstPath, "/users/")
 		minioConfigured := minioCfg != nil || minioErr != nil
-		// Only block on MinIO errors for paths that actually require MinIO
-		// (/users/ paths).  Filesystem-backed paths like /mnt/… or /public/…
-		// on local disk should keep working even when the object store is
-		// unreachable or misconfigured.
-		if minioConfigured && minioErr != nil && isUsersPath {
+		// Object store configured but UNAVAILABLE → fail CLOSED for EVERY path,
+		// not just /users/. Silently falling back to local disk when the
+		// configured object store is down can serve stale, unauthorized, or
+		// non-canonical content: availability must not borrow authority.
+		//
+		// Ruling 2026-06-23: webroot disk-fallback on an object-store outage is a
+		// fail-open regression (it was introduced by an omnibus commit, 008d6d2).
+		// Re-enabling a disk fallback for public/static assets requires an EXPLICIT
+		// written contract — which paths are allowed, whether auth/resource checks
+		// are bypassed, how stale disk content is handled, whether an outage means
+		// degraded availability or degraded authority, and what status/diagnostic
+		// is emitted. Until that contract exists, the older fail-closed tests are
+		// authority.
+		if minioConfigured && minioErr != nil {
 			httplib.WriteJSONError(w, http.StatusServiceUnavailable, objectStoreErrMsg(minioErr))
 			return
 		}
 		hasMinio := minioConfigured && minioErr == nil
 		info.useMinioUsers = hasMinio && isUsersPath
 		info.useMinioWeb = hasMinio && !isUsersPath
-		// Fallback to disk when MinIO is not configured or has an error
-		info.fallbackToDisk = !minioConfigured || minioErr != nil
+		// minioErr == nil here (guarded above). Fall back to disk only when the
+		// object store is not configured at all.
+		info.fallbackToDisk = !minioConfigured
 		info.hostPart = cleanRequestHost(r.Host, minioCfg)
 
 		// Compute filename; "public" paths are absolute
