@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	servicesconfig "github.com/globulario/services/golang/config"
 )
 
 // joinScriptForTest returns the raw joinScript template expanded with fixed
@@ -13,11 +15,32 @@ import (
 // so that tests run without cluster infrastructure.
 func joinScriptForTest() string {
 	return fmt.Sprintf(joinScript,
-		"FAKECAB64==",    // %[1]s CA cert
-		"10.0.0.1:8443",  // %[2]s gateway
-		"10.0.0.1:12000", // %[3]s controller
-		"1.2.0",          // %[4]s platform version
+		"FAKECAB64==",                   // %[1]s CA cert
+		"10.0.0.1:8443",                 // %[2]s gateway
+		"10.0.0.1:12000",                // %[3]s controller
+		"1.2.0",                         // %[4]s platform version
+		servicesconfig.EtcdClusterToken, // %[5]s etcd initial-cluster-token
 	)
+}
+
+// TestJoinScript_EtcdInitialClusterTokenPresent verifies the Day-1 join writes a
+// complete etcd.yaml: the persisted config must carry initial-cluster-token set
+// to the fixed config.EtcdClusterToken constant. Without it the joined node's
+// etcd.yaml is incomplete — tolerated only because a normally-joined member
+// reads membership from its data-dir and ignores initial-* flags, but unsafe on
+// a data-dir-loss re-bootstrap/repair. (Founding node renders this; Day-1 join
+// previously omitted it.)
+func TestJoinScript_EtcdInitialClusterTokenPresent(t *testing.T) {
+	script := joinScriptForTest()
+
+	if !strings.Contains(script, `initial-cluster-token: "${ETCD_CLUSTER_TOKEN}"`) {
+		t.Error("etcd.yaml heredoc must write initial-cluster-token from ${ETCD_CLUSTER_TOKEN}")
+	}
+	want := fmt.Sprintf(`ETCD_CLUSTER_TOKEN="%s"`, servicesconfig.EtcdClusterToken)
+	if !strings.Contains(script, want) {
+		t.Errorf("join script must set ETCD_CLUSTER_TOKEN to config.EtcdClusterToken (%q); not found in rendered script",
+			servicesconfig.EtcdClusterToken)
+	}
 }
 
 // ─── MinIO / objectstore topology contract ───────────────────────────────────
