@@ -1,12 +1,14 @@
 package cluster
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	servicesconfig "github.com/globulario/services/golang/config"
 )
@@ -35,26 +37,73 @@ import (
 //
 //	curl -sfL https://<gateway>:8443/join -k | sudo bash -s -- --token <join-token>
 //
-// activePlatformVersion reads the platform_release from the local
-// release-index.json written by 'globular repo sync'. This ensures Day-1
-// always downloads the version the cluster is actually running, not the version
-// the gateway binary was compiled at (which only changes when gateway code
-// changes, not on every platform release).
+// activeReleaseAnchorKey is the etcd key holding the cluster's authoritative
+// active platform release, written by the controller (ActivatePlatformRelease /
+// convergence auto-advance; see services active_release.go). It is the single
+// source of truth for "what release is the cluster actually running".
+const activeReleaseAnchorKey = "/globular/platform/active_release"
+
+// activePlatformVersion resolves the platform version a joining (Day-1) node
+// should bootstrap, in strict priority order:
 //
-// Falls back to the binary's own version so Day-0 bootstrap still works before
-// repo sync has been run.
+//  1. the etcd active_release anchor — cluster authority. Day-1 must bootstrap
+//     the version the cluster is actually running.
+//  2. the local release-index.json projection (written by 'globular repo sync')
+//     — a node-local copy that can be stale (e.g. the gateway node has not
+//     re-synced since the last platform activation). Trusting it previously made
+//     a joining node bootstrap an OLD node-agent that never converged.
+//  3. the gateway binary's own version — Day-0 bootstrap, before any anchor or
+//     repo sync exists.
+//
+// The anchor is the authority; the on-disk index is only a projection of it, so
+// the projection must not be trusted while the authority is reachable.
 func activePlatformVersion(binaryVersion string) string {
-	data, err := os.ReadFile("/var/lib/globular/release-index.json")
-	if err != nil {
-		return binaryVersion
+	return resolvePlatformVersion(binaryVersion, platformReleaseFromAnchor, os.ReadFile)
+}
+
+// resolvePlatformVersion is the pure precedence logic, with the etcd read and
+// the file read injected so it is unit-testable without cluster infrastructure.
+func resolvePlatformVersion(binaryVersion string, anchorFn func() string, readFile func(string) ([]byte, error)) string {
+	// 1. etcd active_release anchor (authority).
+	if v := anchorFn(); v != "" {
+		return v
 	}
-	var idx struct {
+	// 2. local release-index.json projection (may be stale).
+	if data, err := readFile("/var/lib/globular/release-index.json"); err == nil {
+		var idx struct {
+			PlatformRelease string `json:"platform_release"`
+		}
+		if jsonErr := json.Unmarshal(data, &idx); jsonErr == nil && idx.PlatformRelease != "" {
+			return idx.PlatformRelease
+		}
+	}
+	// 3. the gateway binary's own version (Day-0).
+	return binaryVersion
+}
+
+// platformReleaseFromAnchor reads platform_release from the etcd active_release
+// anchor. It returns "" on any error (etcd unreachable, key absent, corrupt
+// JSON) so the caller falls back to the on-disk projection / binary version —
+// Day-0 bootstrap (no etcd yet) must still work. The shared etcd client is a
+// cached singleton owned by the config package and must not be closed here.
+func platformReleaseFromAnchor() string {
+	client, err := servicesconfig.GetEtcdClient()
+	if err != nil || client == nil {
+		return ""
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	resp, err := client.Get(ctx, activeReleaseAnchorKey)
+	if err != nil || len(resp.Kvs) == 0 {
+		return ""
+	}
+	var a struct {
 		PlatformRelease string `json:"platform_release"`
 	}
-	if err := json.Unmarshal(data, &idx); err != nil || idx.PlatformRelease == "" {
-		return binaryVersion
+	if jsonErr := json.Unmarshal(resp.Kvs[0].Value, &a); jsonErr != nil {
+		return ""
 	}
-	return idx.PlatformRelease
+	return a.PlatformRelease
 }
 
 func NewJoinScriptHandler(controllerAddr string, gatewayPort int, platformVersion string) http.Handler {

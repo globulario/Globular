@@ -43,6 +43,55 @@ func TestJoinScript_EtcdInitialClusterTokenPresent(t *testing.T) {
 	}
 }
 
+// ─── platform version resolution (Day-1 bootstrap source) ────────────────────
+
+// TestResolvePlatformVersion_AnchorWins verifies the etcd active_release anchor
+// takes precedence over the local release-index.json projection and the binary
+// version. Day-1 must bootstrap the version the cluster is actually running, not
+// a stale on-disk projection — the root cause of a joining node installing an
+// old node-agent that never converged.
+func TestResolvePlatformVersion_AnchorWins(t *testing.T) {
+	anchor := func() string { return "1.2.251" }
+	readFile := func(string) ([]byte, error) {
+		return []byte(`{"platform_release":"1.2.240"}`), nil // stale projection
+	}
+	if got := resolvePlatformVersion("0.0.0-dev", anchor, readFile); got != "1.2.251" {
+		t.Errorf("anchor must win over projection and binary: got %q, want 1.2.251", got)
+	}
+}
+
+// TestResolvePlatformVersion_FallsBackToProjection verifies that when the anchor
+// is empty (etcd unreachable / key absent), the on-disk projection is used.
+func TestResolvePlatformVersion_FallsBackToProjection(t *testing.T) {
+	anchor := func() string { return "" }
+	readFile := func(string) ([]byte, error) {
+		return []byte(`{"platform_release":"1.2.240"}`), nil
+	}
+	if got := resolvePlatformVersion("0.0.0-dev", anchor, readFile); got != "1.2.240" {
+		t.Errorf("must fall back to projection when anchor empty: got %q, want 1.2.240", got)
+	}
+}
+
+// TestResolvePlatformVersion_FallsBackToBinary verifies that with no anchor and
+// no readable projection, the gateway binary's own version is used (Day-0).
+func TestResolvePlatformVersion_FallsBackToBinary(t *testing.T) {
+	anchor := func() string { return "" }
+	readFile := func(string) ([]byte, error) { return nil, os.ErrNotExist }
+	if got := resolvePlatformVersion("1.2.99", anchor, readFile); got != "1.2.99" {
+		t.Errorf("must fall back to binary version (Day-0): got %q, want 1.2.99", got)
+	}
+}
+
+// TestResolvePlatformVersion_EmptyProjectionFallsThrough verifies that a
+// projection with an empty platform_release does not shadow the binary version.
+func TestResolvePlatformVersion_EmptyProjectionFallsThrough(t *testing.T) {
+	anchor := func() string { return "" }
+	readFile := func(string) ([]byte, error) { return []byte(`{"platform_release":""}`), nil }
+	if got := resolvePlatformVersion("1.2.99", anchor, readFile); got != "1.2.99" {
+		t.Errorf("empty projection must fall through to binary: got %q, want 1.2.99", got)
+	}
+}
+
 // ─── MinIO / objectstore topology contract ───────────────────────────────────
 
 // TestJoinScript_NoLocalMinioHostsEntry verifies that the join script does NOT
