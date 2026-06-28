@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+
+	servicesconfig "github.com/globulario/services/golang/config"
 )
 
 // NewJoinScriptHandler serves a self-contained shell script that bootstraps
@@ -97,7 +99,7 @@ func NewJoinScriptHandler(controllerAddr string, gatewayPort int, platformVersio
 		}
 
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		fmt.Fprintf(w, joinScript, caB64, gatewayAddr, ctrlAddr, activePlatformVersion(platformVersion))
+		fmt.Fprintf(w, joinScript, caB64, gatewayAddr, ctrlAddr, activePlatformVersion(platformVersion), servicesconfig.EtcdClusterToken)
 	})
 }
 
@@ -108,6 +110,7 @@ func NewJoinScriptHandler(controllerAddr string, gatewayPort int, platformVersio
 //	%[2]s = gateway address (host:port)
 //	%[3]s = controller address (host:port)
 //	%[4]s = platform version (e.g. "1.2.88") — used to build the GitHub release tarball URL
+//	%[5]s = etcd initial-cluster-token (config.EtcdClusterToken, the fixed bootstrap-immutable constant)
 //
 // IMPORTANT: any literal %% in this string becomes % in the output script.
 // Use %% wherever the shell script needs a literal % (e.g. date format strings).
@@ -151,6 +154,7 @@ set -euo pipefail
 CA_B64="%[1]s"
 GATEWAY="%[2]s"
 CONTROLLER="%[3]s"
+ETCD_CLUSTER_TOKEN="%[5]s"
 
 # ── Runtime defaults ─────────────────────────────────────────────────────────
 JOIN_TOKEN=""
@@ -627,6 +631,7 @@ listen-client-urls: https://0.0.0.0:2379
 
 initial-cluster: ${INITIAL_CLUSTER},${ETCD_NAME}=https://${NODE_IP}:2380
 initial-cluster-state: "existing"
+initial-cluster-token: "${ETCD_CLUSTER_TOKEN}"
 
 client-transport-security:
   cert-file: ${ETCD_CERT}
