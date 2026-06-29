@@ -23,6 +23,10 @@ invariants:
               - xds/
       forbidden_fixes:
           - no.pki.path.relative.to.domain
+      required_tests:
+          - internal/config/certpaths_test.go
+          - internal/xds/watchers/sds_setup_test.go
+          - internal/xds/watchers/cert_reconciler_test.go
 
     - id: xds.mtls.required.in.production
       title: xDS must use mTLS in production; GLOBULAR_XDS_INSECURE is dev-only
@@ -41,6 +45,9 @@ invariants:
               - cmd/xds/main.go
       forbidden_fixes:
           - no.xds.insecure.in.production
+      required_tests:
+          - internal/controlplane/secret_test.go
+          - internal/xds/watchers/sds_conformance_test.go
 
     - id: join.token.validated.before.phase
       title: Join token must be validated before Phase 1; re-checked before Phase 5
@@ -57,6 +64,9 @@ invariants:
               - gateway_server/
       forbidden_fixes:
           - no.join.phase.skip
+      required_tests:
+          - internal/gateway/handlers/cluster/join_authorize_test.go
+          - internal/gateway/handlers/cluster/join_script_test.go
 
     - id: etcd.ghost.cleared.before.member.add
       title: Ghost etcd members must be removed before adding the new member in Phase 5
@@ -74,6 +84,8 @@ invariants:
               - internal/server/
       forbidden_fixes:
           - no.etcd.write.from.gateway
+      required_tests:
+          - internal/gateway/handlers/cluster/join_script_test.go
 
     - id: repair.etcd.explicit.flag.only
       title: etcd WAL wipe requires --repair-etcd; never implicit
@@ -92,6 +104,9 @@ invariants:
               - cmd/gateway/main.go
       forbidden_fixes:
           - no.repair.etcd.implicit
+      required_tests:
+          - internal/gateway/handlers/cluster/join_script_test.go
+          - internal/gateway/handlers/cluster/join_authorize_test.go
 
     - id: gateway.no.etcd.writes
       title: Gateway must not write desired state to etcd; only controller may do this
@@ -111,6 +126,11 @@ invariants:
               - internal/server/
       forbidden_fixes:
           - no.etcd.write.from.gateway
+      required_tests:
+          - internal/gateway/handlers/admin/services_authority_pin_test.go
+          - internal/xds/watchers/watcher_services_authority_pin_test.go
+          - internal/xds/watchers/watcher_domains_authority_pin_test.go
+          - internal/xds/watchers/routing_reconciler_authority_pin_test.go
 
     - id: xds.cert.validated.before.serving.secrets
       title: xDS must verify cert chain before serving TLS secrets to Envoy
@@ -127,6 +147,10 @@ invariants:
               - xds/
       forbidden_fixes:
           - no.csr.sign.without.verify
+      required_tests:
+          - internal/xds/watchers/sds_setup_test.go
+          - internal/xds/watchers/sds_conformance_test.go
+          - internal/xds/watchers/cert_reconciler_test.go
 
     - id: csr.signature.verified.before.signing
       title: CSR must be verified (node identity + token) before the CA signs it
@@ -144,6 +168,8 @@ invariants:
               - gateway_server/
       forbidden_fixes:
           - no.csr.sign.without.verify
+      required_tests:
+          - internal/gateway/handlers/cluster/join_authorize_test.go
 
     - id: join.phase.order.enforced
       title: Join phases 1-8 must execute in order; no phase may be skipped
@@ -159,3 +185,5 @@ invariants:
       protects:
           files:
               - gateway_server/
+      required_tests:
+          - internal/gateway/handlers/cluster/join_script_test.go

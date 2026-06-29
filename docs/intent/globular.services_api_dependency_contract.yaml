@@ -1,0 +1,40 @@
+id: globular.services_api_dependency_contract
+level: contract
+title: Globular imports services/golang as the typed platform API boundary
+intent: |
+  The Globular shell imports github.com/globulario/services/golang for protobuf
+  clients, security helpers, config contracts, installed-state types, and
+  repository APIs. Those imports are an inter-repo API dependency, not an
+  invitation to duplicate controller authority or write cluster state directly.
+agent_guidance: |
+  When changing Globular code that imports services/golang, identify the owning
+  service API first. Keep cluster mutations routed through the controller or
+  workflow APIs exposed by services. Do not bypass those APIs by writing etcd
+  keys from gateway, xDS, or admin handlers.
+bad_smells:
+  - gateway handler writes /globular/services or desired-state keys directly
+  - xDS watcher reads foreign etcd prefixes instead of services authority APIs
+  - Globular adds a local copy of services protobuf or installed-state structs
+  - go.mod replace points at an unintended services checkout during release
+activation_triggers:
+  - github.com/globulario/services/golang
+  - services/golang
+  - cluster_controllerpb
+  - repositorypb
+  - installed_state
+expressed_by:
+  - go.mod
+  - internal/controllerclient/client.go
+  - internal/gateway/handlers/providers.go
+  - internal/gateway/handlers/admin/state_alignment.go
+  - internal/xds/watchers/watcher.go
+related_invariants:
+  - gateway.no.etcd.writes
+  - xds.cert.validated.before.serving.secrets
+status: active
+required_tests:
+  - internal/gateway/handlers/admin/services_authority_pin_test.go
+  - internal/xds/watchers/watcher_services_authority_pin_test.go
+  - internal/xds/watchers/watcher_domains_authority_pin_test.go
+  - internal/xds/watchers/routing_reconciler_authority_pin_test.go
+
