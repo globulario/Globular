@@ -1,0 +1,9 @@
+namespaces:
+  - id: globular.platform
+    label: Globular Platform
+    owns:
+      - cmd
+      - internal
+      - docs/awareness
+      - docs/intent
+    description: Core Globular runtime, governance, and operator-facing platform code.

@@ -264,13 +264,17 @@ func New(logger *slog.Logger, srv *server.XDSServer, configPath, nodeID string, 
 	}
 }
 
-// SetEtcdClient configures the etcd client for certificate generation tracking.
-// This enables hot certificate rotation via SDS.
-// v1 Conformance (INV-6): Initializes CertReconciler for event-driven rotation.
+// SetEtcdClient records the optional etcd client used by the xDS watcher's
+// remaining owner-path bootstrap flows. Certificate rotation no longer depends
+// on direct etcd watches; that moved to filesystem-driven reconciliation.
+//
+// Today this setter exists to keep the watcher's bootstrap/runtime wiring in
+// one place while still initializing the reconcilers that no longer read
+// foreign-owner prefixes directly.
 func (w *Watcher) SetEtcdClient(client *clientv3.Client) {
 	w.etcdClient = client
 	if w.logger != nil && client != nil {
-		w.logger.Info("etcd client configured for certificate rotation tracking")
+		w.logger.Info("etcd client configured for watcher bootstrap plumbing")
 	}
 
 	// Initialize certificate reconciler if we have enough information
