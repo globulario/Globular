@@ -1,0 +1,35 @@
+id: globular.packages_release_artifact_contract
+level: contract
+title: Globular consumes packaged release artifacts rather than package source metadata
+intent: |
+  Globular is the platform shell and gateway surface. It should consume packages
+  through release artifacts, repository APIs, and installed-state APIs, while the
+  packages repository remains the authored source for package identity, units,
+  hooks, and metadata specs.
+agent_guidance: |
+  Do not add a second package registry or package-kind classifier to Globular.
+  If UI or gateway code needs package state, use repository/installed-state APIs
+  from services. Package identity fixes belong in the packages repository and
+  must be validated there before Globular relies on them.
+bad_smells:
+  - Globular code parses packages/registry.yaml directly
+  - Globular hardcodes infrastructure/service/command package name lists
+  - admin package views infer runtime state from package metadata alone
+  - package identity is inferred from a systemd unit name in Globular
+activation_triggers:
+  - packages/registry.yaml
+  - package_kind
+  - installed packages
+  - repository API
+  - release artifact
+expressed_by:
+  - internal/gateway/handlers/admin/installed_packages.go
+  - internal/gateway/handlers/admin/state_alignment.go
+  - internal/gateway/handlers/admin/repository.go
+  - internal/gateway/handlers/providers.go
+related_invariants:
+  - gateway.no.etcd.writes
+status: active
+required_tests:
+  - internal/gateway/handlers/admin/repository_test.go
+  - internal/gateway/handlers/admin/services_authority_pin_test.go
