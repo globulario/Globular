@@ -23,6 +23,10 @@ invariants:
               - xds/
       forbidden_fixes:
           - no.pki.path.relative.to.domain
+      required_tests:
+          - internal/config/certpaths_test.go:TestCertPaths_InternalPaths
+          - internal/config/certpaths_test.go:TestCertPaths_PKIPaths
+          - tls_scan_test.go:TestTLSScanRejectsCredsDomain
 
     - id: xds.mtls.required.in.production
       title: xDS must use mTLS in production; GLOBULAR_XDS_INSECURE is dev-only
@@ -41,6 +45,10 @@ invariants:
               - cmd/xds/main.go
       forbidden_fixes:
           - no.xds.insecure.in.production
+      required_tests:
+          - internal/xds/watchers/sds_setup_test.go:TestSetupSDSSecrets_SecurityViolation
+          - internal/controlplane/bootstrap_test.go:TestBootstrapAddsTLSTransportSocketByDefault
+          - internal/controlplane/bootstrap_test.go:TestMarshalBootstrapDevInsecureAllowsPlaintext
 
     - id: join.token.validated.before.phase
       title: Join token must be validated before Phase 1; re-checked before Phase 5
@@ -57,6 +65,9 @@ invariants:
               - gateway_server/
       forbidden_fixes:
           - no.join.phase.skip
+      required_tests:
+          - internal/gateway/handlers/cluster/join_authorize_test.go:TestJoinAuthorize_MissingTokenReturns400
+          - internal/gateway/handlers/cluster/join_authorize_test.go:TestJoinAuthorize_JoinScriptCallsAuthorizeBeforeEtcd
 
     - id: etcd.ghost.cleared.before.member.add
       title: Ghost etcd members must be removed before adding the new member in Phase 5
@@ -74,6 +85,8 @@ invariants:
               - internal/server/
       forbidden_fixes:
           - no.etcd.write.from.gateway
+      required_tests:
+          - internal/gateway/handlers/cluster/join_script_test.go:TestJoinScript_GhostMemberRemovalBeforeMemberAdd
 
     - id: repair.etcd.explicit.flag.only
       title: etcd WAL wipe requires --repair-etcd; never implicit
@@ -92,6 +105,9 @@ invariants:
               - cmd/gateway/main.go
       forbidden_fixes:
           - no.repair.etcd.implicit
+      required_tests:
+          - internal/gateway/handlers/cluster/join_script_test.go:TestJoinScript_BackupBeforeWipeInRepairMode
+          - internal/gateway/handlers/cluster/join_script_test.go:TestJoinScript_ExistingEtcdDataWithoutRepairFlagFails
 
     - id: gateway.no.etcd.writes
       title: Gateway must not write desired state to etcd; only controller may do this
@@ -111,10 +127,31 @@ invariants:
               - internal/server/
       forbidden_fixes:
           - no.etcd.write.from.gateway
+      required_tests:
+          - internal/gateway/handlers/admin/services_authority_pin_test.go:TestServices_FetchClusterNodeMap_NoDirectEtcd
+          - internal/gateway/handlers/cluster/join_authorize_test.go:TestJoinAuthorize_GatewayIsNotAuthority
+
+
+    - id: gateway.admin.cluster.inventory.must.flow.through.owner_surface
+      title: Gateway admin cluster inventory must flow through controller-owned typed surfaces
+      severity: high
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          Admin handlers may summarize cluster nodes and service runtime for operators, but
+          they must not rebuild that view by reading controller-owned persistence keys or
+          opening a raw etcd client in the gateway. Cluster inventory consumed by the admin
+          surface must flow through typed owner APIs so the gateway remains a courier over
+          authoritative state instead of re-implementing storage semantics locally.
+      protects:
+          files:
+              - internal/gateway/handlers/admin/services.go
+      required_tests:
+          - internal/gateway/handlers/admin/services_authority_pin_test.go:TestServices_FetchClusterNodeMap_NoDirectEtcd
 
     - id: xds.cert.validated.before.serving.secrets
       title: xDS must verify cert chain before serving TLS secrets to Envoy
-      severity: error
+      severity: critical
       status: active
       # origin: { type: principle, confidence: high }
       summary: |
@@ -127,6 +164,31 @@ invariants:
               - xds/
       forbidden_fixes:
           - no.csr.sign.without.verify
+      required_tests:
+          - internal/controlplane/secret_test.go:TestMakeSecret_MissingFiles
+          - internal/xds/watchers/sds_conformance_test.go:TestACMERotationHandlesCorruptPEM
+
+
+    - id: objectstore.config.precedence.must.remain.explicit
+      title: Object-store config must prefer canonical contract, then etcd recovery, then explicit env fallback
+      severity: high
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The object-store proxy config loader is a governed precedence boundary. A valid
+          canonical contract file must win over every fallback. If that contract is missing
+          or corrupt, the loader may recover through the authoritative etcd-backed cluster
+          config and only then through explicit environment fallbacks. It must not silently
+          let env values override a valid contract, and it must not surface raw contract-parse
+          failures when a governed fallback path is still available.
+      protects:
+          files:
+              - internal/config/
+      required_tests:
+          - internal/config/minio_proxy_config_test.go:TestLoadMinioProxyConfigContractOrder
+          - internal/config/minio_proxy_config_test.go:TestLoadMinioProxyConfigCorruptContractFallsBackToEtcd
+          - internal/config/minio_proxy_config_test.go:TestLoadMinioProxyConfigEnvFallback
+          - internal/config/minio_proxy_config_test.go:TestLoadMinioContractPrefersStateOverServiceDir
 
     - id: csr.signature.verified.before.signing
       title: CSR must be verified (node identity + token) before the CA signs it
@@ -144,10 +206,11 @@ invariants:
               - gateway_server/
       forbidden_fixes:
           - no.csr.sign.without.verify
+      test_not_applicable_reason: Direct gateway CA signer coverage is not yet present; current join authorization tests cover token gating and join-plan ordering, but not CSR cryptographic verification. Add a signer-focused unit or integration test before broadening agent scope.
 
     - id: join.phase.order.enforced
       title: Join phases 1-8 must execute in order; no phase may be skipped
-      severity: error
+      severity: critical
       status: active
       # origin: { type: principle, confidence: high }
       summary: |
@@ -159,3 +222,274 @@ invariants:
       protects:
           files:
               - gateway_server/
+      required_tests:
+          - internal/gateway/handlers/cluster/join_authorize_test.go:TestJoinAuthorize_JoinScriptCallsAuthorizeBeforeEtcd
+          - internal/gateway/handlers/cluster/join_script_test.go:TestJoinScript_NodeAgentStartAfterEtcdHealthGate
+          - internal/gateway/handlers/cluster/join_script_test.go:TestJoinScript_NodeAgentRequiresEtcd
+
+
+    - id: gateway.cluster.joinplan.must.gate.cluster_affecting_steps
+      title: Cluster join handlers must obtain and enforce controller authorization before any cluster-affecting step
+      severity: critical
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The gateway cluster handlers may courier a join request and render the join script,
+          but they are not allowed to invent cluster intent locally or proceed optimistically.
+          Before etcd join, node-agent start, or any other cluster-affecting step, the join
+          flow must obtain controller authorization through /join/authorize, persist the
+          issued join identity, and treat authorization failure as fatal. A denied or empty
+          JoinPlan must stop the script rather than degrade into a warning path.
+      protects:
+          files:
+              - internal/gateway/handlers/cluster/
+      required_tests:
+          - internal/gateway/handlers/cluster/join_authorize_test.go:TestJoinAuthorize_GatewayIsNotAuthority
+          - internal/gateway/handlers/cluster/join_authorize_test.go:TestJoinAuthorize_JoinScriptCallsAuthorizeBeforeEtcd
+          - internal/gateway/handlers/cluster/join_authorize_test.go:TestJoinAuthorize_JoinScriptBlocksOnValidationFailure
+          - internal/gateway/handlers/cluster/join_script_test.go:TestJoinScript_NodeAgentStartAfterEtcdHealthGate
+
+
+    - id: gateway.entrypoint.network.identity.must.remain.controller_managed
+      title: Gateway entrypoint must ignore local Domain and Protocol overrides; only controller-managed network identity may decide them
+      severity: critical
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The gateway command is allowed to compose runtime ports and startup wiring, but it
+          must not let a local gateway config file redefine cluster network identity. Domain
+          and Protocol remain controller-managed values coming from the node's canonical local
+          config; cmd/gateway may only apply safe local transport tuning such as HTTP/HTTPS
+          ports. If the entrypoint starts honoring local Domain or Protocol overrides, a node
+          can drift away from the controller-approved routing and TLS model at boot.
+      protects:
+          files:
+              - cmd/gateway/
+      required_tests:
+          - cmd/gateway/main_test.go:TestApplyGatewayConfigToGlobuleIgnoresDomainAndProtocol
+          - cmd/gateway/main_test.go:TestApplyGatewayConfigToGlobuleAppliesPortOverrides
+
+
+    - id: internal.gateway.must.remain.courier_and_fail_closed
+      title: Internal gateway must courier authority-owned state and fail closed on serving and config gates
+      severity: critical
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The internal gateway package is the operator-facing courier over admin, cluster,
+          config, and file-serving surfaces. Across that package, it must keep controller-owned
+          state behind typed owner flows, preserve join authorization before cluster-affecting
+          actions, and fail closed when file/config access requirements are not met. Refactors
+          here must not turn denied or unavailable state into permissive fallbacks, and must not
+          recreate owner storage semantics locally inside handlers.
+      protects:
+          files:
+              - internal/gateway/
+      required_tests:
+          - internal/gateway/handlers/admin/services_authority_pin_test.go:TestServices_FetchClusterNodeMap_NoDirectEtcd
+          - internal/gateway/handlers/cluster/join_authorize_test.go:TestJoinAuthorize_JoinScriptBlocksOnValidationFailure
+          - internal/gateway/handlers/files/serve_test.go:TestServe_DenyWithoutAccess_401
+          - internal/gateway/handlers/config/service_permissions_test.go:TestGetServicePermissions_EmptyArrayWhenNil
+          - internal/gateway/handlers/providers_cache_test.go:TestMinioConfigCache_StrictProbeBackoff
+
+
+    - id: internal.globule.must.remain.local_runtime_shell
+      title: Internal globule must remain a local runtime shell and must not reclaim controller or node-agent authority
+      severity: critical
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The internal globule component may initialize runtime directories, expose local config,
+          and resolve helper endpoints, but it must not mutate controller-managed network identity
+          or claim ownership of TLS/DNS bootstrap. Domain, Protocol, and PortsRange changes must be
+          ignored at the globule layer, and the TLS/DNS bootstrap path must stay a no-op boundary
+          that defers authority to node agent and controller flows.
+      protects:
+          files:
+              - internal/globule/
+      required_tests:
+          - internal/globule/banner_test.go:TestPrintBannerNeverWritesToStdout
+          - internal/globule/runtime_shell_test.go:TestSetConfigIgnoresControllerManagedNetworkIdentity
+          - internal/globule/runtime_shell_test.go:TestNodeAndControllerAddressUseStableDefaults
+
+
+    - id: internal.logsink.must.flush_human_lines_and_fail_soft_on_remote_delivery
+      title: Internal logsink must preserve line boundaries and keep local echo usable when remote delivery is unavailable
+      severity: high
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The internal logsink component bridges service output into local console rendering and
+          best-effort remote log delivery. It must flush only complete newline or carriage-return
+          terminated log lines, keep trailing fragments buffered until completed, and continue local
+          echo behavior even when the remote LogService path cannot be reached. Refactors here must
+          not collapse partial lines into noisy output or make local service behavior depend on the
+          availability of the remote logging pipeline.
+      protects:
+          files:
+              - internal/logsink/
+      required_tests:
+          - internal/logsink/logsink_test.go:TestSplitFlushablePreservesTrailingFragment
+          - internal/logsink/logsink_test.go:TestServiceLogWriterEchoesCompletedLinesWithoutRemoteClient
+
+
+    - id: internal.dnscache.must_prefer_fresh_answers_and_only_fallback_to_stale_on_refresh_failure
+      title: Internal dnscache must prefer fresh answers and only fallback to stale entries when refresh fails
+      severity: high
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The internal dnscache component is a local resilience cache, not an authority source.
+          For both A/AAAA and SRV lookups it must return fresh resolver answers whenever a refresh
+          succeeds, and it may reuse stale cached data only when the refresh attempt fails and a
+          prior answer already exists. Cache invalidation must clear both A/AAAA and SRV state so
+          operators can force convergence after network or service-topology changes.
+      protects:
+          files:
+              - internal/dnscache/
+      required_tests:
+          - internal/dnscache/dnscache_test.go:TestLookupReturnsStaleEntryOnRefreshFailure
+          - internal/dnscache/dnscache_test.go:TestLookupSRVReturnsStaleEntryOnRefreshFailure
+          - internal/dnscache/dnscache_test.go:TestInvalidateAllClearsAAndSRVCaches
+
+
+    - id: internal.faststart.must_only_replace_original_after_plausible_output
+      title: Internal faststart must only replace the original media file after plausible optimized output exists
+      severity: high
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The internal faststart component is a best-effort optimizer, not an authority over media
+          integrity. It may skip optimization when ffmpeg is missing, and it may replace the original
+          file only after ffmpeg produced a plausibly complete output. Failed runs, rename failures,
+          or suspiciously small outputs must leave the original file untouched and clean up the temp file.
+      protects:
+          files:
+              - internal/faststart/
+      required_tests:
+          - internal/faststart/optimize_test.go:TestOptimizeMissingFFmpegLeavesFileUntouched
+          - internal/faststart/optimize_test.go:TestOptimizeSuccessfulRunReplacesOriginal
+          - internal/faststart/optimize_test.go:TestOptimizeSmallOutputLeavesOriginalUntouched
+
+
+    - id: internal.identity.must_generate_opaque_ids_independent_of_routing_labels
+      title: Internal identity must generate opaque IDs that stay independent of routing labels
+      severity: high
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The internal identity component defines stable principal, cluster, and service identifiers.
+          Those IDs must remain opaque, prefixed, and free of domain, hostname, or routing-derived
+          data. Validation must continue rejecting obviously malformed short IDs so identity and
+          network configuration do not collapse into the same surface.
+      protects:
+          files:
+              - internal/identity/
+      required_tests:
+          - internal/identity/types_test.go:TestGeneratedIDsAreOpaqueAndPrefixed
+          - internal/identity/types_test.go:TestPrincipalIDValidateRejectsTooShort
+
+    - id: internal.journal.must_return_bounded_tail_output
+      title: Internal journal must return bounded tail output and drop empty noise lines
+      severity: high
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The internal journal component is an operator diagnostics reader, not a raw unbounded log
+          dump. It must return only the requested tail window, trim empty lines from the structured
+          result, and keep output deterministic enough for handler consumption and CI-facing checks.
+      protects:
+          files:
+              - internal/journal/
+      required_tests:
+          - internal/journal/reader_test.go:TestSplitLinesReturnsTailAndDropsEmptyLines
+
+    - id: internal.logbridge.must_shape_deterministic_component_aware_payloads
+      title: Internal logbridge must shape deterministic component-aware payloads for burst coalescing
+      severity: high
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The internal logbridge component must derive stable message identities from source and
+          message content, preserve component separation from generic fields, and keep that payload
+          shape deterministic so identical bursts can be coalesced instead of flooding the event bus.
+      protects:
+          files:
+              - internal/logbridge/
+      required_tests:
+          - internal/logbridge/handler_test.go:TestSplitAttrsSeparatesComponentAndFields
+          - internal/logbridge/handler_test.go:TestDeriveIDStableForSamePayload
+
+
+    - id: internal.observability.must_fail_soft_when_tracing_export_is_unavailable
+      title: Internal observability must fail soft when tracing export cannot be initialized
+      severity: high
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          The internal observability component is an optional tracing bridge, not a hard startup
+          dependency. When exporter initialization fails, it must return a callable no-op shutdown
+          path rather than crashing service startup or leaving callers with a nil shutdown hook.
+      protects:
+          files:
+              - internal/observability/
+      required_tests:
+          - internal/observability/otel_test.go:TestInitReturnsCallableShutdown
+
+    - id: xds.service.inventory.must_flow_through_controller_rpc
+      title: xDS service inventory must come from controller-owned typed RPCs, never raw etcd scans
+      severity: critical
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          xDS builds service routes and clusters from the controller-owned service inventory.
+          It must consume that inventory through typed controller RPCs rather than scanning
+          /globular/services/* directly from etcd or recreating a local etcd client in the watcher.
+          Bypassing the owner boundary lets consumer code reimplement persistence semantics and drift
+          away from the controller's view of service truth.
+      protects:
+          files:
+              - cmd/xds/
+              - internal/xds/
+              - internal/controllerclient/
+      required_tests:
+          - internal/xds/watchers/watcher_services_authority_pin_test.go:TestWatcher_BuildServiceResources_NoDirectEtcd
+
+    - id: xds.external.routing.inputs.must_flow_through_owner_rpcs
+      title: xDS external-domain and routing refresh inputs must flow through owner RPCs
+      severity: high
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          External domains and routing refresh signals are owned by controller-side services,
+          not by xDS watchers. xDS may poll and reconcile them, but it must do so through the
+          typed owner RPCs rather than by watching /globular/domains/* or /globular/routing/*
+          prefixes directly.
+      protects:
+          files:
+              - cmd/xds/
+              - internal/xds/
+              - internal/controllerclient/
+      required_tests:
+          - internal/xds/watchers/watcher_domains_authority_pin_test.go:TestWatcher_LoadExternalDomains_NoDirectEtcd
+          - internal/xds/watchers/routing_reconciler_authority_pin_test.go:TestRoutingReconciler_NoDirectEtcd
+
+    - id: xds.sds.enabled.requires_secret_delivered_tls
+      title: When SDS is enabled, xDS listeners and clusters must use secret-delivered TLS only
+      severity: critical
+      status: active
+      # origin: { type: principle, confidence: high }
+      summary: |
+          Once SDS is enabled, xDS must publish secret resources and reference them from listeners
+          and clusters instead of falling back to file-based TLS wiring. Secret delivery is the
+          governed path that keeps Envoy transport state aligned with the control plane; file-based
+          fallbacks silently split authority between snapshot content and local disk.
+      protects:
+          files:
+              - cmd/xds/
+              - internal/xds/
+              - internal/controlplane/
+      required_tests:
+          - internal/xds/watchers/sds_conformance_test.go:TestSnapshotContainsSecrets
+          - internal/xds/watchers/sds_conformance_test.go:TestListenerUsesSDS
+          - internal/xds/watchers/sds_conformance_test.go:TestNoFileBasedTLSWhenSDSEnabled

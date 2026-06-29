@@ -1,0 +1,41 @@
+id: component.internal.controlplane
+level: contract
+title: Controlplane builders produce valid Envoy bootstrap, ingress, and secret material from explicit TLS and routing inputs
+intent: |
+  The internal controlplane component turns governed routing and TLS inputs into
+  Envoy bootstrap, ingress, and secret resources. It must fail closed when required
+  TLS material is missing, keep transport sockets and validation contexts aligned
+  with the requested runtime mode, and produce stable resource shapes that watchers
+  and xDS startup can consume without guessing.
+
+  Changes here must preserve the contract that bootstrap and secret builders reject
+  incomplete TLS inputs in production mode and keep ingress resource generation
+  aligned with the routing rules already exercised by the test suite.
+agent_guidance: |
+  If you edit controlplane bootstrap, ingress, or secret builders, preserve fail-closed
+  TLS handling and the current ingress and secret resource shapes that xDS depends on.
+bad_smells:
+  - bootstrap generation succeeds without required TLS material in production mode
+  - secret builders accept missing or invalid cert material
+  - ingress resource generation stops enforcing the redirect and TLS shape covered by tests
+activation_triggers:
+  - envoy bootstrap generation
+  - ingress resource generation
+  - secret material encoding
+  - downstream TLS configuration
+expressed_by:
+  - internal/controlplane/bootstrap.go
+  - internal/controlplane/ingress.go
+  - internal/controlplane/resource.go
+  - internal/controlplane/secret.go
+related_invariants:
+  - xds.mtls.required.in.production
+  - xds.cert.validated.before.serving.secrets
+  - pki.ca.canonical.path
+status: active
+required_tests:
+  - internal/controlplane/bootstrap_test.go:TestBootstrapAddsTLSTransportSocketByDefault
+  - internal/controlplane/bootstrap_test.go:TestMarshalBootstrapMissingTLSFails
+  - internal/controlplane/secret_test.go:TestMakeSecret_MissingFiles
+  - internal/controlplane/secret_test.go:TestValidateCertKeyPair
+  - internal/controlplane/ingress_test.go:TestAddSnapshotIngressTLSMissing

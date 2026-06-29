@@ -1,17 +1,23 @@
 package conformance
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/globulario/services/golang/config"
 	"github.com/globulario/services/golang/security"
+	"github.com/globulario/services/golang/security/approvaltest"
 )
 
 // genTestTokenOrSkip generates a token for tests, skipping when local config is unavailable.
 func genTestTokenOrSkip(t *testing.T, mac, userID, userName, email string) string {
 	t.Helper()
+	installTokenTestConfig(t, mac)
 	token, err := security.GenerateToken(3600, mac, userID, userName, email)
 	if err != nil {
 		if strings.Contains(err.Error(), "no local Globular configuration") {
@@ -20,6 +26,35 @@ func genTestTokenOrSkip(t *testing.T, mac, userID, userName, email string) strin
 		t.Fatalf("failed to generate test token: %v", err)
 	}
 	return token
+}
+
+func installTokenTestConfig(t *testing.T, mac string) {
+	t.Helper()
+	stateDir := t.TempDir()
+	t.Setenv("GLOBULAR_STATE_DIR", stateDir)
+	restoreConfig := config.ResetLocalConfigForTesting()
+	t.Cleanup(restoreConfig)
+	approvaltest.Install(t, mac, "test.cluster.local")
+
+	cfg := map[string]any{
+		"Mac":       mac,
+		"Name":      "test-node",
+		"Domain":    "test.cluster.local",
+		"Address":   "10.0.0.10",
+		"Protocol":  "https",
+		"PortHTTPS": 443,
+		"PortHTTP":  80,
+	}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("marshal test config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(stateDir, "config.json"), data, 0o600); err != nil {
+		t.Fatalf("write test config: %v", err)
+	}
+	if _, err := config.GetLocalConfig(true); err != nil {
+		t.Fatalf("load test config: %v", err)
+	}
 }
 
 // TestTokenHeaderOnly verifies that tokens are ONLY accepted from Authorization header.

@@ -1,0 +1,39 @@
+id: component.internal.config
+level: contract
+title: Internal config resolves canonical runtime paths and configuration precedence without inventing state
+intent: |
+  The internal config component is the canonical translator from runtime root,
+  local contract files, and explicit environment overrides into the concrete paths
+  and configuration values consumed by gateway, xDS, and object-store flows.
+
+  Changes here must preserve canonical PKI and xDS path resolution, keep gateway
+  configuration validation fail-closed, and respect the documented precedence rules
+  for local contract files, environment fallbacks, and optional etcd-backed recovery
+  paths where they already exist.
+agent_guidance: |
+  If you edit internal config loaders or path builders, preserve canonical state-root
+  path derivation and avoid introducing ambiguous precedence or hidden fallback rules.
+bad_smells:
+  - cert or key paths become relative to cwd, domain, or ad hoc config strings
+  - gateway config validation accepts invalid modes or ports
+  - MinIO proxy config precedence flips silently between state, service dir, env, and fallback paths
+activation_triggers:
+  - config load
+  - runtime path resolution
+  - xds TLS material setup
+  - object store proxy configuration
+expressed_by:
+  - internal/config/certpaths.go
+  - internal/config/gateway_config.go
+  - internal/config/minio_proxy_config.go
+  - internal/config/xds_paths.go
+related_invariants:
+  - pki.ca.canonical.path
+  - xds.mtls.required.in.production
+  - objectstore.config.precedence.must.remain.explicit
+status: active
+required_tests:
+  - internal/config/certpaths_test.go:TestCertPaths_InternalPaths
+  - internal/config/gateway_config_test.go:TestGatewayConfigValidateErrors
+  - internal/config/minio_proxy_config_test.go:TestLoadMinioProxyConfigContractOrder
+  - internal/config/minio_proxy_config_test.go:TestLoadMinioProxyConfigCorruptContractFallsBackToEtcd

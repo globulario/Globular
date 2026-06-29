@@ -1,0 +1,33 @@
+id: component.internal.logsink
+level: contract
+title: Log sinks forward service logs without corrupting local operator visibility or machine-readable runtime output
+intent: |
+  The internal logsink component bridges local service output into Globular's event
+  and log services while optionally echoing logs to a local console. It must preserve
+  the distinction between human-facing console rendering and machine-meaningful service
+  signals, and it must treat delivery to the remote log pipeline as best-effort rather
+  than a reason to corrupt or block local runtime behavior.
+
+  Changes here must keep newline/flush behavior stable enough that service logs remain
+  readable, avoid leaking decorative output into machine-readable channels, and preserve
+  the local-token-backed path used to submit service logs into LogService.
+agent_guidance: |
+  If you edit logsink, preserve the boundary between human console output and structured
+  remote log delivery, and keep remote sink failures from turning into local runtime corruption.
+bad_smells:
+  - console-oriented output leaks into machine-readable stdout flows
+  - log forwarding blocks service behavior on remote sink failures
+  - local token or LogService submission path is bypassed by ad hoc output handling
+activation_triggers:
+  - console log subscription
+  - service log forwarding
+  - local operator diagnostics
+expressed_by:
+  - internal/logsink/console.go
+  - internal/logsink/log_writer.go
+related_invariants:
+  - xds.mtls.required.in.production
+status: active
+required_tests:
+  - internal/globule/banner_test.go:TestPrintBannerNeverWritesToStdout
+  - internal/gateway/gateway_regeneration_test.go:TestGatewayRespectsNetworkConfigOnRestart

@@ -1,0 +1,37 @@
+id: component.cmd_gateway
+level: contract
+title: cmd/gateway composes the gateway runtime without upgrading it into cluster authority
+intent: |
+  The gateway entrypoint wires network mode, runtime services, and join-facing
+  behavior, but it must preserve the boundary that cluster authority lives in the
+  controller and the governed join flow, not in process-local shortcuts.
+
+  Startup and repair paths must not introduce implicit etcd repair, implicit
+  authority writes, or phase reordering around cluster-affecting steps.
+agent_guidance: |
+  If you change gateway startup or join-facing runtime composition, preserve the
+  explicit repair flag, the authorization-before-join ordering, and the etcd
+  health gates that keep node startup from outrunning cluster state.
+bad_smells:
+  - etcd repair happens without an explicit operator flag
+  - node-agent startup moves ahead of etcd health or member join
+  - gateway startup logic grows controller-owned state mutation paths
+activation_triggers:
+  - gateway startup
+  - join script generation
+  - repair mode
+  - mesh mode composition
+expressed_by:
+  - cmd/gateway/main.go
+  - internal/gateway/httpserver/server.go
+  - internal/gateway/handlers/cluster/join_script.go
+related_invariants:
+  - repair.etcd.explicit.flag.only
+  - gateway.no.etcd.writes
+  - join.phase.order.enforced
+status: active
+required_tests:
+  - internal/gateway/handlers/cluster/join_script_test.go:TestJoinScript_BackupBeforeWipeInRepairMode
+  - internal/gateway/handlers/cluster/join_script_test.go:TestJoinScript_ExistingEtcdDataWithoutRepairFlagFails
+  - internal/gateway/handlers/cluster/join_script_test.go:TestJoinScript_NodeAgentStartAfterEtcdHealthGate
+  - internal/gateway/gateway_regeneration_test.go:TestGatewayRespectsNetworkConfigOnRestart

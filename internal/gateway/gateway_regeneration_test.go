@@ -48,11 +48,13 @@ func TestGatewayRespectsNetworkConfigOnRestart(t *testing.T) {
 	t.Setenv("GLOBULAR_RUNTIME_CONFIG_DIR", filepath.Join(stateDir, "config"))
 	t.Setenv("GLOBULAR_NODE_ID", "test-node")
 	t.Setenv("GLOBULAR_SKIP_PEER_KEYS", "1")
+	restoreConfig := config.ResetLocalConfigForTesting()
+	defer restoreConfig()
 
 	writeGatewayConfig(t, cfgDir, "globular.io", "https")
 	writeGatewayConfig(t, stateDir, "globular.io", "https")
 	ensureGatewayTLS(t)
-	if _, err := config.GetLocalConfig(false); err != nil {
+	if _, err := config.GetLocalConfig(true); err != nil {
 		t.Fatalf("load config: %v", err)
 	}
 
@@ -68,10 +70,12 @@ func TestGatewayRespectsNetworkConfigOnRestart(t *testing.T) {
 	// Change network config and re-init (simulates restart)
 	writeGatewayConfig(t, cfgDir, "localhost", "http")
 	writeGatewayConfig(t, stateDir, "localhost", "http")
-	if _, err := config.GetLocalConfig(false); err != nil {
+	restoreConfig()
+	restoreConfig = config.ResetLocalConfigForTesting()
+	if _, err := config.GetLocalConfig(true); err != nil {
 		t.Fatalf("reload config: %v", err)
 	}
-	cfg, err := config.GetLocalConfig(false)
+	cfg, err := config.GetLocalConfig(true)
 	if err != nil {
 		t.Fatalf("final reload: %v", err)
 	}

@@ -1,0 +1,34 @@
+id: component.internal.controllerclient
+level: contract
+title: Controller client is the typed read and mutation boundary for controller-owned cluster authority
+intent: |
+  The internal controllerclient component is the typed gRPC boundary between gateway/xDS
+  consumers and cluster-controller-owned authority. It must carry join authorization,
+  node inventory, service inventory, routing refresh, and cluster network requests through
+  typed RPCs rather than letting callers fall back to raw persistence reads.
+
+  Changes here must preserve that owner boundary, keep transport setup aligned with the
+  expected controller deployment modes, and avoid creating ambiguous alternate read paths
+  that would let callers bypass the controller's ownership of cluster truth.
+agent_guidance: |
+  If you edit controllerclient, preserve the typed-RPC surface that downstream gateway and
+  xDS code already depend on. Do not replace these methods with raw etcd or ad hoc wire paths.
+bad_smells:
+  - callers are encouraged to read /globular state directly instead of through controllerclient
+  - typed methods disappear while consuming code still needs controller-owned views of nodes, services, or domains
+  - transport setup becomes ambiguous enough that production callers silently downgrade their authority path
+activation_triggers:
+  - join authorization
+  - node inventory reads
+  - service inventory reads
+  - controller-owned routing or network reads
+expressed_by:
+  - internal/controllerclient/client.go
+related_invariants:
+  - gateway.no.etcd.writes
+status: active
+required_tests:
+  - internal/gateway/handlers/admin/services_authority_pin_test.go:TestServices_FetchClusterNodeMap_NoDirectEtcd
+  - internal/xds/watchers/watcher_services_authority_pin_test.go:TestWatcher_BuildServiceResources_NoDirectEtcd
+  - internal/xds/watchers/watcher_domains_authority_pin_test.go:TestWatcher_LoadExternalDomains_NoDirectEtcd
+  - internal/gateway/handlers/cluster/join_authorize_test.go:TestJoinAuthorize_GatewayIsNotAuthority

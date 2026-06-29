@@ -65,7 +65,7 @@ failure_modes:
 
     - id: fm.join.token.expired.mid.phase
       title: Join token expires between Phase 1 and Phase 5 — ghost member left in etcd
-      severity: error
+      severity: high
       # origin: { type: principle, confidence: high }
       root_cause: |
           A slow join (large binary download, slow network) may take long enough for the
@@ -103,7 +103,7 @@ failure_modes:
 
     - id: fm.xds.snapshot.stale
       title: Envoy running with stale xDS snapshot after cert renewal or config change
-      severity: error
+      severity: high
       # origin: { type: principle, confidence: high }
       root_cause: |
           When a TLS cert is renewed or an Envoy cluster/listener config changes, the xDS

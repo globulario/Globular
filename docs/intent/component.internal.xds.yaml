@@ -1,0 +1,41 @@
+id: component.internal.xds
+level: contract
+title: Internal xDS logic rebuilds routing and secrets from governed inputs without bypassing authority boundaries
+intent: |
+  The internal xDS component builds snapshots, delivers SDS secrets, watches routing
+  inputs, and reacts to cert and ingress changes. It must preserve two boundaries:
+  routing and secret material must be rebuilt from governed inputs, and watcher code
+  must not bypass owner-approved authority paths through raw persistence shortcuts.
+
+  Changes here must keep SDS-backed secret delivery coherent, preserve canonical PKI
+  reads, and keep external-domain, ACME, and cluster-routing refresh logic on explicit
+  watcher and owner-approved boundaries.
+agent_guidance: |
+  If you edit internal xDS builders or watchers, preserve snapshot determinism,
+  SDS-backed secret delivery, and the existing authority-pin constraints against
+  direct ACME, PKI, and cluster-state bypasses.
+bad_smells:
+  - watcher code adds direct etcd reads for ACME, PKI, or routing state
+  - SDS-enabled snapshots fall back to file-based TLS wiring
+  - ingress or service resource rebuilds stop tracking the governed inputs they already pin
+activation_triggers:
+  - snapshot rebuild
+  - SDS secret generation
+  - ingress reconciliation
+  - certificate rotation
+expressed_by:
+  - internal/xds/builder/builder.go
+  - internal/xds/watchers/watcher.go
+  - internal/xds/watchers/cert_reconciler.go
+  - internal/xds/watchers/routing_reconciler.go
+related_invariants:
+  - xds.mtls.required.in.production
+  - xds.cert.validated.before.serving.secrets
+  - pki.ca.canonical.path
+status: active
+required_tests:
+  - internal/xds/watchers/sds_conformance_test.go:TestNoFileBasedTLSWhenSDSEnabled
+  - internal/xds/watchers/watcher_acme_authority_pin_test.go:TestWatcher_NoDirectEtcdAgainstACMECerts
+  - internal/xds/watchers/watcher_pki_authority_pin_test.go:TestWatcher_NoCheckCertificateGeneration
+  - internal/xds/watchers/routing_reconciler_authority_pin_test.go:TestRoutingReconciler_NoDirectEtcd
+  - internal/xds/watchers/watcher_services_authority_pin_test.go:TestWatcher_BuildServiceResources_NoDirectEtcd

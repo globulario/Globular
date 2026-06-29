@@ -38,6 +38,16 @@ var (
 	}
 )
 
+// SetMinioEtcdFallbackForTesting overrides the authoritative etcd fallback for
+// tests that must be hermetic from a live developer cluster.
+func SetMinioEtcdFallbackForTesting(f func() (*servicesConfig.MinioProxyConfig, error)) func() {
+	prev := loadMinioEtcdFallback
+	loadMinioEtcdFallback = f
+	return func() {
+		loadMinioEtcdFallback = prev
+	}
+}
+
 func init() {
 	if custom := strings.TrimSpace(os.Getenv("GLOBULAR_MINIO_CONTRACT_PATH")); custom != "" {
 		minioContractPaths = []string{custom}

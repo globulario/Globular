@@ -1,0 +1,27 @@
+id: component.internal.server
+level: contract
+title: Server supervisor keeps serving with the last good TLS cert and hot-reloads only from valid on-disk replacements
+intent: |
+  The internal server component owns HTTP/HTTPS supervision and TLS certificate hot reload.
+  It must load a valid certificate pair before serving TLS, keep serving the last known-good
+  certificate when files disappear transiently, and populate leaf metadata from the active chain.
+
+  Changes here must preserve graceful shutdown, avoid dropping TLS service on transient file races,
+  and keep the reloader's updates driven by valid on-disk replacements only.
+agent_guidance: |
+  If you edit the supervisor or cert reloader, preserve last-known-good serving behavior and leaf
+  certificate population during reload.
+bad_smells:
+  - transiently missing cert files cause the reloader to clear the active certificate
+  - TLS serving starts without a valid initial keypair
+  - reloads ignore leaf parsing and lose expiry/metadata visibility
+activation_triggers:
+  - tls cert reload
+  - http/https supervisor
+  - graceful shutdown
+expressed_by:
+  - internal/server/supervisor.go
+status: active
+required_tests:
+  - internal/server/supervisor_test.go:TestReloadPopulatesLeafCertificate
+  - internal/server/supervisor_test.go:TestMaybeReloadKeepsPreviousCertWhenFilesDisappear

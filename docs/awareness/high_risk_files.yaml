@@ -1,0 +1,9 @@
+# High-risk paths requiring briefing-before-edit and governed post-edit judgment.
+files:
+  - cmd/gateway/
+  - cmd/xds/
+  - internal/gateway/handlers/cluster/
+  - internal/gateway/handlers/admin/
+  - internal/xds/
+  - internal/controlplane/
+  - internal/config/

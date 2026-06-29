@@ -3,9 +3,12 @@ package handlers
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
+	coreConfig "github.com/globulario/Globular/internal/config"
 	globpkg "github.com/globulario/Globular/internal/globule"
+	servicesConfig "github.com/globulario/services/golang/config"
 )
 
 func TestHealthObjectStoreStrictUnavailable(t *testing.T) {
@@ -13,6 +16,9 @@ func TestHealthObjectStoreStrictUnavailable(t *testing.T) {
 	t.Setenv("GLOBULAR_MINIO_BUCKET", "bucket")
 	t.Setenv("GLOBULAR_MINIO_ACCESS_KEY", "ak")
 	t.Setenv("GLOBULAR_MINIO_SECRET_KEY", "sk")
+	defer coreConfig.SetMinioEtcdFallbackForTesting(func() (*servicesConfig.MinioProxyConfig, error) {
+		return nil, os.ErrNotExist
+	})()
 
 	glob := &globpkg.Globule{
 		AllowedOrigins: []string{"*"},

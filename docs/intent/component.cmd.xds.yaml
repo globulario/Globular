@@ -1,0 +1,33 @@
+id: component.cmd.xds
+level: contract
+title: xDS entrypoint defaults to mTLS and governed secret delivery
+intent: |
+  The cmd/xds entrypoint owns process startup for the xDS service. It must default
+  to mutually authenticated transport in production, require explicit insecure
+  opt-in for development, and hand secret delivery off to governed SDS and canonical
+  PKI-backed builders rather than ad hoc transport shortcuts.
+
+  Startup changes here must preserve the boundary between runtime wiring and the
+  controller- or watcher-owned sources of truth that feed xDS snapshots and secrets.
+agent_guidance: |
+  If you edit xDS startup or TLS resolution, keep production mTLS as the default,
+  keep dev-insecure explicit, and preserve SDS-backed secret delivery.
+bad_smells:
+  - plaintext xDS becomes the default path
+  - xDS bootstrap omits TLS transport when production cert material exists
+  - startup bypasses watcher or controlplane secret builders
+activation_triggers:
+  - xds startup
+  - bootstrap generation
+  - transport TLS resolution
+expressed_by:
+  - cmd/xds/main.go
+related_invariants:
+  - xds.mtls.required.in.production
+  - xds.cert.validated.before.serving.secrets
+  - pki.ca.canonical.path
+status: active
+required_tests:
+  - internal/controlplane/bootstrap_test.go:TestBootstrapAddsTLSTransportSocketByDefault
+  - internal/controlplane/bootstrap_test.go:TestMarshalBootstrapDevInsecureAllowsPlaintext
+  - internal/xds/watchers/sds_setup_test.go:TestSetupSDSSecrets_SecurityViolation

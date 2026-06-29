@@ -1,0 +1,38 @@
+id: component.internal.globule
+level: contract
+title: Globule runtime state exposes local identity and configuration without taking over controller or node-agent authority
+intent: |
+  The internal globule component is the local runtime shell around gateway identity,
+  persisted configuration, service inventory exposure, and helper clients. It may
+  initialize local runtime directories, surface config to handlers, and maintain
+  local service tokens, but it must not reclaim authority that belongs to the
+  node agent or controller, especially TLS/DNS lifecycle and broader cluster state.
+
+  Changes here must preserve machine-readable stdout for describe/preflight flows,
+  keep config reload behavior stable across restart, and maintain the explicit
+  boundary that TLS and DNS bootstrap are handled elsewhere.
+agent_guidance: |
+  If you edit globule startup, config exposure, or helper-client wiring, preserve
+  the local-runtime role of this component and avoid slipping cluster-lifecycle
+  authority back into it.
+bad_smells:
+  - banner or decorative output leaks to stdout and corrupts machine-readable describe output
+  - restart/reload stops reflecting persisted domain or protocol configuration
+  - globule code starts mutating TLS or DNS ownership that is intentionally handled by node agent or controller
+activation_triggers:
+  - globule startup
+  - config exposure
+  - local runtime initialization
+  - describe output
+expressed_by:
+  - internal/globule/globule.go
+  - internal/globule/config.go
+  - internal/globule/agent_addresses.go
+  - internal/globule/event.go
+related_invariants:
+  - pki.ca.canonical.path
+  - gateway.no.etcd.writes
+status: active
+required_tests:
+  - internal/globule/banner_test.go:TestPrintBannerNeverWritesToStdout
+  - internal/gateway/gateway_regeneration_test.go:TestGatewayRespectsNetworkConfigOnRestart

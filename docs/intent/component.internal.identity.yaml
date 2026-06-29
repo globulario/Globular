@@ -1,0 +1,28 @@
+id: component.internal.identity
+level: contract
+title: Internal identity types generate opaque IDs that stay independent from domain and routing labels
+intent: |
+  The internal identity component defines the opaque identifiers used for principals, clusters,
+  and services. These identifiers must be generated locally with stable prefixes and must not
+  embed domain names, hostnames, or other routing-derived data.
+
+  Changes here must preserve the distinction between identity and network configuration so that
+  domain changes affect routing only, not authorization or stable entity identity.
+agent_guidance: |
+  If you edit identity types, preserve opaque prefixed ID generation and keep domain or ingress
+  labels out of the identifier format.
+bad_smells:
+  - generated IDs include '@', hostnames, or domain fragments
+  - cluster or service identity becomes derived from routing configuration
+  - validation changes accept obviously malformed short IDs without a clear migration plan
+activation_triggers:
+  - principal id generation
+  - cluster id generation
+  - service id generation
+  - identity validation
+expressed_by:
+  - internal/identity/types.go
+status: active
+required_tests:
+  - internal/identity/types_test.go:TestGeneratedIDsAreOpaqueAndPrefixed
+  - internal/identity/types_test.go:TestPrincipalIDValidateRejectsTooShort

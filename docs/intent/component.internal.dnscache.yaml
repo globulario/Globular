@@ -1,0 +1,28 @@
+id: component.internal.dnscache
+level: contract
+title: DNS cache serves fresh answers when possible and only falls back to stale entries on resolver failure
+intent: |
+  The internal dnscache component is a local resilience layer for A/AAAA and SRV lookups.
+  It must prefer fresh resolver answers, cache them for a bounded TTL, and only reuse stale
+  answers when a refresh attempt fails and a prior answer already exists.
+
+  Changes here must preserve explicit invalidation, keep cache state local and deterministic,
+  and avoid turning transient DNS failures into hard outages when a still-usable stale answer
+  is already present.
+agent_guidance: |
+  If you edit dnscache, preserve the stale-on-refresh-failure fallback, explicit cache
+  invalidation, and the separation between fresh lookup logic and cached state.
+bad_smells:
+  - stale DNS answers are returned when a fresh lookup succeeded
+  - cache invalidation clears only A/AAAA or only SRV entries
+  - DNS lookup failure discards a usable stale answer and turns a transient resolver outage into a hard failure
+activation_triggers:
+  - dns lookup cache
+  - srv lookup cache
+  - nameserver failover
+expressed_by:
+  - internal/dnscache/dnscache.go
+status: active
+required_tests:
+  - internal/dnscache/dnscache_test.go:TestLookupReturnsStaleEntryOnRefreshFailure
+  - internal/dnscache/dnscache_test.go:TestInvalidateAllClearsAAndSRVCaches

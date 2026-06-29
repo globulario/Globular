@@ -1,0 +1,100 @@
+# Explicit authority domains for the real Globular control surfaces.
+authority_domains:
+  - id: authority.gateway.join_plan
+    label: Gateway join flow must courier controller authority
+    status: active
+    truth_layer: desired
+    owner_service: cluster controller
+    covers_paths:
+      - cmd/gateway/
+      - internal/gateway/handlers/cluster/
+    owns_state:
+      - join authorization decisions
+      - assigned node identity and profiles
+      - cluster-affecting join plan approval
+    may_write:
+      - cluster controller via join authorization RPC
+    may_read:
+      - gateway join handlers
+      - joining node via rendered join script
+    must_mutate_via:
+      - /join/authorize controller-issued JoinPlan
+    must_read_via:
+      - controllerclient join authorization response
+    observes_via:
+      - join authorization handler tests
+      - join script phase-order tests
+    forbids_bypass:
+      - gateway invents assigned profiles or node identity locally
+      - cluster-affecting join steps before controller authorization
+    evidence_freshness: current code and tests in the same change set
+    notes: |
+      The gateway may validate request shape and render scripts, but cluster-affecting
+      authority stays with the controller and must be surfaced back through the join plan.
+
+  - id: authority.gateway.cluster_state
+    label: Gateway must not mutate controller-owned cluster state directly
+    status: active
+    truth_layer: desired
+    owner_service: cluster controller
+    covers_paths:
+      - internal/gateway/handlers/admin/
+      - internal/gateway/handlers/cluster/
+    owns_state:
+      - cluster node map
+      - desired cluster membership and policy
+    may_write:
+      - cluster controller owner workflows
+    may_read:
+      - gateway admin handlers via typed controller APIs
+    must_mutate_via:
+      - cluster controller typed RPCs
+    must_read_via:
+      - controllerclient ListNodes and related typed APIs
+    observes_via:
+      - authority pin tests on gateway admin handlers
+    forbids_bypass:
+      - direct etcd reads from gateway handlers
+      - direct etcd writes from gateway handlers
+    evidence_freshness: current code and authority-pin tests in the same change set
+    notes: |
+      The gateway is an entry point and courier, not the owner of cluster state persistence.
+
+  - id: authority.xds.transport_and_secrets
+    label: xDS transport and SDS secret delivery stay on canonical PKI and mTLS paths
+    status: active
+    truth_layer: runtime
+    owner_service: xds service
+    covers_paths:
+      - cmd/xds/
+      - internal/xds/
+      - internal/controlplane/
+      - internal/config/
+    owns_state:
+      - xDS listener and cluster transport mode
+      - SDS secret material served to Envoy
+      - canonical local PKI inputs for internal cert delivery
+    may_write:
+      - xds startup and watcher reconciliation paths
+      - controlplane secret builders
+    may_read:
+      - xds startup
+      - xds watchers
+      - Envoy bootstrap generation
+    must_mutate_via:
+      - SDS secret generation and snapshot rebuilds
+    must_read_via:
+      - canonical local PKI paths under /var/lib/globular/pki/
+      - controlplane bootstrap and watcher secret builders
+    observes_via:
+      - SDS setup tests
+      - SDS conformance tests
+      - ACME and PKI authority pin tests
+    forbids_bypass:
+      - defaulting to plaintext xDS in production
+      - file-based TLS delivery when SDS is enabled
+      - raw ACME or PKI authority reads from watcher shortcuts
+    evidence_freshness: current code and xds test suite in the same change set
+    notes: |
+      Production xDS must stay on mutually authenticated transport, and its secret delivery
+      must remain governed by SDS and canonical PKI inputs rather than ad hoc filesystem or etcd shortcuts.

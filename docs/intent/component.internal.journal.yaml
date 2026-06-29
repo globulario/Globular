@@ -1,0 +1,25 @@
+id: component.internal.journal
+level: contract
+title: Journal reader is best-effort, bounded, and returns only the requested tail of unit logs
+intent: |
+  The internal journal component reads systemd unit logs through journalctl for operator-facing
+  diagnostics. It must bound the read window, cap the number of returned lines, and degrade into
+  structured error reporting rather than hanging request paths.
+
+  Changes here must preserve the short internal timeout, keep tail semantics deterministic, and
+  avoid returning unbounded output when a caller requests too many lines.
+agent_guidance: |
+  If you edit journal reading, preserve the command timeout, line cap, and tail-only output shape.
+bad_smells:
+  - journal reads can block indefinitely on request paths
+  - split line handling returns more than the requested tail
+  - empty lines or command noise dominate the structured result
+activation_triggers:
+  - admin logs view
+  - journalctl reads
+  - unit tailing
+expressed_by:
+  - internal/journal/reader.go
+status: active
+required_tests:
+  - internal/journal/reader_test.go:TestSplitLinesReturnsTailAndDropsEmptyLines

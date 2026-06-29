@@ -1,0 +1,41 @@
+id: component.internal.gateway
+level: contract
+title: Internal gateway handlers stay a courier over controller-owned authority and governed file serving
+intent: |
+  The internal gateway component aggregates admin, cluster, config, file, and HTTP
+  handlers behind the public gateway surface. Across those handlers, it must preserve
+  two boundaries: controller-owned cluster state stays behind typed owner APIs, and
+  join and serving flows remain constrained by explicit authorization and path rules.
+
+  Changes inside this component must not reintroduce direct persistence shortcuts,
+  blur ownership of cluster state, or weaken the governed checks around file serving,
+  cluster join, and service configuration.
+agent_guidance: |
+  If you edit internal gateway handlers, preserve typed controller reads, join-plan
+  couriering, and the existing authorization and serving gates around risky paths.
+bad_smells:
+  - admin handlers read or write cluster state through raw etcd shortcuts
+  - join handlers invent controller-owned data locally
+  - handler refactors drop authorization or serving gates on risky surfaces
+activation_triggers:
+  - gateway admin handlers
+  - gateway cluster handlers
+  - gateway config handlers
+  - gateway file serving
+expressed_by:
+  - internal/gateway/handlers/admin/admin.go
+  - internal/gateway/handlers/admin/services.go
+  - internal/gateway/handlers/cluster/join_authorize.go
+  - internal/gateway/handlers/cluster/join_script.go
+related_invariants:
+  - gateway.no.etcd.writes
+  - gateway.admin.cluster.inventory.must.flow.through.owner_surface
+  - gateway.cluster.joinplan.must.gate.cluster_affecting_steps
+  - join.token.validated.before.phase
+  - join.phase.order.enforced
+  - repair.etcd.explicit.flag.only
+status: active
+required_tests:
+  - internal/gateway/handlers/admin/services_authority_pin_test.go:TestServices_FetchClusterNodeMap_NoDirectEtcd
+  - internal/gateway/handlers/cluster/join_authorize_test.go:TestJoinAuthorize_GatewayIsNotAuthority
+  - internal/gateway/handlers/cluster/join_authorize_test.go:TestJoinAuthorize_JoinScriptCallsAuthorizeBeforeEtcd

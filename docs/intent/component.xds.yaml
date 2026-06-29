@@ -1,0 +1,39 @@
+id: component.xds
+level: contract
+title: xDS serves governed routing and TLS state through mTLS and SDS-backed secrets
+intent: |
+  The xDS service must default to mutually authenticated transport in production.
+  When SDS is enabled, listeners and clusters must consume secret-delivered TLS
+  material rather than file-based cert wiring.
+
+  xDS may observe canonical local PKI material and controller-owned inputs, but it
+  must not quietly fall back to insecure transport or reintroduce raw authority
+  reads for ACME or PKI state.
+agent_guidance: |
+  If you change xDS startup, TLS setup, or watcher secret handling, preserve mTLS
+  as the default production path and keep secret delivery and authority reads on
+  the governed SDS and owner-approved boundaries.
+bad_smells:
+  - GLOBULAR_XDS_INSECURE treated as the default path instead of a dev override
+  - SDS-enabled listeners still reference file-based TLS certs directly
+  - watcher code reaches into ACME or PKI authority storage directly
+activation_triggers:
+  - xds startup
+  - envoy bootstrap
+  - SDS secret generation
+  - certificate rotation
+expressed_by:
+  - cmd/xds/main.go
+  - internal/xds/watchers/watcher.go
+  - internal/xds/watchers/cert_reconciler.go
+  - internal/xds/builder/builder.go
+related_invariants:
+  - xds.mtls.required.in.production
+  - xds.cert.validated.before.serving.secrets
+  - pki.ca.canonical.path
+status: active
+required_tests:
+  - internal/xds/watchers/sds_setup_test.go:TestSetupSDSSecrets_SecurityViolation
+  - internal/xds/watchers/sds_conformance_test.go:TestNoFileBasedTLSWhenSDSEnabled
+  - internal/xds/watchers/watcher_acme_authority_pin_test.go:TestWatcher_NoDirectEtcdAgainstACMECerts
+  - internal/xds/watchers/watcher_pki_authority_pin_test.go:TestWatcher_NoCheckCertificateGeneration

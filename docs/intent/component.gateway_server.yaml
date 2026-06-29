@@ -1,0 +1,39 @@
+id: component.gateway_server
+level: contract
+title: Gateway join surfaces courier cluster authority instead of inventing it
+intent: |
+  The gateway is the cluster entry point, not the control plane. It may validate
+  request shape, render join scripts, and relay controller-issued join plans, but
+  it must not invent assigned profiles, node identity, etcd membership, or desired
+  cluster state locally.
+
+  Any cluster-affecting join step must occur only after controller authorization
+  and must preserve the controller-owned authority boundary rather than reading or
+  writing cluster state directly from the gateway path.
+agent_guidance: |
+  If you change join authorization, join script rendering, or cluster admin helpers,
+  preserve the courier boundary. Keep direct etcd reads and writes out of the
+  gateway path and keep authorization ahead of cluster-affecting steps.
+bad_smells:
+  - gateway handler constructs assigned profiles or node ids locally
+  - join script reaches etcd member-add before authorization succeeds
+  - gateway reads or writes /globular cluster state directly instead of using owner APIs
+activation_triggers:
+  - join
+  - join authorization
+  - cluster-affecting repair
+  - gateway cluster handlers
+expressed_by:
+  - internal/gateway/handlers/cluster/join_authorize.go
+  - internal/gateway/handlers/cluster/join_script.go
+  - internal/gateway/handlers/admin/services.go
+related_invariants:
+  - join.token.validated.before.phase
+  - gateway.no.etcd.writes
+  - join.phase.order.enforced
+  - csr.signature.verified.before.signing
+status: active
+required_tests:
+  - internal/gateway/handlers/cluster/join_authorize_test.go:TestJoinAuthorize_MissingTokenReturns400
+  - internal/gateway/handlers/cluster/join_authorize_test.go:TestJoinAuthorize_JoinScriptCallsAuthorizeBeforeEtcd
+  - internal/gateway/handlers/admin/services_authority_pin_test.go:TestServices_FetchClusterNodeMap_NoDirectEtcd

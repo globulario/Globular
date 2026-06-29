@@ -1,0 +1,36 @@
+id: component.cmd.gateway
+level: contract
+title: Gateway entrypoint preserves controlled cluster startup and join boundaries
+intent: |
+  The cmd/gateway entrypoint is the service-facing composition root for the gateway.
+  It may wire runtime mode, transport addresses, and process startup, but it must
+  preserve the governed join ordering and the boundary that cluster authority lives
+  in controller-approved flows rather than local startup shortcuts.
+
+  Changes here must keep explicit repair semantics, preserve the etcd-before-node-agent
+  sequencing, and avoid introducing hidden cluster-state mutation paths at process boot.
+agent_guidance: |
+  If you edit gateway startup, mesh-mode wiring, or the join script entry flow,
+  preserve explicit repair flags, health gates, and authorization-before-cluster-change.
+bad_smells:
+  - process startup silently wipes or repairs etcd state
+  - node-agent startup moves ahead of etcd readiness or cluster membership steps
+  - gateway main grows controller-owned state mutation logic
+activation_triggers:
+  - gateway startup
+  - join bootstrap
+  - repair mode
+  - mesh mode
+expressed_by:
+  - cmd/gateway/main.go
+  - cmd/gateway/faststart.go
+related_invariants:
+  - repair.etcd.explicit.flag.only
+  - join.phase.order.enforced
+  - gateway.no.etcd.writes
+status: active
+required_tests:
+  - internal/gateway/handlers/cluster/join_script_test.go:TestJoinScript_BackupBeforeWipeInRepairMode
+  - internal/gateway/handlers/cluster/join_script_test.go:TestJoinScript_ExistingEtcdDataWithoutRepairFlagFails
+  - internal/gateway/handlers/cluster/join_script_test.go:TestJoinScript_NodeAgentStartAfterEtcdHealthGate
+  - internal/gateway/gateway_regeneration_test.go:TestGatewayRespectsNetworkConfigOnRestart

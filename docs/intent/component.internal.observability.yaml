@@ -1,0 +1,26 @@
+id: component.internal.observability
+level: contract
+title: Observability initialization is opt-in and must fail soft when tracing export cannot be configured
+intent: |
+  The internal observability component wires the global OpenTelemetry tracer provider. It must
+  initialize a provider when exporter setup succeeds and degrade to a no-op shutdown function when
+  tracing export cannot be configured, rather than crashing service startup.
+
+  Changes here must preserve soft failure on exporter initialization and keep shutdown wiring
+  callable by the embedding service.
+agent_guidance: |
+  If you edit observability initialization, preserve fail-soft exporter setup and return a callable
+  shutdown function in every case.
+bad_smells:
+  - service startup fails hard because OTLP exporter setup failed
+  - Init returns a nil shutdown function
+  - tracing configuration mutates unrelated runtime state outside tracer setup
+activation_triggers:
+  - otel init
+  - tracer provider setup
+  - tracing shutdown
+expressed_by:
+  - internal/observability/otel.go
+status: active
+required_tests:
+  - internal/observability/otel_test.go:TestInitReturnsCallableShutdown

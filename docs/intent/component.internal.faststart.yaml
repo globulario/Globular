@@ -1,0 +1,28 @@
+id: component.internal.faststart
+level: contract
+title: Faststart optimization is best-effort and must never damage the original media file
+intent: |
+  The internal faststart component performs optional MP4 moov-atom optimization through ffmpeg.
+  It is a best-effort post-processing step: when ffmpeg is unavailable, fails, or produces an
+  implausible output, the original file must remain untouched.
+
+  Changes here must preserve the isolation boundary between gateway code and os/exec usage,
+  keep optimization non-fatal, and only replace the original file after a plausible output
+  was produced successfully.
+agent_guidance: |
+  If you edit faststart, preserve the fail-safe behavior: optimization may be skipped, but it
+  must not corrupt, truncate, or partially replace the original file.
+bad_smells:
+  - gateway package imports os/exec directly for faststart behavior
+  - ffmpeg failure deletes or truncates the original file
+  - a tiny or partial temp output is renamed into place
+activation_triggers:
+  - mp4 optimization
+  - ffmpeg post-processing
+  - media file replacement
+expressed_by:
+  - internal/faststart/optimize.go
+status: active
+required_tests:
+  - internal/faststart/optimize_test.go:TestOptimizeMissingFFmpegLeavesFileUntouched
+  - internal/faststart/optimize_test.go:TestOptimizeSuccessfulRunReplacesOriginal

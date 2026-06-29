@@ -65,12 +65,18 @@ func NewServiceID() (ServiceID, error) {
 	return ServiceID(fmt.Sprintf("svc_%s", hex.EncodeToString(b))), nil
 }
 
-// Validate checks if a PrincipalID has valid format.
+// Validate checks if a PrincipalID has valid opaque-id format.
 func (id PrincipalID) Validate() error {
-	if len(id) < 20 { // "usr_" + 16 hex chars
-		return fmt.Errorf("invalid principal ID: too short")
+	raw := string(id)
+	if len(raw) != 20 { // "usr_" + 16 hex chars
+		return fmt.Errorf("invalid principal ID: wrong length")
 	}
-	// Basic format check - should have prefix and hex suffix
+	if raw[:4] != "usr_" && raw[:4] != "svc_" {
+		return fmt.Errorf("invalid principal ID: unsupported prefix")
+	}
+	if _, err := hex.DecodeString(raw[4:]); err != nil {
+		return fmt.Errorf("invalid principal ID: suffix must be hex: %w", err)
+	}
 	return nil
 }
 

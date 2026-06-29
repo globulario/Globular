@@ -1,0 +1,27 @@
+id: component.internal.logbridge
+level: contract
+title: Log bridge turns slog records into stable event payloads and coalesces identical bursts
+intent: |
+  The internal logbridge component converts local slog records into event-bus log payloads.
+  It must derive stable message identities from source and message content, preserve component and
+  field metadata, and coalesce repeated identical log bursts instead of flooding the event stream.
+
+  Changes here must preserve deterministic payload shaping and keep local logging paths best-effort
+  even when event publication is delayed or unavailable.
+agent_guidance: |
+  If you edit logbridge, preserve deterministic ID derivation, attribute extraction, and burst
+  coalescing behavior.
+bad_smells:
+  - identical log lines at the same source produce unstable IDs
+  - component metadata is dropped or folded into generic fields
+  - event publication is allowed to block or spam one payload per identical line burst
+activation_triggers:
+  - slog event bridge
+  - event log publication
+  - component field extraction
+expressed_by:
+  - internal/logbridge/handler.go
+status: active
+required_tests:
+  - internal/logbridge/handler_test.go:TestSplitAttrsSeparatesComponentAndFields
+  - internal/logbridge/handler_test.go:TestDeriveIDStableForSamePayload
