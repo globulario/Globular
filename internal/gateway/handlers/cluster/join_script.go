@@ -208,6 +208,7 @@ ETCD_CLUSTER_TOKEN="%[5]s"
 # ── Runtime defaults ─────────────────────────────────────────────────────────
 JOIN_TOKEN=""
 REPAIR_ETCD=0
+PROFILES=""
 INSTALL_DIR="/usr/lib/globular/bin"
 STATE_DIR="/var/lib/globular"
 SYSTEMD_DIR="/etc/systemd/system"
@@ -218,6 +219,10 @@ while [[ $# -gt 0 ]]; do
     --token)       JOIN_TOKEN="$2"; shift 2 ;;
     --controller)  CONTROLLER="$2"; shift 2 ;;
     --repair-etcd) REPAIR_ETCD=1; shift ;;
+    # --profiles is an operator preference (comma-separated, e.g.
+    # core,control-plane,storage,dns). The controller VALIDATES and decides;
+    # empty uses suggested/inherited defaults.
+    --profiles)    PROFILES="$2"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -470,9 +475,24 @@ mkdir -p "${STATE_DIR}/nodeagent"
 
 AUTHORIZE_RESPONSE="${STATE_DIR}/nodeagent/join_authorize.json"
 
+# Build requested_profiles JSON array from the comma-separated --profiles value
+# (operator preference; the controller validates and decides). Empty when unset.
+REQUESTED_PROFILES_JSON=""
+if [[ -n "${PROFILES}" ]]; then
+  _pjson=""
+  IFS=',' read -ra _parr <<< "${PROFILES}"
+  for _p in "${_parr[@]}"; do
+    _p=$(echo "${_p}" | xargs)
+    [[ -z "${_p}" ]] && continue
+    [[ -n "${_pjson}" ]] && _pjson="${_pjson},"
+    _pjson="${_pjson}\"${_p}\""
+  done
+  [[ -n "${_pjson}" ]] && REQUESTED_PROFILES_JSON=",\"requested_profiles\":[${_pjson}]"
+fi
+
 # Build the authorization request JSON (no bash arrays; use printf for safety)
-AUTHORIZE_BODY=$(printf '{"join_token":"%%s","identity":{"hostname":"%%s","ips":["%%s"]}}' \
-  "${JOIN_TOKEN}" "${NODE_HOSTNAME}" "${NODE_IP}")
+AUTHORIZE_BODY=$(printf '{"join_token":"%%s","identity":{"hostname":"%%s","ips":["%%s"]}%%s}' \
+  "${JOIN_TOKEN}" "${NODE_HOSTNAME}" "${NODE_IP}" "${REQUESTED_PROFILES_JSON}")
 
 # Use -w to capture HTTP status separately; do NOT use -f so the response body
 # is always written to AUTHORIZE_RESPONSE regardless of HTTP status code.

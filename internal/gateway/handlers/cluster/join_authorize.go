@@ -20,6 +20,10 @@ type joinAuthorizeRequest struct {
 	InstallerVersion string             `json:"installer_version,omitempty"`
 	ClusterID        string             `json:"cluster_id,omitempty"`
 	Nonce            string             `json:"nonce,omitempty"`
+	// RequestedProfiles is an operator preference forwarded verbatim to the
+	// controller (e.g. from `join --profiles`). The gateway is a courier and
+	// never validates or assigns profiles — the controller is the sole authority.
+	RequestedProfiles []string `json:"requested_profiles,omitempty"`
 }
 
 type joinAuthorizeIdent struct {
@@ -87,10 +91,11 @@ func NewJoinAuthorizeHandler(deps HandlerDeps) http.Handler {
 				Hostname: strings.TrimSpace(req.Identity.Hostname),
 				Ips:      append([]string(nil), req.Identity.IPs...),
 			},
-			Labels:           req.Labels,
-			InstallerVersion: req.InstallerVersion,
-			ClusterId:        strings.TrimSpace(req.ClusterID),
-			Nonce:            req.Nonce,
+			Labels:            req.Labels,
+			InstallerVersion:  req.InstallerVersion,
+			ClusterId:         strings.TrimSpace(req.ClusterID),
+			Nonce:             req.Nonce,
+			RequestedProfiles: append([]string(nil), req.RequestedProfiles...),
 		}
 		if req.CPUCount > 0 || req.RAMBytes > 0 || req.DiskBytes > 0 {
 			protoReq.Capabilities = &cluster_controllerpb.NodeCapabilities{
