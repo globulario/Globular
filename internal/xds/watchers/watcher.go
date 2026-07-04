@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -206,6 +207,12 @@ type Watcher struct {
 	snapshotRegenTotal uint64          // total snapshot regenerations
 	snapshotNoopTotal  uint64          // snapshots skipped (no changes)
 	lastMetricsLog     time.Time       // timestamp of last metrics log
+
+	// De-dup: content-addressed version of the last snapshot actually pushed.
+	// Guards against re-pushing an identical snapshot on every poll tick, which
+	// would churn Envoy and drop in-flight mesh RPCs.
+	lastPushedVersion   string
+	lastPushedVersionMu sync.Mutex
 
 	// Certificate rotation tracking (SDS)
 	etcdClient *clientv3.Client // etcd client for cert generation tracking
@@ -512,6 +519,21 @@ func (w *Watcher) sync(ctx context.Context) error {
 		version = fmt.Sprintf("%d", time.Now().UnixNano())
 	}
 	input.Version = version
+
+	// De-dup: skip building/pushing when the content-addressed version is
+	// unchanged from the last push. buildInput rebuilds on every poll tick;
+	// re-pushing identical content with a fresh version churned Envoy and dropped
+	// in-flight mesh RPCs (controller event publishes -> event breaker flapping).
+	w.lastPushedVersionMu.Lock()
+	unchanged := w.lastPushedVersion != "" && w.lastPushedVersion == version
+	if !unchanged {
+		w.lastPushedVersion = version
+	}
+	w.lastPushedVersionMu.Unlock()
+	if unchanged {
+		atomic.AddUint64(&w.snapshotNoopTotal, 1)
+		return nil
+	}
 
 	snap, err := builder.BuildSnapshot(input, version)
 	if err != nil {
@@ -918,7 +940,6 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		}
 	}
 
-	version := fmt.Sprintf("%d", time.Now().UnixNano())
 	if w.logger != nil {
 		if gw := findClusterByName(clusters, "gateway_http"); gw != nil {
 			w.logger.Info("xDS clusters resolved", "gateway_http", gw.Endpoints)
@@ -1010,14 +1031,36 @@ func (w *Watcher) buildDynamicInput(ctx context.Context, cfg *XDSConfig) (builde
 		IngressHTTPPort:    modeRes.ingressHTTPPort,
 		EnableHTTPRedirect: modeRes.enableHTTPRedirect,
 		GatewayPort:        modeRes.gatewayPort,
-		Version:            version,
 		EnableSDS:          enableSDS,
 		SDSSecrets:         sdsSecrets,
 		ExternalDomains:    builderExtDomains,
 		AllowedOrigins:     allowedOrigins,
 		CorsPolicy:         corsPolicy,
 	}
+	// Content-addressed snapshot version: hash the assembled input (excluding the
+	// Version field). Equal config yields an equal version, so go-control-plane
+	// suppresses redundant pushes to Envoy. The previous time.Now().UnixNano()
+	// version made every poll-tick rebuild look like a brand-new config, churning
+	// Envoy connections and dropping in-flight mesh RPCs (e.g. the controller's
+	// event publishes -> event circuit-breaker flapping).
+	version := hashInputVersion(input)
+	input.Version = version
 	return input, version, nil
+}
+
+// hashInputVersion returns a deterministic content hash of an xDS input for use
+// as the snapshot version. The Version field itself is excluded so the hash is
+// stable across rebuilds of identical config. On the (unexpected) marshal error
+// it falls back to a unique timestamp so the snapshot is still pushed —
+// correctness (Envoy receives the config) takes priority over de-dup.
+func hashInputVersion(in builder.Input) string {
+	in.Version = ""
+	b, err := json.Marshal(in)
+	if err != nil {
+		return fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:])
 }
 
 func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]builder.Cluster, []builder.Route, error) {
@@ -1068,8 +1111,20 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 		servicesByName[name] = append(servicesByName[name], svc)
 	}
 
-	// Create clusters and routes (one per service name)
-	for serviceName, instances := range servicesByName {
+	// Create clusters and routes (one per service name). Iterate in sorted
+	// service-name order — Go map iteration is randomized, so ranging the map
+	// directly produced clusters AND routes in a different order on every poll
+	// tick. That non-determinism (a) gave each rebuild a different content hash,
+	// defeating snapshot de-dup and churning Envoy, and (b) reordered routes,
+	// whose match priority is order-sensitive (first-match-wins). Sorting the
+	// keys makes the whole snapshot deterministic for identical input.
+	sortedServiceNames := make([]string, 0, len(servicesByName))
+	for serviceName := range servicesByName {
+		sortedServiceNames = append(sortedServiceNames, serviceName)
+	}
+	sort.Strings(sortedServiceNames)
+	for _, serviceName := range sortedServiceNames {
+		instances := servicesByName[serviceName]
 		clusterName := strings.ReplaceAll(serviceName, ".", "_") + "_cluster"
 
 		// Collect all endpoints for this service
@@ -1089,6 +1144,18 @@ func (w *Watcher) buildServiceResources(ctx context.Context, cfg *XDSConfig) ([]
 			w.logger.Warn("no valid endpoints for service", "name", serviceName)
 			continue
 		}
+
+		// Sort endpoints deterministically (host, then port). Envoy treats a
+		// cluster's endpoints as an unordered load-balancing set, so ordering is
+		// semantically irrelevant — but a stable order keeps the snapshot content
+		// hash stable when the underlying instance list is rebuilt in a different
+		// order, preventing spurious no-op pushes.
+		sort.Slice(endpoints, func(i, j int) bool {
+			if endpoints[i].Host != endpoints[j].Host {
+				return endpoints[i].Host < endpoints[j].Host
+			}
+			return endpoints[i].Port < endpoints[j].Port
+		})
 
 		// Determine upstream transport
 		// CRITICAL: Most services use plaintext gRPC inside cluster
