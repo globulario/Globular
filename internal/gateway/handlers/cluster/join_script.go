@@ -20,7 +20,7 @@ import (
 //	Phase 1: Directories     — create layout and globular user (no state wipe)
 //	Phase 2: PKI/Identity    — CA cert, service cert, TLS verification
 //	Phase 3: Connectivity    — DNS, /etc/hosts, libnss, journald, config.json, node-agent state
-//	Phase 4: Download        — GitHub release tarball (same as Day-0): installer, packages, workflows
+//	Phase 4: Download        — release tarball (GitHub first, controller-local fallback): installer, packages, workflows
 //	Phase 6: node-agent      — install and start; auto-initiates join RPC via state file
 //	Phase 7: MinIO hold      — enforce objectstore topology contract
 //
@@ -158,7 +158,7 @@ func NewJoinScriptHandler(controllerAddr string, gatewayPort int, platformVersio
 //	%[1]s = base64 CA cert
 //	%[2]s = gateway address (host:port)
 //	%[3]s = controller address (host:port)
-//	%[4]s = platform version (e.g. "1.2.88") — used to build the GitHub release tarball URL
+//	%[4]s = platform version (e.g. "1.2.88") — used to build the release tarball URL(s)
 //	%[5]s = etcd initial-cluster-token (config.EtcdClusterToken, the fixed bootstrap-immutable constant)
 //
 // IMPORTANT: any literal %% in this string becomes % in the output script.
@@ -178,7 +178,7 @@ set -euo pipefail
 #   3.6 — JoinPlan: POST /join/authorize → signed JoinPlan + join_id from controller
 #   3.7 — Seeds:    write etcd_endpoints file so ScyllaDB post-install finds seeds
 #   3.8 — State:    write node-agent state.json including join_id
-#   4 — Download:   GitHub release tarball → globular-installer, packages, workflows
+#   4 — Download:   release tarball (GitHub first, controller fallback) → globular-installer, packages, workflows
 #   5 — Etcd join:  ghost cleanup, member add, etcd.yaml, start, health gate, fork-detection
 #   6 — node-agent: write unit (After=globular-etcd), start; uses v2 path (join_id)
 #   7 — MinIO hold: enforce objectstore topology contract
@@ -541,10 +541,16 @@ log_ok "node-agent state seeded (join_token set, join_id=${JOIN_ID}, controller=
 log_ok "Connectivity configured"
 
 # ============================================================================
-log_phase "4 — Download Release Tarball from GitHub"
+log_phase "4 — Download Release Tarball"
 # ============================================================================
-# Use the same release tarball as Day-0. It contains globular-installer,
-# all packages, and all workflow definitions — no gateway package serving needed.
+# Use the same release tarball shape as Day-0. It contains globular-installer,
+# all packages, and all workflow definitions.
+#
+# Normal path: download the published tarball from GitHub.
+# Dev/local-build fallback: if GitHub does not have v${PLATFORM_VERSION}, pull a
+# controller-local bootstrap bundle from the gateway. The controller's active
+# BOM remains the authority for the version; the fallback only changes the
+# transport.
 
 PLATFORM_VERSION="%[4]s"
 
@@ -553,29 +559,50 @@ if [[ -z "${PLATFORM_VERSION}" || "${PLATFORM_VERSION}" == "0.0.0-dev" || "${PLA
 fi
 
 TARBALL_NAME="globular-${PLATFORM_VERSION}-linux-amd64.tar.gz"
-TARBALL_URL="https://github.com/globulario/services/releases/download/v${PLATFORM_VERSION}/${TARBALL_NAME}"
+GITHUB_TARBALL_URL="https://github.com/globulario/services/releases/download/v${PLATFORM_VERSION}/${TARBALL_NAME}"
+GATEWAY_TARBALL_URL="https://${GATEWAY}/join/bundle/${TARBALL_NAME}"
 TARBALL_TMP="/tmp/${TARBALL_NAME}"
 TARBALL_DIR="/tmp/globular-${PLATFORM_VERSION}"
 
-log_info "[4.1] Downloading ${TARBALL_NAME} from GitHub..."
-curl -sfL "${TARBALL_URL}" -o "${TARBALL_TMP}" \
-  || die "could not download ${TARBALL_NAME} from GitHub v${PLATFORM_VERSION}"
-curl -sfL "${TARBALL_URL}.sha256" -o "${TARBALL_TMP}.sha256" \
-  || die "could not download checksum for ${TARBALL_NAME}"
-
-EXPECTED_SUM=$(awk '{print $1}' "${TARBALL_TMP}.sha256")
-ACTUAL_SUM=$(sha256sum "${TARBALL_TMP}" | awk '{print $1}')
-if [[ "${EXPECTED_SUM}" != "${ACTUAL_SUM}" ]]; then
-  die "tarball checksum mismatch (expected ${EXPECTED_SUM}, got ${ACTUAL_SUM})"
+log_info "[4.1] Downloading ${TARBALL_NAME}..."
+DOWNLOAD_SOURCE="github"
+if curl -sfL "${GITHUB_TARBALL_URL}" -o "${TARBALL_TMP}" \
+  && curl -sfL "${GITHUB_TARBALL_URL}.sha256" -o "${TARBALL_TMP}.sha256"; then
+  EXPECTED_SUM=$(awk '{print $1}' "${TARBALL_TMP}.sha256")
+  ACTUAL_SUM=$(sha256sum "${TARBALL_TMP}" | awk '{print $1}')
+  if [[ "${EXPECTED_SUM}" != "${ACTUAL_SUM}" ]]; then
+    die "tarball checksum mismatch (expected ${EXPECTED_SUM}, got ${ACTUAL_SUM})"
+  fi
+  rm -f "${TARBALL_TMP}.sha256"
+  log_ok "tarball downloaded from GitHub (sha256 ok)"
+else
+  rm -f "${TARBALL_TMP}" "${TARBALL_TMP}.sha256"
+  log_warn "GitHub release tarball unavailable for v${PLATFORM_VERSION} — falling back to controller bundle"
+  # Fetch the fallback bundle AND its checksum, then verify — mirroring the
+  # GitHub path. The checksum catches corruption/truncation. It is not, by
+  # itself, MITM protection over the curl -k transport; pinning the cluster CA
+  # here is a tracked follow-up.
+  if curl -sfL -k "${GATEWAY_TARBALL_URL}" -o "${TARBALL_TMP}" \
+    && curl -sfL -k "${GATEWAY_TARBALL_URL}.sha256" -o "${TARBALL_TMP}.sha256"; then
+    EXPECTED_SUM=$(awk '{print $1}' "${TARBALL_TMP}.sha256")
+    ACTUAL_SUM=$(sha256sum "${TARBALL_TMP}" | awk '{print $1}')
+    if [[ "${EXPECTED_SUM}" != "${ACTUAL_SUM}" ]]; then
+      die "controller fallback bundle checksum mismatch (expected ${EXPECTED_SUM}, got ${ACTUAL_SUM})"
+    fi
+    rm -f "${TARBALL_TMP}.sha256"
+    DOWNLOAD_SOURCE="gateway"
+    log_ok "tarball downloaded from controller fallback bundle (sha256 ok)"
+  else
+    rm -f "${TARBALL_TMP}" "${TARBALL_TMP}.sha256"
+    die "could not download ${TARBALL_NAME} (+.sha256) from GitHub or controller fallback"
+  fi
 fi
-rm -f "${TARBALL_TMP}.sha256"
-log_ok "tarball verified (sha256 ok)"
 
 log_info "[4.2] Extracting tarball..."
 mkdir -p "${TARBALL_DIR}"
 tar -xzf "${TARBALL_TMP}" -C "${TARBALL_DIR}" --strip-components=1
 rm -f "${TARBALL_TMP}"
-log_ok "tarball extracted"
+log_ok "tarball extracted (source=${DOWNLOAD_SOURCE})"
 
 [[ -x "${TARBALL_DIR}/globular-installer" ]] || die "globular-installer not found in tarball"
 [[ -d "${TARBALL_DIR}/packages" ]]           || die "packages/ not found in tarball"

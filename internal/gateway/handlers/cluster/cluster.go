@@ -19,6 +19,7 @@ type HandlerDeps struct {
 type Deps struct {
 	JoinToken     http.Handler
 	JoinScript    http.Handler // GET /join — self-contained join script
+	JoinBundle    http.Handler // GET /join/bundle/<tarball> — controller-local fallback bundle
 	JoinAuthorize http.Handler // POST /join/authorize — v2 JoinPlan courier
 	CleanScript   http.Handler // GET /clean — node cleanup script (pre-rejoin wipe)
 	Nodes         http.Handler
@@ -30,6 +31,9 @@ type Deps struct {
 func Mount(mux *http.ServeMux, d Deps) {
 	if d.JoinScript != nil {
 		mux.Handle("/join", d.JoinScript)
+	}
+	if d.JoinBundle != nil {
+		mux.Handle("/join/bundle/", d.JoinBundle)
 	}
 	if d.JoinAuthorize != nil {
 		mux.Handle("/join/authorize", d.JoinAuthorize)

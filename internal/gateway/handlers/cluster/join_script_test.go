@@ -265,6 +265,34 @@ func TestJoinScript_ExistingEtcdDataWithoutRepairFlagFails(t *testing.T) {
 	}
 }
 
+// TestJoinScript_TarballDownloadFallsBackToGateway verifies that the generated
+// join script tries GitHub first, then falls back to the controller-local
+// bundle endpoint when the platform tag is not published upstream.
+func TestJoinScript_TarballDownloadFallsBackToGateway(t *testing.T) {
+	script := joinScriptForTest()
+
+	if !strings.Contains(script, `GITHUB_TARBALL_URL="https://github.com/globulario/services/releases/download/v${PLATFORM_VERSION}/${TARBALL_NAME}"`) {
+		t.Fatal("join script must define the GitHub tarball URL")
+	}
+	if !strings.Contains(script, `GATEWAY_TARBALL_URL="https://${GATEWAY}/join/bundle/${TARBALL_NAME}"`) {
+		t.Fatal("join script must define the gateway fallback tarball URL")
+	}
+	if !strings.Contains(script, `GitHub release tarball unavailable for v${PLATFORM_VERSION} — falling back to controller bundle`) {
+		t.Fatal("join script must log the controller fallback when GitHub is unavailable")
+	}
+	if !strings.Contains(script, `could not download ${TARBALL_NAME} (+.sha256) from GitHub or controller fallback`) {
+		t.Fatal("join script must fail closed if both GitHub and controller bundle download fail")
+	}
+	// The controller fallback must fetch and verify a checksum, not trust the
+	// bytes blindly (mirrors the GitHub path).
+	if !strings.Contains(script, `${GATEWAY_TARBALL_URL}.sha256`) {
+		t.Fatal("join script must fetch the controller fallback bundle .sha256")
+	}
+	if !strings.Contains(script, `controller fallback bundle checksum mismatch`) {
+		t.Fatal("join script must fail closed on a controller fallback checksum mismatch")
+	}
+}
+
 // TestJoinScript_EtcdFailIsFatal verifies that the script does not silently
 // continue after an etcd health check failure. Soft failures like
 // "Continuing (controller may recover)" are not acceptable — the node-agent
