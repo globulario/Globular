@@ -745,14 +745,39 @@ chown globular:globular "${STATE_DIR}/config/etcd.yaml"
 chmod 640 "${STATE_DIR}/config/etcd.yaml"
 log_ok "etcd.yaml written (initial-cluster-state=existing, no loopback peer URLs)"
 
-log_info "[5.5] Adding ${ETCD_NAME} to cluster via etcdctl member add..."
+log_info "[5.5] Adding ${ETCD_NAME} to cluster as a non-voting LEARNER (quorum-safe join)..."
+# Learner-first join (Policy A'): the new node joins as a NON-VOTING learner so a
+# slow or failed join can never break the existing cluster's quorum. A full-voter
+# 1->2 add raises quorum to 2/2 and strands the founder if the joiner dies; a
+# learner never changes quorum. The controller promotes caught-up learners to
+# voters toward the HA target (>=3 voters) — see cluster_controller
+# etcd_learner_promotion.go.
+#
+# etcd permits only ONE learner at a time (max-learners=1). If a prior node is
+# still an un-promoted learner, wait for the controller to promote it first —
+# otherwise this add is rejected with "too many learner members in cluster".
+log_info "[5.5.0] Waiting for any prior learner to be promoted (etcd max-learners=1, up to 300s)..."
+for i in $(seq 1 150); do
+  PENDING_LEARNERS=$(etcdctl \
+    --endpoints="${BOOTSTRAP_ETCD}" \
+    --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
+    member list -w json 2>/dev/null | grep -o '"isLearner":true' | wc -l | tr -d ' ')
+  if [[ "${PENDING_LEARNERS:-0}" -eq 0 ]]; then
+    break
+  fi
+  if [[ $((i %% 15)) -eq 0 ]]; then
+    log_info "still waiting: ${PENDING_LEARNERS} un-promoted learner(s) present..."
+  fi
+  sleep 2
+done
+
 etcdctl \
   --endpoints="${BOOTSTRAP_ETCD}" \
   --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
-  member add "${ETCD_NAME}" \
+  member add "${ETCD_NAME}" --learner \
   --peer-urls="https://${NODE_IP}:2380" \
-  || die "etcd join failed: member add rejected by bootstrap cluster"
-log_ok "member add accepted: ${ETCD_NAME}"
+  || die "etcd join failed: learner member add rejected by bootstrap cluster"
+log_ok "learner member add accepted: ${ETCD_NAME} (non-voting; controller promotes to voter when caught up)"
 
 log_info "[5.6] Starting globular-etcd.service..."
 systemctl daemon-reload
@@ -760,22 +785,27 @@ systemctl enable globular-etcd.service 2>/dev/null || true
 systemctl start globular-etcd.service \
   || die "etcd join failed: systemctl start globular-etcd.service returned non-zero"
 
-log_info "[5.6.1] Waiting for local etcd to become healthy (max 60s)..."
+log_info "[5.6.1] Waiting for local etcd (learner) to come up (max 60s)..."
+# A learner REJECTS client read/health RPCs ("etcdserver: rpc not supported for
+# learner"), so 'endpoint health' (a linearizable read) cannot be used here.
+# 'endpoint status' uses the Status RPC, which learners DO answer — a successful
+# status means etcd started and is reachable. Actual cluster membership is proven
+# by the anti-fork check below (member list from the bootstrap endpoint).
 ETCD_OK=0
 for i in $(seq 1 60); do
   if etcdctl \
     --endpoints="https://${NODE_IP}:2379" \
     --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
-    endpoint health >/dev/null 2>&1; then
+    endpoint status >/dev/null 2>&1; then
     ETCD_OK=1
     break
   fi
   sleep 1
 done
 if [[ ${ETCD_OK} -ne 1 ]]; then
-  die "etcd did not become healthy after 60s — etcd join failed; check: journalctl -u globular-etcd"
+  die "etcd did not come up after 60s — etcd join failed; check: journalctl -u globular-etcd"
 fi
-log_ok "etcd healthy on ${NODE_IP}:2379"
+log_ok "etcd (learner) up on ${NODE_IP}:2379"
 
 log_info "[5.7] Verifying named member presence in cluster (anti-fork check)..."
 # Query BOOTSTRAP_ETCD — not local NODE_IP. A forked standalone etcd passes a local check;
