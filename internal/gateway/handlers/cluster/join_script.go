@@ -758,10 +758,13 @@ log_info "[5.5] Adding ${ETCD_NAME} to cluster as a non-voting LEARNER (quorum-s
 # otherwise this add is rejected with "too many learner members in cluster".
 log_info "[5.5.0] Waiting for any prior learner to be promoted (etcd max-learners=1, up to 300s)..."
 for i in $(seq 1 150); do
+  # grep -c prints the count and exits 1 on zero matches; under set -euo
+  # pipefail that non-zero would abort the whole join at the common 0-learner
+  # case, so swallow it with '|| true' (the count "0" is still captured).
   PENDING_LEARNERS=$(etcdctl \
     --endpoints="${BOOTSTRAP_ETCD}" \
     --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
-    member list -w json 2>/dev/null | grep -o '"isLearner":true' | wc -l | tr -d ' ')
+    member list -w json 2>/dev/null | grep -c '"isLearner":true' || true)
   if [[ "${PENDING_LEARNERS:-0}" -eq 0 ]]; then
     break
   fi
