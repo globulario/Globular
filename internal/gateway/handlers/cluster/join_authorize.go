@@ -19,7 +19,14 @@ type joinAuthorizeRequest struct {
 	DiskBytes        uint64             `json:"disk_bytes,omitempty"`
 	InstallerVersion string             `json:"installer_version,omitempty"`
 	ClusterID        string             `json:"cluster_id,omitempty"`
-	Nonce            string             `json:"nonce,omitempty"`
+	// ClusterUID is the cluster's minted membership identity (opaque UUID),
+	// distinct from ClusterID (the DNS/storage namespace). The installer obtains
+	// it from the join token bundle; the gateway forwards it verbatim so the
+	// controller can reject a token/request replayed against a different cluster.
+	// The token-bound identity is verified server-side regardless — this is
+	// defense-in-depth, never the sole check.
+	ClusterUID string `json:"cluster_uid,omitempty"`
+	Nonce      string `json:"nonce,omitempty"`
 	// RequestedProfiles is an operator preference forwarded verbatim to the
 	// controller (e.g. from `join --profiles`). The gateway is a courier and
 	// never validates or assigns profiles — the controller is the sole authority.
@@ -94,6 +101,7 @@ func NewJoinAuthorizeHandler(deps HandlerDeps) http.Handler {
 			Labels:            req.Labels,
 			InstallerVersion:  req.InstallerVersion,
 			ClusterId:         strings.TrimSpace(req.ClusterID),
+			ClusterUid:        strings.TrimSpace(req.ClusterUID),
 			Nonce:             req.Nonce,
 			RequestedProfiles: append([]string(nil), req.RequestedProfiles...),
 		}
