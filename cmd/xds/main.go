@@ -25,6 +25,23 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var (
+	Version   = "0.0.0-dev"
+	BuildTime = "unknown"
+	GitCommit = "unknown"
+)
+
+func printVersion() {
+	info := map[string]string{
+		"service":    "xds",
+		"version":    Version,
+		"build_time": BuildTime,
+		"git_commit": GitCommit,
+	}
+	data, _ := json.MarshalIndent(info, "", "  ")
+	fmt.Println(string(data))
+}
+
 const (
 	defaultGRPCAddr           = "0.0.0.0:18000"
 	defaultXDSConfig          = "/var/lib/globular/xds/config.json"
@@ -48,10 +65,16 @@ func main() {
 		downstreamTLSMode  = flag.String("downstream_tls_mode", "optional", "downstream TLS mode (disabled|optional|required)")
 		watchInterval      = flag.Duration("watch_interval", 5*time.Second, "static config polling interval")
 		debugSignals       = flag.Bool("debug_signals", false, "log signals received while running")
+		versionFlag        = flag.Bool("version", false, "print version information as JSON and exit")
 		describeFlag       = flag.Bool("describe", false, "print xds metadata as JSON and exit")
 		controllerAddr     = flag.String("controller_addr", "", "cluster controller address for DNS-based routing (optional, enables cluster mode)")
 	)
 	flag.Parse()
+
+	if *versionFlag {
+		printVersion()
+		return
+	}
 
 	// Allow controller address to be set via environment variable (PR4)
 	if *controllerAddr == "" {

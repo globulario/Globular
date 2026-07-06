@@ -33,7 +33,22 @@ const gatewayServiceID = "gateway.GatewayService"
 // Version is set at build time via -ldflags "-X main.Version=x.y.z".
 // This value is embedded in the join script so Day-1 nodes know which
 // GitHub release to fetch globular-installer from if the gateway can't serve it.
-var Version = "0.0.0-dev"
+var (
+	Version   = "0.0.0-dev"
+	BuildTime = "unknown"
+	GitCommit = "unknown"
+)
+
+func printVersion() {
+	info := map[string]string{
+		"service":    "gateway",
+		"version":    Version,
+		"build_time": BuildTime,
+		"git_commit": GitCommit,
+	}
+	data, _ := json.MarshalIndent(info, "", "  ")
+	fmt.Println(string(data))
+}
 
 var (
 	maxUpload           = flag.Int64("max-upload", 2<<30, "max upload size in bytes")
@@ -46,11 +61,16 @@ var (
 	httpsPortOverride   = flag.String("https", "", "override HTTPS port when config file is used")
 	gatewayConfigPath   = flag.String("config", "", "path to gateway config file (JSON)")
 	printDefaultGateway = flag.Bool("print-default-config", false, "print default gateway config and exit")
+	versionFlag         = flag.Bool("version", false, "print version information as JSON and exit")
 	describeFlag        = flag.Bool("describe", false, "print gateway metadata as JSON and exit")
 )
 
 func main() {
 	flag.Parse()
+	if *versionFlag {
+		printVersion()
+		os.Exit(0)
+	}
 	if *printDefaultGateway {
 		data, err := json.MarshalIndent(gatewayconfig.DefaultGatewayConfig(), "", "  ")
 		if err != nil {

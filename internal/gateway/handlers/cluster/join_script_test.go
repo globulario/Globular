@@ -231,6 +231,32 @@ func TestJoinScript_GhostMemberRemovalBeforeMemberAdd(t *testing.T) {
 	}
 }
 
+// TestJoinScript_EtcdJoinsAsLearner locks in the learner-first join contract
+// (task#17 c): a Day-1 node MUST join etcd as a non-voting learner so a slow or
+// failed join can never break the existing cluster's quorum. Regressing to a
+// full-voter member add reintroduces the 1->2 quorum trap.
+func TestJoinScript_EtcdJoinsAsLearner(t *testing.T) {
+	script := joinScriptForTest()
+
+	// The member add must carry --learner.
+	if !strings.Contains(script, `member add "${ETCD_NAME}" --learner`) {
+		t.Fatal("join script must add the node as a non-voting learner (member add ... --learner)")
+	}
+	// The max-learners=1 pre-add wait must be present (etcd allows one learner at a time).
+	if !strings.Contains(script, `"isLearner":true`) {
+		t.Error("join script must wait for a prior learner to be promoted before adding (max-learners=1)")
+	}
+	// The local readiness gate command must be `endpoint status` (learner-safe),
+	// NOT `endpoint health` (a learner rejects the read RPC it needs). Match the
+	// actual command invocation, not explanatory comment text.
+	if !strings.Contains(script, "endpoint status >/dev/null") {
+		t.Error("learner join must gate local readiness on 'endpoint status' (learners reject 'endpoint health')")
+	}
+	if strings.Contains(script, "endpoint health >/dev/null") {
+		t.Error("join script must not run 'endpoint health' against the local learner — it is rejected with 'rpc not supported for learner'")
+	}
+}
+
 // TestJoinScript_BackupBeforeWipeInRepairMode verifies that the repair-etcd
 // branch backs up the etcd data directory BEFORE wiping it. Wipe without
 // backup is not permitted.
@@ -262,6 +288,34 @@ func TestJoinScript_ExistingEtcdDataWithoutRepairFlagFails(t *testing.T) {
 	// Must contain the guard that checks for existing etcd data.
 	if !strings.Contains(script, "--repair-etcd was not given") {
 		t.Error("join script must fail if etcd data exists and --repair-etcd was not given")
+	}
+}
+
+// TestJoinScript_TarballDownloadFallsBackToGateway verifies that the generated
+// join script tries GitHub first, then falls back to the controller-local
+// bundle endpoint when the platform tag is not published upstream.
+func TestJoinScript_TarballDownloadFallsBackToGateway(t *testing.T) {
+	script := joinScriptForTest()
+
+	if !strings.Contains(script, `GITHUB_TARBALL_URL="https://github.com/globulario/services/releases/download/v${PLATFORM_VERSION}/${TARBALL_NAME}"`) {
+		t.Fatal("join script must define the GitHub tarball URL")
+	}
+	if !strings.Contains(script, `GATEWAY_TARBALL_URL="https://${GATEWAY}/join/bundle/${TARBALL_NAME}"`) {
+		t.Fatal("join script must define the gateway fallback tarball URL")
+	}
+	if !strings.Contains(script, `GitHub release tarball unavailable for v${PLATFORM_VERSION} — falling back to controller bundle`) {
+		t.Fatal("join script must log the controller fallback when GitHub is unavailable")
+	}
+	if !strings.Contains(script, `could not download ${TARBALL_NAME} (+.sha256) from GitHub or controller fallback`) {
+		t.Fatal("join script must fail closed if both GitHub and controller bundle download fail")
+	}
+	// The controller fallback must fetch and verify a checksum, not trust the
+	// bytes blindly (mirrors the GitHub path).
+	if !strings.Contains(script, `${GATEWAY_TARBALL_URL}.sha256`) {
+		t.Fatal("join script must fetch the controller fallback bundle .sha256")
+	}
+	if !strings.Contains(script, `controller fallback bundle checksum mismatch`) {
+		t.Fatal("join script must fail closed on a controller fallback checksum mismatch")
 	}
 }
 
@@ -342,11 +396,13 @@ func TestJoinScript_LoopbackPeerNormalization(t *testing.T) {
 func TestJoinScript_NodeAgentStartAfterEtcdHealthGate(t *testing.T) {
 	script := joinScriptForTest()
 
-	healthGateIdx := strings.Index(script, `etcd did not become healthy`)
+	// Learner-first join: a learner cannot serve client health RPCs, so the local
+	// readiness gate uses `endpoint status` and dies with "etcd did not come up".
+	healthGateIdx := strings.Index(script, `etcd did not come up`)
 	agentStartIdx := strings.Index(script, `systemctl start globular-node-agent.service`)
 
 	if healthGateIdx < 0 {
-		t.Fatal("join script must contain etcd health gate failure message")
+		t.Fatal("join script must contain etcd readiness gate failure message")
 	}
 	if agentStartIdx < 0 {
 		t.Fatal("join script must contain node-agent start command")

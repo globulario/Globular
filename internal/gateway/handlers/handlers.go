@@ -287,6 +287,7 @@ func (h *GatewayHandlers) wireCluster(mux *http.ServeMux, wrap func(http.Handler
 	clusterHandlers.Mount(mux, clusterHandlers.Deps{
 		JoinToken:     wrap(clusterHandlers.NewJoinTokenHandler(deps)),
 		JoinScript:    clusterHandlers.NewJoinScriptHandler(h.cfg.ControllerAddr, h.globule.PortHTTPS, h.cfg.PlatformVersion),
+		JoinBundle:    clusterHandlers.NewJoinBundleHandler(h.cfg.PlatformVersion),
 		JoinAuthorize: clusterHandlers.NewJoinAuthorizeHandler(deps),
 		CleanScript:   clusterHandlers.NewCleanScriptHandler(),
 		Nodes:         wrap(clusterHandlers.NewNodesHandler(deps)),
