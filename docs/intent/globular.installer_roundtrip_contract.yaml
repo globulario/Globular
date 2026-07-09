@@ -1,0 +1,37 @@
+id: globular.installer_roundtrip_contract
+level: contract
+title: Gateway join scripts execute the packaged installer with cluster-selected release identity
+intent: |
+  Day-1 join scripts served by Globular must install the same release selected
+  by the cluster, then invoke the packaged globular-installer binary from that
+  release tarball. The local release-index projection is only a fallback after
+  the controller's active release anchor.
+agent_guidance: |
+  When editing join script generation, keep release identity anchored to the
+  controller active release before falling back to release-index.json. Preserve
+  the packaged globular-installer binary as the execution engine; do not fetch
+  a different installer or infer version from GitHub asset lists.
+bad_smells:
+  - join script downloads globular-installer from a different release source
+  - release-index.json overrides the controller active release anchor
+  - join flow uses localhost or loopback peer URLs for remote etcd peers
+  - installer invocation skips explicit etcd repair intent
+activation_triggers:
+  - globular-installer
+  - release-index.json
+  - active release
+  - join script
+  - Day-1
+expressed_by:
+  - internal/gateway/handlers/cluster/join_script.go
+  - internal/gateway/handlers/cluster/join_authorize.go
+related_invariants:
+  - join.token.validated.before.phase
+  - etcd.ghost.cleared.before.member.add
+  - repair.etcd.explicit.flag.only
+  - join.phase.order.enforced
+status: active
+required_tests:
+  - internal/gateway/handlers/cluster/join_script_test.go
+  - internal/gateway/handlers/cluster/join_authorize_test.go
+
