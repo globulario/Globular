@@ -30,11 +30,10 @@ import (
 
 const gatewayServiceID = "gateway.GatewayService"
 
-// Version is set at build time via -ldflags "-X main.Version=x.y.z".
-// This value is embedded in the join script so Day-1 nodes know which
-// GitHub release to fetch globular-installer from if the gateway can't serve it.
+// Version lives in zz_version_generated.go — the committed per-package
+// version authority (single-authority identity model). ldflags override is
+// sanctioned only for the hotfix/local lane.
 var (
-	Version   = "0.0.0-dev"
 	BuildTime = "unknown"
 	GitCommit = "unknown"
 )
