@@ -18,16 +18,25 @@ import (
 //
 //	Phase 0: Preflight       — token, identity, targeted service stops
 //	Phase 1: Directories     — create layout and globular user (no state wipe)
-//	Phase 2: PKI/Identity    — CA cert, service cert, TLS verification
+//	Phase 2: PKI/Identity    — CA cert, JoinPlan authorization gate, service cert (join_id-gated), TLS verification
 //	Phase 3: Connectivity    — DNS, /etc/hosts, libnss, journald, config.json, node-agent state
 //	Phase 4: Download        — release tarball (GitHub first, controller-local fallback): installer, packages, workflows
-//	Phase 6: node-agent      — install and start; auto-initiates join RPC via state file
-//	Phase 7: MinIO hold      — enforce objectstore topology contract
+//	Phase 6: ScyllaDB        — install and verify local storage join (only when the plan assigns 'storage')
+//	Phase 7: control plane   — xds/envoy/gateway always; workflow/repository/controller only when the plan assigns 'control-plane'
+//	Phase 8: node-agent      — install and start; auto-initiates join RPC via state file
+//	Phase 9: MinIO hold      — enforce objectstore topology contract
 //
-// The etcd cluster join (previously Phase 5) is now performed inside Phase 4.5
-// by the globular-installer engine via the etcd_join spec step type. The step
-// handles ghost cleanup, join-lock, member add, etcd.yaml, start, and membership
-// verification — all in typed Go code with proper error handling.
+// The JoinPlan authorization runs BEFORE certificate signing: the signed cert
+// is an mTLS credential (etcd trusts the same CA), so the gateway only signs
+// CSRs that present a controller-issued join_id. The plan's assigned_profiles
+// drive which local packages Phases 6–7 install — the controller owns
+// placement; the script must not install storage or control-plane services
+// on a node whose plan does not assign those profiles.
+//
+// Phase 4 stages the active BOM packages and installs the etcd binary through
+// globular-installer. Phase 5 performs the cluster membership operation
+// explicitly: ghost cleanup, member add, etcd.yaml, start, and anti-fork
+// membership verification.
 //
 // Repair mode (etcd WAL damage):
 //
@@ -173,19 +182,25 @@ set -euo pipefail
 # Phases:
 #   0 — Preflight:   token required, identity detection, targeted service stops
 #   1 — Directories: create layout, globular user (no state wipe)
-#   2 — PKI/Identity: CA cert, service cert, TLS smoke-test
-#   3 — Connectivity: DNS, /etc/hosts MinIO fallback, libnss, journald
-#   3.6 — JoinPlan: POST /join/authorize → signed JoinPlan + join_id from controller
-#   3.7 — Seeds:    write etcd_endpoints file so ScyllaDB post-install finds seeds
-#   3.8 — State:    write node-agent state.json including join_id
+#   2 — PKI/Identity: CA cert, JoinPlan authorization gate, service cert
+#                     (signed only with a valid join_id), TLS smoke-test
+#   3 — Connectivity: DNS, /etc/hosts MinIO fallback, libnss, journald,
+#                     etcd_endpoints seed, node-agent state.json (join_id)
 #   4 — Download:   release tarball (GitHub first, controller fallback) → globular-installer, packages, workflows
 #   5 — Etcd join:  ghost cleanup, member add, etcd.yaml, start, health gate, fork-detection
-#   6 — node-agent: write unit (After=globular-etcd), start; uses v2 path (join_id)
-#   7 — MinIO hold: enforce objectstore topology contract
+#   6 — ScyllaDB:   install from package, join local storage, wait for CQL
+#                   (only when the JoinPlan assigns the 'storage' profile)
+#   7 — Control plane: xds/envoy/gateway always (mesh data plane); workflow/
+#                   repository/controller only with the 'control-plane' profile
+#   8 — node-agent: write unit (After=globular-etcd), start; uses v2 path (join_id)
+#   9 — MinIO hold: enforce objectstore topology contract
 #
-# Phase 3.6 is the JoinPlan authorization gate. The gateway is a courier only —
+# Phase 2.2 is the JoinPlan authorization gate. The gateway is a courier only —
 # the controller assigns profiles, etcd intent, node_id, and signs the plan.
-# No cluster-affecting step (Phase 4+) runs before Phase 3.6 succeeds.
+# No cluster-affecting step runs before it succeeds — including certificate
+# signing (Phase 2.3): the CA-signed cert is an etcd mTLS credential, so the
+# gateway refuses to sign a CSR without a controller-issued join_id.
+# The plan's assigned_profiles drive Phases 6–7: the controller owns placement.
 #
 # The node-agent reads join_token + controller_endpoint + join_id from state
 # and auto-initiates the v2 join path on startup (no RequestJoin call needed).
@@ -212,6 +227,7 @@ PROFILES=""
 INSTALL_DIR="/usr/lib/globular/bin"
 STATE_DIR="/var/lib/globular"
 SYSTEMD_DIR="/etc/systemd/system"
+PACKAGES_DIR="${STATE_DIR}/packages"
 
 # ── Argument parsing ─────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -239,6 +255,55 @@ log_ok()    { echo "  OK:   $*"; }
 log_info()  { echo "  ...   $*"; }
 log_warn()  { echo "  WARN: $*" >&2; }
 log_phase() { echo ""; echo "══════════════════════════════════════════════════════"; echo "PHASE $*"; echo "══════════════════════════════════════════════════════"; echo ""; }
+
+find_pkg() {
+  local name="$1"
+  find "${PACKAGES_DIR}" -maxdepth 1 -name "${name}_*_linux_amd64.tgz" 2>/dev/null | sort | tail -1
+}
+
+install_pkg() {
+  local name="$1"
+  local pkg
+  pkg=$(find_pkg "${name}")
+  [[ -n "${pkg}" ]] || die "package ${name} not found in ${PACKAGES_DIR}"
+  log_info "Installing ${name} via globular-installer..."
+  "${INSTALL_DIR}/globular-installer" install \
+    --non-interactive --verbose \
+    "${pkg}" \
+    || die "installer: ${name} install failed"
+  log_ok "${name} installed"
+}
+
+wait_unit_active() {
+  local unit="$1"
+  local seconds="$2"
+  local label="$3"
+  log_info "Waiting for ${label} (${unit}) to become active (max ${seconds}s)..."
+  for i in $(seq 1 "${seconds}"); do
+    if systemctl is-active --quiet "${unit}" 2>/dev/null; then
+      log_ok "${label} active"
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+wait_tcp_port() {
+  local host="$1"
+  local port="$2"
+  local seconds="$3"
+  local label="$4"
+  log_info "Waiting for ${label} on ${host}:${port} (max ${seconds}s)..."
+  for i in $(seq 1 "${seconds}"); do
+    if timeout 1 bash -c "</dev/tcp/${host}/${port}" 2>/dev/null; then
+      log_ok "${label} reachable on ${host}:${port}"
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
 
 [[ "$(id -u)" -eq 0 ]] || die "This script must be run as root (sudo)"
 
@@ -340,7 +405,96 @@ cp "${STATE_DIR}/pki/ca.crt" /usr/local/share/ca-certificates/globular-ca.crt
 update-ca-certificates >/dev/null 2>&1 || true
 log_ok "CA certificate installed and trusted"
 
-log_info "[2.2] Generating service certificate..."
+log_info "[2.2] Obtaining signed JoinPlan from controller (v2 authorization gate)..."
+# ────────────────────────────────────────────────────────────────────────────
+# The gateway is a courier. The controller is the authority.
+# This call must succeed before any cluster-affecting step — including the
+# service-certificate signing below: a CA-signed cert is an etcd mTLS
+# credential, so the gateway only signs CSRs presenting a valid join_id.
+# Cluster-affecting steps: certificate issuance, etcd member add, writing
+# cluster membership config, starting node-agent as a joined node, applying
+# assigned profiles.
+# ────────────────────────────────────────────────────────────────────────────
+mkdir -p "${STATE_DIR}/nodeagent"
+
+AUTHORIZE_RESPONSE="${STATE_DIR}/nodeagent/join_authorize.json"
+
+# Build requested_profiles JSON array from the comma-separated --profiles value
+# (operator preference; the controller validates and decides). Empty when unset.
+REQUESTED_PROFILES_JSON=""
+if [[ -n "${PROFILES}" ]]; then
+  _pjson=""
+  IFS=',' read -ra _parr <<< "${PROFILES}"
+  for _p in "${_parr[@]}"; do
+    _p=$(echo "${_p}" | xargs)
+    [[ -z "${_p}" ]] && continue
+    [[ -n "${_pjson}" ]] && _pjson="${_pjson},"
+    _pjson="${_pjson}\"${_p}\""
+  done
+  [[ -n "${_pjson}" ]] && REQUESTED_PROFILES_JSON=",\"requested_profiles\":[${_pjson}]"
+fi
+
+# Build the authorization request JSON (no bash arrays; use printf for safety)
+AUTHORIZE_BODY=$(printf '{"join_token":"%%s","identity":{"hostname":"%%s","ips":["%%s"]}%%s}' \
+  "${JOIN_TOKEN}" "${NODE_HOSTNAME}" "${NODE_IP}" "${REQUESTED_PROFILES_JSON}")
+
+# Use -w to capture HTTP status separately; do NOT use -f so the response body
+# is always written to AUTHORIZE_RESPONSE regardless of HTTP status code.
+# This lets us extract denied_reason from a 403 instead of hiding it.
+AUTHORIZE_HTTP_STATUS=$(curl -sL --cacert "${STATE_DIR}/pki/ca.crt" \
+  -X POST "https://${GATEWAY}/join/authorize" \
+  -H "Content-Type: application/json" \
+  -d "${AUTHORIZE_BODY}" \
+  -o "${AUTHORIZE_RESPONSE}" \
+  -w "%%{http_code}" 2>/dev/null) \
+  || die "join blocked: network error reaching gateway /join/authorize"
+
+if [[ "${AUTHORIZE_HTTP_STATUS}" -ge 500 ]]; then
+  GATEWAY_ERR=$(head -1 "${AUTHORIZE_RESPONSE}" 2>/dev/null || true)
+  die "join blocked: gateway error (HTTP ${AUTHORIZE_HTTP_STATUS}) — ${GATEWAY_ERR}"
+fi
+
+# Parse allowed field: handles both "allowed":true and "allowed": true
+JOIN_PLAN_ALLOWED=$(grep -oE '"allowed"\s*:\s*(true|false)' "${AUTHORIZE_RESPONSE}" \
+  | head -1 | grep -oE '(true|false)$' || echo "false")
+
+# Extract join_id and denied_reason from response JSON
+JOIN_ID=$(grep -oE '"join_id"\s*:\s*"[^"]*"' "${AUTHORIZE_RESPONSE}" \
+  | head -1 | sed 's/.*"join_id"\s*:\s*"\([^"]*\)".*/\1/' || echo "")
+
+DENIED_REASON=$(grep -oE '"denied_reason"\s*:\s*"[^"]*"' "${AUTHORIZE_RESPONSE}" \
+  | head -1 | sed 's/.*"denied_reason"\s*:\s*"\([^"]*\)".*/\1/' || echo "unknown")
+
+[[ "${JOIN_PLAN_ALLOWED}" == "true" ]] \
+  || die "join blocked: controller denied — ${DENIED_REASON}"
+
+[[ -n "${JOIN_ID}" ]] \
+  || die "join blocked: signed JoinPlan missing — controller returned empty join_id"
+
+# Extract the controller-assigned profiles from the signed plan. These drive
+# Phases 6–7: the controller owns placement, the script only executes it.
+# Comma-separated, e.g. "control-plane,core,storage". Empty when the plan
+# carries no profiles (older controller) — Phases 6–7 then fall back to the
+# legacy full local install so upgrades stay safe.
+ASSIGNED_PROFILES=$(grep -oE '"assigned_profiles"\s*:\s*\[[^]]*\]' "${AUTHORIZE_RESPONSE}" \
+  | head -1 | sed 's/.*\[\(.*\)\]/\1/' | tr -d '" ' || echo "")
+
+if [[ -z "${ASSIGNED_PROFILES}" ]]; then
+  log_warn "JoinPlan carries no assigned_profiles — falling back to full local install (storage + control plane)"
+else
+  log_info "controller-assigned profiles: ${ASSIGNED_PROFILES}"
+fi
+
+# should_install_role <profile> — true when the plan assigns the profile, or
+# when the plan carries no profiles at all (legacy fallback: install everything).
+should_install_role() {
+  [[ -z "${ASSIGNED_PROFILES}" ]] && return 0
+  [[ ",${ASSIGNED_PROFILES}," == *",$1,"* ]]
+}
+
+log_ok "join plan accepted: join_id=${JOIN_ID} profiles=${ASSIGNED_PROFILES:-<legacy: all>}"
+
+log_info "[2.3] Generating service certificate..."
 openssl genrsa -out "${PKI_DIR}/service.key" 2048 2>/dev/null
 
 cat > /tmp/globular-san.cnf <<SANEOF
@@ -360,8 +514,10 @@ openssl req -new -key "${PKI_DIR}/service.key" \
   -out /tmp/globular-join.csr 2>/dev/null
 
 CSR_B64=$(base64 -w0 /tmp/globular-join.csr)
+# join_id authenticates this request: the gateway refuses to sign CSRs from
+# requesters that are neither cluster members nor authorized Day-1 joiners.
 curl -sfL --cacert "${STATE_DIR}/pki/ca.crt" \
-  "https://${GATEWAY}/sign_ca_certificate?csr=${CSR_B64}" \
+  "https://${GATEWAY}/sign_ca_certificate?csr=${CSR_B64}&join_id=${JOIN_ID}" \
   -o "${PKI_DIR}/service.crt"
 rm -f /tmp/globular-join.csr /tmp/globular-san.cnf
 
@@ -372,7 +528,7 @@ chmod 600 "${PKI_DIR}/service.key"
 chmod 644 "${PKI_DIR}/service.crt"
 log_ok "Service certificate issued for ${NODE_HOSTNAME} (${NODE_IP})"
 
-log_info "[2.3] Verifying TLS access to bootstrap gateway..."
+log_info "[2.4] Verifying TLS access to bootstrap gateway..."
 if curl -sf --cacert "${STATE_DIR}/pki/ca.crt" -o /dev/null \
   "https://${GATEWAY}/get_ca_certificate" 2>/dev/null; then
   log_ok "Bootstrap gateway reachable via TLS"
@@ -464,72 +620,7 @@ CFGJSON
 chown -R globular:globular "${STATE_DIR}"
 chown globular:globular "${STATE_DIR}/keys"
 
-log_info "[3.6] Obtaining signed JoinPlan from controller (v2 authorization gate)..."
-# ────────────────────────────────────────────────────────────────────────────
-# Phase A.1: The gateway is a courier. The controller is the authority.
-# This call must succeed before any cluster-affecting step (Phase 4+).
-# Cluster-affecting steps: etcd member add, writing cluster membership config,
-# starting node-agent as a joined node, applying assigned profiles.
-# ────────────────────────────────────────────────────────────────────────────
-mkdir -p "${STATE_DIR}/nodeagent"
-
-AUTHORIZE_RESPONSE="${STATE_DIR}/nodeagent/join_authorize.json"
-
-# Build requested_profiles JSON array from the comma-separated --profiles value
-# (operator preference; the controller validates and decides). Empty when unset.
-REQUESTED_PROFILES_JSON=""
-if [[ -n "${PROFILES}" ]]; then
-  _pjson=""
-  IFS=',' read -ra _parr <<< "${PROFILES}"
-  for _p in "${_parr[@]}"; do
-    _p=$(echo "${_p}" | xargs)
-    [[ -z "${_p}" ]] && continue
-    [[ -n "${_pjson}" ]] && _pjson="${_pjson},"
-    _pjson="${_pjson}\"${_p}\""
-  done
-  [[ -n "${_pjson}" ]] && REQUESTED_PROFILES_JSON=",\"requested_profiles\":[${_pjson}]"
-fi
-
-# Build the authorization request JSON (no bash arrays; use printf for safety)
-AUTHORIZE_BODY=$(printf '{"join_token":"%%s","identity":{"hostname":"%%s","ips":["%%s"]}%%s}' \
-  "${JOIN_TOKEN}" "${NODE_HOSTNAME}" "${NODE_IP}" "${REQUESTED_PROFILES_JSON}")
-
-# Use -w to capture HTTP status separately; do NOT use -f so the response body
-# is always written to AUTHORIZE_RESPONSE regardless of HTTP status code.
-# This lets us extract denied_reason from a 403 instead of hiding it.
-AUTHORIZE_HTTP_STATUS=$(curl -sL --cacert "${STATE_DIR}/pki/ca.crt" \
-  -X POST "https://${GATEWAY}/join/authorize" \
-  -H "Content-Type: application/json" \
-  -d "${AUTHORIZE_BODY}" \
-  -o "${AUTHORIZE_RESPONSE}" \
-  -w "%%{http_code}" 2>/dev/null) \
-  || die "join blocked: network error reaching gateway /join/authorize"
-
-if [[ "${AUTHORIZE_HTTP_STATUS}" -ge 500 ]]; then
-  GATEWAY_ERR=$(head -1 "${AUTHORIZE_RESPONSE}" 2>/dev/null || true)
-  die "join blocked: gateway error (HTTP ${AUTHORIZE_HTTP_STATUS}) — ${GATEWAY_ERR}"
-fi
-
-# Parse allowed field: handles both "allowed":true and "allowed": true
-JOIN_PLAN_ALLOWED=$(grep -oE '"allowed"\s*:\s*(true|false)' "${AUTHORIZE_RESPONSE}" \
-  | head -1 | grep -oE '(true|false)$' || echo "false")
-
-# Extract join_id and denied_reason from response JSON
-JOIN_ID=$(grep -oE '"join_id"\s*:\s*"[^"]*"' "${AUTHORIZE_RESPONSE}" \
-  | head -1 | sed 's/.*"join_id"\s*:\s*"\([^"]*\)".*/\1/' || echo "")
-
-DENIED_REASON=$(grep -oE '"denied_reason"\s*:\s*"[^"]*"' "${AUTHORIZE_RESPONSE}" \
-  | head -1 | sed 's/.*"denied_reason"\s*:\s*"\([^"]*\)".*/\1/' || echo "unknown")
-
-[[ "${JOIN_PLAN_ALLOWED}" == "true" ]] \
-  || die "join blocked: controller denied — ${DENIED_REASON}"
-
-[[ -n "${JOIN_ID}" ]] \
-  || die "join blocked: signed JoinPlan missing — controller returned empty join_id"
-
-log_ok "join plan accepted: join_id=${JOIN_ID} generation=controller-authorized"
-
-log_info "[3.7] Writing etcd endpoints file (seed for ScyllaDB post-install)..."
+log_info "[3.6] Writing etcd endpoints file (seed for ScyllaDB post-install)..."
 # ScyllaDB's post-install reads this file to discover seed nodes.
 # Without it the file is absent and ScyllaDB falls back to the local IP only,
 # bootstrapping a standalone cluster instead of joining the existing ring.
@@ -539,7 +630,7 @@ echo "https://${BOOTSTRAP_HOST}:2379" > "${STATE_DIR}/config/etcd_endpoints"
 chown globular:globular "${STATE_DIR}/config/etcd_endpoints"
 log_ok "etcd_endpoints seeded with bootstrap host (${BOOTSTRAP_HOST})"
 
-log_info "[3.8] Writing node-agent state (join token + controller endpoint + join_id)..."
+log_info "[3.7] Writing node-agent state (join token + controller endpoint + join_id)..."
 # The join_id is included so the node-agent uses the v2 path (no RequestJoin call):
 # it polls GetJoinRequestStatus(join_id) directly without consuming the token again.
 cat > "${STATE_DIR}/nodeagent/state.json" <<STATEJSON
@@ -657,7 +748,7 @@ else
 fi
 
 log_info "[4.6] Installing etcd binary and service unit (cluster join in Phase 5)..."
-# join_id=${JOIN_ID} — Phase 3.6 validated the JoinPlan. Cluster-affecting steps start in Phase 5.
+# join_id=${JOIN_ID} — Phase 2.2 validated the JoinPlan. Cluster-affecting steps start in Phase 5.
 ETCD_PKG=$(find "${PACKAGES_DIR}" -maxdepth 1 -name "etcd_*_linux_amd64.tgz" 2>/dev/null | head -1)
 if [[ -z "${ETCD_PKG}" ]]; then
   die "etcd package not found in ${PACKAGES_DIR} — Phase 4.2 download may have failed"
@@ -685,7 +776,7 @@ log_ok "installer-started etcd stopped; data dir reset for cluster join"
 log_phase "5 — Etcd Cluster Join"
 # ============================================================================
 # All cluster-affecting etcd operations are explicit and auditable here.
-# Phase 3.6 (JoinPlan) already authorized this join. join_id=${JOIN_ID}
+# Phase 2.2 (JoinPlan) already authorized this join. join_id=${JOIN_ID}
 
 log_info "[5.1] Checking for ghost etcd member (peer URL from prior failed join)..."
 GHOST_ID=$(etcdctl \
@@ -826,15 +917,96 @@ fi
 log_ok "member ${ETCD_NAME} confirmed visible in cluster (anti-fork verified)"
 
 # ============================================================================
-log_phase "6 — node-agent"
+log_phase "6 — ScyllaDB Local Join"
+# ============================================================================
+# After etcd membership is visible from the bootstrap cluster, install ScyllaDB
+# locally from the active BOM package. The scylladb package owns the controlled
+# first-start recipe: prevent dpkg autostart, render config from etcd seeds, then
+# start scylla-server.service. This keeps Day-1 infra order explicit:
+# etcd -> scylla -> local control plane -> node-agent admission/convergence.
+#
+# Profile gate: joining the ScyllaDB ring changes storage topology (token
+# ownership, streaming). It happens ONLY when the controller's JoinPlan
+# assigned the 'storage' profile — mirroring the MinIO hold in Phase 9.
+# Non-storage nodes reach ScyllaDB over the mesh; convergence owns any later
+# storage promotion.
+
+if should_install_role "storage"; then
+  log_info "[6.1] Installing ScyllaDB from staged package (join_id=${JOIN_ID})..."
+  install_pkg "scylladb"
+
+  wait_unit_active "scylla-server.service" 300 "ScyllaDB" \
+    || die "scylla join failed: scylla-server.service did not become active"
+
+  wait_tcp_port "${NODE_IP}" 9042 300 "ScyllaDB CQL" \
+    || die "scylla join failed: CQL port 9042 did not become reachable"
+
+  log_info "[6.2] Installing ScyllaDB manager dependencies..."
+  install_pkg "scylla-manager"
+  install_pkg "scylla-manager-agent"
+  log_ok "ScyllaDB local storage stack ready"
+else
+  log_info "profile gate: 'storage' not in assigned profiles (${ASSIGNED_PROFILES}) — ScyllaDB NOT installed"
+  log_ok "ScyllaDB held — controller owns storage placement"
+fi
+
+# ============================================================================
+log_phase "7 — Local Control Plane"
+# ============================================================================
+# These packages are installed from the active BOM staged in Phase 4. The
+# controller remains the desired-state authority; this phase only ensures the
+# joining node has its own local control-plane processes available before the
+# node-agent asks the cluster to converge the rest of the profile.
+#
+# xds/envoy/gateway are the mesh data plane and node HTTP surface — every node
+# needs them regardless of profile. workflow/repository/cluster-controller are
+# control-plane replicas (leader-elected via etcd) and are installed ONLY when
+# the JoinPlan assigned the 'control-plane' profile.
+
+log_info "[7.1] Installing mesh data plane (xds -> envoy -> gateway, join_id=${JOIN_ID})..."
+install_pkg "xds"
+wait_unit_active "globular-xds.service" 120 "xDS" \
+  || die "local control plane failed: globular-xds.service did not become active"
+
+install_pkg "envoy"
+wait_unit_active "globular-envoy.service" 120 "Envoy" \
+  || die "local control plane failed: globular-envoy.service did not become active"
+
+install_pkg "gateway"
+wait_unit_active "globular-gateway.service" 120 "Gateway" \
+  || die "local control plane failed: globular-gateway.service did not become active"
+
+if should_install_role "control-plane"; then
+  log_info "[7.2] Installing workflow and repository services (join_id=${JOIN_ID})..."
+  install_pkg "workflow"
+  wait_unit_active "globular-workflow.service" 180 "Workflow" \
+    || die "local control plane failed: globular-workflow.service did not become active"
+
+  install_pkg "repository"
+  wait_unit_active "globular-repository.service" 180 "Repository" \
+    || die "local control plane failed: globular-repository.service did not become active"
+
+  log_info "[7.3] Installing cluster-controller (join_id=${JOIN_ID})..."
+  install_pkg "cluster-controller"
+  wait_unit_active "globular-cluster-controller.service" 180 "Cluster Controller" \
+    || die "local control plane failed: globular-cluster-controller.service did not become active"
+
+  log_ok "Local control-plane stack ready"
+else
+  log_info "profile gate: 'control-plane' not in assigned profiles (${ASSIGNED_PROFILES}) — workflow/repository/cluster-controller NOT installed"
+  log_ok "Mesh data plane ready (control-plane replicas held — controller owns placement)"
+fi
+
+# ============================================================================
+log_phase "8 — node-agent"
 # ============================================================================
 # Install the node-agent binary, write a systemd unit that declares an
 # ordering dependency on globular-etcd.service, then start it.
 # The node-agent reads join_token + controller_endpoint + join_id from the
-# state file written in Phase 3.8 and uses the v2 path at startup:
+# state file written in Phase 3.7 and uses the v2 path at startup:
 # it polls GetJoinRequestStatus(join_id) without calling RequestJoin again.
 
-log_info "[6.1] Installing globular-node-agent binary via installer engine (join_id=${JOIN_ID})..."
+log_info "[8.1] Installing globular-node-agent binary via installer engine (join_id=${JOIN_ID})..."
 NODE_AGENT_PKG=$(find "${PACKAGES_DIR}" -maxdepth 1 \( -name "node-agent_*_linux_amd64.tgz" -o -name "node_agent_*_linux_amd64.tgz" \) 2>/dev/null | head -1)
 if [[ -z "${NODE_AGENT_PKG}" ]]; then
   die "node-agent package not found in ${PACKAGES_DIR} — Phase 4.2 download may have failed"
@@ -844,7 +1016,7 @@ fi
   "${NODE_AGENT_PKG}" \
   || die "installer: node-agent install failed"
 
-log_info "[6.2] Writing node-agent systemd unit (After=globular-etcd.service)..."
+log_info "[8.2] Writing node-agent systemd unit (After=globular-etcd.service)..."
 NODE_AGENT_BIN=$(find "${INSTALL_DIR}" -maxdepth 1 \( -name "node_agent_server" -o -name "globular-node-agent" \) 2>/dev/null | head -1 || echo "${INSTALL_DIR}/node_agent_server")
 cat > "${SYSTEMD_DIR}/globular-node-agent.service" <<NAUNIT
 [Unit]
@@ -868,11 +1040,11 @@ systemctl daemon-reload
 systemctl enable globular-node-agent.service 2>/dev/null || true
 log_ok "node-agent unit written (Requires=globular-etcd.service)"
 
-log_info "[6.3] Starting globular-node-agent.service..."
+log_info "[8.3] Starting globular-node-agent.service..."
 systemctl start globular-node-agent.service \
   || log_warn "node-agent start returned non-zero — controller will retry join RPC"
 
-log_info "[6.4] Waiting for node-agent to listen on :11000..."
+log_info "[8.4] Waiting for node-agent to listen on :11000..."
 AGENT_UP=0
 for i in $(seq 1 30); do
   if ss -tlnp 2>/dev/null | grep -q ":11000 "; then
@@ -887,14 +1059,14 @@ fi
 log_ok "node-agent running"
 
 # ============================================================================
-log_phase "6.5 — Cleanup installation tarball"
+log_phase "8.5 — Cleanup installation tarball"
 # ============================================================================
-log_info "[6.5] Removing extracted tarball (no longer needed)..."
+log_info "[8.5] Removing extracted tarball (no longer needed)..."
 rm -rf "${TARBALL_DIR}"
 log_ok "Tarball cleaned up"
 
 # ============================================================================
-log_phase "7 — MinIO / Objectstore Hold Enforcement"
+log_phase "9 — MinIO / Objectstore Hold Enforcement"
 # ============================================================================
 # The join script MUST NOT start globular-minio.service.
 # Objectstore topology is exclusively governed by ObjectStoreDesiredState in
@@ -902,7 +1074,7 @@ log_phase "7 — MinIO / Objectstore Hold Enforcement"
 # The controller and node-agent start MinIO ONLY when this node is admitted
 # as an objectstore member by an approved TopologyTransition.
 
-log_info "[7.1] Enforcing MinIO hold (objectstore topology contract)..."
+log_info "[9.1] Enforcing MinIO hold (objectstore topology contract)..."
 if systemctl is-active --quiet globular-minio.service 2>/dev/null; then
   log_warn "globular-minio.service is active — stopping (topology contract violation)"
   systemctl stop globular-minio.service 2>/dev/null || true
@@ -920,7 +1092,18 @@ echo "║          NODE JOINED SUCCESSFULLY                               ║"
 echo "╚══════════════════════════════════════════════════════════════════╝"
 echo ""
 echo "  Identity:     ${NODE_HOSTNAME} (${NODE_IP})"
+echo "  Profiles:     ${ASSIGNED_PROFILES:-<legacy: all roles installed>}"
 echo "  etcd:         healthy, member '${ETCD_NAME}'"
+if should_install_role "storage"; then
+  echo "  scylla:       active locally, CQL reachable"
+else
+  echo "  scylla:       held (no 'storage' profile — convergence owns storage placement)"
+fi
+if should_install_role "control-plane"; then
+  echo "  controlplane: xds/envoy/gateway/workflow/repository/controller active"
+else
+  echo "  controlplane: xds/envoy/gateway active (control-plane replicas held)"
+fi
 echo "  node-agent:   running, auto-initiating join RPC"
 echo "  MinIO:        held (not a topology member)"
 echo ""

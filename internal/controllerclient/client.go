@@ -216,6 +216,20 @@ func (c *Client) RequestJoinAuthorization(ctx context.Context, req *cluster_cont
 	return client.RequestJoinAuthorization(ctx, req)
 }
 
+// GetJoinRequestStatus returns the controller's record for a join_id issued by
+// RequestJoinAuthorization. The gateway uses this to verify that a Day-1
+// certificate-signing request presents a real, controller-issued join_id
+// before signing the CSR.
+func (c *Client) GetJoinRequestStatus(ctx context.Context, joinID string) (*cluster_controllerpb.GetJoinRequestStatusResponse, error) {
+	conn, closeFn, err := c.dial(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer closeFn()
+	client := cluster_controllerpb.NewClusterControllerServiceClient(conn)
+	return client.GetJoinRequestStatus(ctx, &cluster_controllerpb.GetJoinRequestStatusRequest{RequestId: joinID})
+}
+
 // ListServices returns the merged service-registry view as a list
 // of JSON strings (config + per-node instance fields merged per
 // service). xDS calls this RPC instead of scanning

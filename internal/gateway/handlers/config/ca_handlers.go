@@ -278,6 +278,16 @@ type CASigner interface {
 	SignCSR(csrPEM []byte) (string, error)
 }
 
+// SignAuthorizer decides whether an HTTP request is allowed to obtain a
+// CA-signed certificate. A CA-signed cert grants etcd client access
+// (client-cert-auth trusts the same CA), so issuance MUST be gated: the
+// requester is either the local node, a known cluster member, or a Day-1
+// joiner presenting a controller-issued join_id. Returning a non-nil error
+// denies the request (fail closed).
+type SignAuthorizer interface {
+	AuthorizeSign(r *http.Request) error
+}
+
 // -------- Handlers constructors --------
 
 // NewGetCACertificate — delay WriteHeader until success
@@ -294,9 +304,20 @@ func NewGetCACertificate(ca CACertReader) http.HandlerFunc {
 	}
 }
 
-// NewSignCACertificate — delay WriteHeader until success
-func NewSignCACertificate(signer CASigner) http.HandlerFunc {
+// NewSignCACertificate — delay WriteHeader until success.
+//
+// authz gates issuance (see SignAuthorizer). A nil authz denies every request:
+// an unwired authorizer must fail closed, never fall back to open signing.
+func NewSignCACertificate(signer CASigner, authz SignAuthorizer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if authz == nil {
+			http.Error(w, "certificate signing unavailable: no authorizer configured", http.StatusServiceUnavailable)
+			return
+		}
+		if err := authz.AuthorizeSign(r); err != nil {
+			http.Error(w, "certificate signing denied: "+err.Error(), http.StatusForbidden)
+			return
+		}
 		csrB64 := r.URL.Query().Get("csr")
 		if csrB64 == "" {
 			http.Error(w, "missing csr query parameter", http.StatusBadRequest)

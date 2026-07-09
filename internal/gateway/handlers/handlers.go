@@ -218,7 +218,7 @@ func (h *GatewayHandlers) wireConfig(mux *http.ServeMux, wrap func(http.Handler)
 		GetServicePermissions: wrap(getSvcPerms),
 		DescribeService:       wrap(describeService),
 		GetCACertificate:      wrap(cfgHandlers.NewGetCACertificate(ca)),
-		SignCACertificate:     wrap(cfgHandlers.NewSignCACertificate(ca)),
+		SignCACertificate:     wrap(cfgHandlers.NewSignCACertificate(ca, newSignAuthorizer(controllerclient.New(h.cfg.ControllerAddr)))),
 		GetSANConf:            wrap(cfgHandlers.NewGetSANConf(ca)),
 		GetServicesCors:       wrap(getServicesCors),
 		SetServiceCors:        wrap(setServiceCors),

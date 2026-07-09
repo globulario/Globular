@@ -73,6 +73,12 @@ func TestJoinAuthorize_JoinScriptCallsAuthorizeBeforeEtcd(t *testing.T) {
 		t.Fatal("join script must contain /join/authorize call")
 	}
 	if etcdInstallIdx < 0 {
+		// Phase 4.6 log line for the etcd binary install. Do NOT match the
+		// install_pkg/find_pkg helper DEFINITIONS near the top of the script —
+		// only the actual etcd install step matters for ordering.
+		etcdInstallIdx = indexOfString(script, "Installing etcd binary")
+	}
+	if etcdInstallIdx < 0 {
 		// etcd join is via installer — check for the installer invocation
 		etcdInstallIdx = indexOfString(script, "globular-installer\" install")
 	}

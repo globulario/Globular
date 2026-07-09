@@ -414,6 +414,100 @@ func TestJoinScript_NodeAgentStartAfterEtcdHealthGate(t *testing.T) {
 	}
 }
 
+// TestJoinScript_Day1InfraControlPlaneOrder verifies the requested Day-1
+// bootstrap ladder: etcd cluster membership is proven first, then local
+// ScyllaDB, then the local control-plane stack, then node-agent admission.
+func TestJoinScript_Day1InfraControlPlaneOrder(t *testing.T) {
+	script := joinScriptForTest()
+
+	markers := []string{
+		`member ${ETCD_NAME} confirmed visible in cluster`,
+		`log_phase "6 — ScyllaDB Local Join"`,
+		`log_phase "7 — Local Control Plane"`,
+		`log_phase "8 — node-agent"`,
+		`log_phase "9 — MinIO / Objectstore Hold Enforcement"`,
+	}
+	last := -1
+	for _, marker := range markers {
+		idx := strings.Index(script, marker)
+		if idx < 0 {
+			t.Fatalf("join script missing marker %q", marker)
+		}
+		if idx <= last {
+			t.Fatalf("join script marker %q is out of order", marker)
+		}
+		last = idx
+	}
+}
+
+// TestJoinScript_LocalBootstrapUsesInstallerPackages verifies the Day-1 local
+// bootstrap path goes through globular-installer and staged distro packages.
+func TestJoinScript_LocalBootstrapUsesInstallerPackages(t *testing.T) {
+	script := joinScriptForTest()
+
+	for _, marker := range []string{
+		`find "${PACKAGES_DIR}" -maxdepth 1 -name "${name}_*_linux_amd64.tgz"`,
+		`"${INSTALL_DIR}/globular-installer" install`,
+		`install_pkg "scylladb"`,
+		`install_pkg "xds"`,
+		`install_pkg "envoy"`,
+		`install_pkg "gateway"`,
+		`install_pkg "workflow"`,
+		`install_pkg "repository"`,
+		`install_pkg "cluster-controller"`,
+	} {
+		if !strings.Contains(script, marker) {
+			t.Fatalf("join script must contain installer/package marker %q", marker)
+		}
+	}
+}
+
+// TestJoinScript_LocalControlPlaneOrder verifies dependency-sensitive local
+// service order after ScyllaDB: xDS before Envoy, Envoy before Gateway, then
+// workflow/repository before the local cluster-controller.
+func TestJoinScript_LocalControlPlaneOrder(t *testing.T) {
+	script := joinScriptForTest()
+
+	markers := []string{
+		`install_pkg "scylladb"`,
+		`install_pkg "xds"`,
+		`install_pkg "envoy"`,
+		`install_pkg "gateway"`,
+		`install_pkg "workflow"`,
+		`install_pkg "repository"`,
+		`install_pkg "cluster-controller"`,
+		`systemctl start globular-node-agent.service`,
+	}
+	last := -1
+	for _, marker := range markers {
+		idx := strings.Index(script, marker)
+		if idx < 0 {
+			t.Fatalf("join script missing marker %q", marker)
+		}
+		if idx <= last {
+			t.Fatalf("join script marker %q is out of order", marker)
+		}
+		last = idx
+	}
+}
+
+// TestJoinScript_ScyllaReadinessBeforeControlPlane verifies that local
+// control-plane services do not start before ScyllaDB's unit and CQL port are
+// both ready.
+func TestJoinScript_ScyllaReadinessBeforeControlPlane(t *testing.T) {
+	script := joinScriptForTest()
+
+	unitIdx := strings.Index(script, `wait_unit_active "scylla-server.service" 300 "ScyllaDB"`)
+	portIdx := strings.Index(script, `wait_tcp_port "${NODE_IP}" 9042 300 "ScyllaDB CQL"`)
+	xdsIdx := strings.Index(script, `install_pkg "xds"`)
+	if unitIdx < 0 || portIdx < 0 || xdsIdx < 0 {
+		t.Fatalf("join script missing Scylla readiness or xDS install marker")
+	}
+	if !(unitIdx < portIdx && portIdx < xdsIdx) {
+		t.Fatalf("Scylla unit and CQL readiness must be verified before xDS install")
+	}
+}
+
 // ─── Service start ordering ──────────────────────────────────────────────────
 
 // TestJoinScript_NodeAgentAfterEtcd verifies that the node-agent systemd unit
@@ -601,5 +695,88 @@ func TestJoinScript_ShellcheckIfAvailable(t *testing.T) {
 	).CombinedOutput()
 	if err != nil {
 		t.Errorf("shellcheck found issues in join script:\n%s", string(out))
+	}
+}
+
+// ── JoinPlan-driven join: authorization before credential, profile gates ─────
+
+// The JoinPlan authorization must run BEFORE certificate signing: the signed
+// cert is an etcd mTLS credential (client-cert-auth trusts the cluster CA),
+// so issuance itself is a cluster-affecting step gated on the join token.
+func TestJoinScript_AuthorizeBeforeCertSigning(t *testing.T) {
+	script := joinScriptForTest()
+	authorizeIdx := strings.Index(script, "/join/authorize")
+	signIdx := strings.Index(script, "/sign_ca_certificate")
+	if authorizeIdx < 0 {
+		t.Fatal("join script must contain /join/authorize call")
+	}
+	if signIdx < 0 {
+		t.Fatal("join script must contain /sign_ca_certificate call")
+	}
+	if authorizeIdx > signIdx {
+		t.Errorf("/join/authorize (byte %d) must appear BEFORE /sign_ca_certificate (byte %d)\n"+
+			"reason: the CA-signed cert is a credential; it may only be issued to an authorized joiner",
+			authorizeIdx, signIdx)
+	}
+}
+
+// The certificate-signing request must present the controller-issued join_id —
+// the gateway refuses to sign CSRs from unauthorized requesters.
+func TestJoinScript_CertSigningPresentsJoinID(t *testing.T) {
+	script := joinScriptForTest()
+	if !strings.Contains(script, "/sign_ca_certificate?csr=${CSR_B64}&join_id=${JOIN_ID}") {
+		t.Error("sign_ca_certificate call must include the join_id credential")
+	}
+}
+
+// The controller-assigned profiles from the JoinPlan drive local installs.
+// ScyllaDB joins the storage ring ONLY when the plan assigns 'storage' —
+// mirroring the MinIO topology hold.
+func TestJoinScript_ScyllaGatedOnStorageProfile(t *testing.T) {
+	script := joinScriptForTest()
+	gateIdx := strings.Index(script, `if should_install_role "storage"; then`)
+	scyllaIdx := strings.Index(script, `install_pkg "scylladb"`)
+	if gateIdx < 0 {
+		t.Fatal("join script must gate ScyllaDB install on the 'storage' profile")
+	}
+	if scyllaIdx < 0 {
+		t.Fatal("join script must install scylladb via install_pkg")
+	}
+	if gateIdx > scyllaIdx {
+		t.Error("the storage profile gate must appear before the scylladb install")
+	}
+}
+
+// Control-plane replicas (workflow/repository/cluster-controller) are
+// installed ONLY with the 'control-plane' profile. The mesh data plane
+// (xds/envoy/gateway) stays unconditional — every node needs it.
+func TestJoinScript_ControlPlaneGatedOnProfile(t *testing.T) {
+	script := joinScriptForTest()
+	gateIdx := strings.Index(script, `if should_install_role "control-plane"; then`)
+	ctrlIdx := strings.Index(script, `install_pkg "cluster-controller"`)
+	xdsIdx := strings.Index(script, `install_pkg "xds"`)
+	if gateIdx < 0 {
+		t.Fatal("join script must gate control-plane services on the 'control-plane' profile")
+	}
+	if ctrlIdx < 0 {
+		t.Fatal("join script must install cluster-controller via install_pkg")
+	}
+	if gateIdx > ctrlIdx {
+		t.Error("the control-plane profile gate must appear before the cluster-controller install")
+	}
+	if xdsIdx < 0 {
+		t.Fatal("join script must install xds via install_pkg")
+	}
+	if xdsIdx > gateIdx {
+		t.Error("xds (mesh data plane) must be installed unconditionally, before the control-plane gate")
+	}
+}
+
+// Legacy fallback: a plan without assigned_profiles must not brick the join —
+// the script warns and installs everything (pre-profile controller upgrades).
+func TestJoinScript_LegacyPlanFallsBackToFullInstall(t *testing.T) {
+	script := joinScriptForTest()
+	if !strings.Contains(script, `[[ -z "${ASSIGNED_PROFILES}" ]] && return 0`) {
+		t.Error("should_install_role must fall back to installing everything when the plan carries no profiles")
 	}
 }
