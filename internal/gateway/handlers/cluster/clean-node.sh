@@ -29,6 +29,7 @@ set -euo pipefail
 
 FORCE=0
 LOCAL_ONLY=0
+LAST_NODE=0
 TEST_ALLOW_NON_ROOT="${GLOBULAR_CLEAN_NODE_TEST_ALLOW_NON_ROOT:-0}"
 TEST_STOP_AFTER="${GLOBULAR_CLEAN_NODE_TEST_STOP_AFTER:-}"
 STATE_DIR_ROOT="${GLOBULAR_STATE_DIR_OVERRIDE:-/var/lib/globular}"
@@ -49,6 +50,13 @@ while [[ $# -gt 0 ]]; do
         --local-only)
             LOCAL_ONLY=1
             ;;
+        --last-node)
+            # Operator DATA-SAFETY assertion: this is genuinely the last/only ScyllaDB
+            # node, so skipping decommission is safe. Distinct authority from --force
+            # (which only suppresses prompts). Only this flag may permit a last-node
+            # Scylla teardown when ring topology cannot be positively confirmed.
+            LAST_NODE=1
+            ;;
         *)
             die "unknown argument: ${1}"
             ;;
@@ -66,11 +74,16 @@ phase_marker() {
 }
 
 count_scylla_up_nodes() {
+    # An unreachable/empty `nodetool status` is UNKNOWN ring topology, NOT a live-node
+    # count of zero. Collapsing it to 0 lets the caller misread a live multi-node ring
+    # member as single-node and hard-kill it without decommission — destroying group0
+    # Raft quorum. Emit a distinguishable UNKNOWN sentinel so the caller fails closed.
+    # Contract: cluster.teardown.membership_must_be_confirmed_before_destructive_stop
     local status_output=""
     status_output="$(nodetool status 2>/dev/null || true)"
     if [[ -z "${status_output}" ]]; then
-        log_warn "nodetool status unavailable — treating ScyllaDB peer count as 0" >&2
-        printf '0\n'
+        log_warn "nodetool status unreachable — ScyllaDB ring topology is UNKNOWN" >&2
+        printf 'UNKNOWN\n'
         return 0
     fi
     printf '%s\n' "${status_output}" | awk '/^U[NL] / {n++} END {print n+0}'
@@ -382,7 +395,23 @@ fi
 if [[ "$LOCAL_ONLY" != "1" ]] && systemctl is-active --quiet scylla-server.service 2>/dev/null; then
   if command -v nodetool >/dev/null 2>&1; then
     _SCYLLA_UP="$(count_scylla_up_nodes)"
-    if [[ "$_SCYLLA_UP" -gt 1 ]]; then
+    if [[ "$_SCYLLA_UP" == "UNKNOWN" ]]; then
+      # FAIL CLOSED: cannot confirm this node is NOT a live ring voter. Killing a live
+      # multi-node member without decommission destroys group0 quorum. --force only
+      # suppresses prompts; it does NOT assert single-node. Only the explicit
+      # --last-node data-safety assertion may permit a last-node teardown here.
+      # Contract: cluster.teardown.membership_must_be_confirmed_before_destructive_stop
+      if [[ "$LAST_NODE" == "1" ]]; then
+        log_warn "nodetool status unreachable, but --last-node asserted — skipping decommission (operator override)"
+      else
+        die "nodetool status is UNREACHABLE — cannot confirm this node is NOT a live ScyllaDB ring member.
+  Hard-stopping a live multi-node ring member without decommission destroys group0 quorum.
+  FAIL-CLOSED: refusing to proceed with ScyllaDB teardown.
+    • If ScyllaDB is genuinely the last/only node here, rerun with: --last-node
+    • Otherwise, from a healthy peer: nodetool removenode <host-id>, then rerun.
+  (--force suppresses prompts only; it does not assert single-node.)"
+      fi
+    elif [[ "$_SCYLLA_UP" -gt 1 ]]; then
       log_info "Decommissioning ScyllaDB node (streaming data to peers — this may take a few minutes)..."
       if nodetool decommission 2>/dev/null; then
         log_success "ScyllaDB node decommissioned cleanly"
@@ -391,11 +420,17 @@ if [[ "$LOCAL_ONLY" != "1" ]] && systemctl is-active --quiet scylla-server.servi
         log_warn "  From another node: nodetool removenode <host-id>"
       fi
     else
-      log_info "Single-node ScyllaDB — skipping decommission"
+      log_info "Single-node ScyllaDB (confirmed via nodetool) — skipping decommission"
     fi
   else
-    log_warn "nodetool not found — skipping ScyllaDB decommission"
-    log_warn "  From another node after this wipe: nodetool removenode <host-id>"
+    # nodetool absent while scylla-server is active = ring topology cannot be confirmed.
+    if [[ "$LAST_NODE" == "1" ]]; then
+      log_warn "nodetool not found, but --last-node asserted — skipping decommission (operator override)"
+    else
+      die "nodetool not found while scylla-server is active — cannot confirm ScyllaDB ring membership.
+  FAIL-CLOSED: rerun with --last-node if this is genuinely the only node,
+  or from a healthy peer run: nodetool removenode <host-id>."
+    fi
   fi
 fi
 
