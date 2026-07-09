@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -25,24 +26,42 @@ var (
 	joinBundlePackagesDir  = "/var/lib/globular/packages"
 	joinBundleWorkflowsDir = "/var/lib/globular/workflows"
 	joinBundleReleaseIndex = "/var/lib/globular/release-index.json"
+
+	// joinBundleReleasesDir is the release-addressed artifact store. Join
+	// bundles are materialized here ONCE per platform version and served
+	// byte-identical from disk thereafter — the .sha256 written at store
+	// time proves the provenance of the stored release artifact, not merely
+	// the transport of a per-request assembly.
+	// (docs/design/package-identity-single-authority.md §4, services repo)
+	joinBundleReleasesDir = "/var/lib/globular/releases"
 )
+
+// bundleStoreMu serializes materialization so concurrent first requests
+// produce a single stored artifact.
+var bundleStoreMu sync.Mutex
 
 // bundleModTime is a fixed timestamp stamped into every tar header so the bundle
 // is byte-reproducible: the tarball and its separately-fetched .sha256 are
 // assembled from independent HTTP requests and must produce identical bytes.
 var bundleModTime = time.Unix(0, 0).UTC()
 
-// NewJoinBundleHandler serves a controller-local bootstrap bundle for Day-1
-// joins when the requested platform release tarball is not published on GitHub.
+// NewJoinBundleHandler serves the STORED release artifact for Day-1 joins
+// when the requested platform release tarball is not published on GitHub.
 //
-// The bundle is generated from the founder node's installed state instead of a
-// repository checkout, so it works for local/dev builds too. The join script
-// only needs globular-installer, release-index.json, packages, and workflow
-// definitions.
+// Provenance model (docs/design/package-identity-single-authority.md §4):
+// the bundle is NOT reassembled per request. It is materialized ONCE per
+// platform version into the release-addressed store
+// (/var/lib/globular/releases/<version>/) — from the founder's BOM-verified
+// installed state — and every subsequent request serves those exact bytes.
+// The .sha256 is written at store time from the stored artifact, so the
+// checksum verifies the provenance of the release artifact rather than the
+// transport of bytes assembled moments earlier. Day-0 installs may
+// pre-populate the store with the original release tarball, in which case no
+// materialization ever runs.
 //
 // Two routes are served under /join/bundle/:
-//   - <tarball>          → the assembled gzip tarball
-//   - <tarball>.sha256   → the sha256 of that tarball (sha256sum format)
+//   - <tarball>          → the stored gzip tarball
+//   - <tarball>.sha256   → the stored checksum (sha256sum format)
 //
 // The join script fetches both and verifies the checksum, mirroring the GitHub
 // release path. NOTE: the checksum guards against corruption/truncation. It is
@@ -81,28 +100,120 @@ func NewJoinBundleHandler(platformVersion string) http.Handler {
 			return
 		}
 
-		bundleRoot := fmt.Sprintf("globular-%s-linux-amd64", version)
-		data, statusCode, err := assembleJoinBundle(bundleRoot)
+		tarPath, sumPath, statusCode, err := ensureStoredReleaseBundle(version, wantName)
 		if err != nil {
 			http.Error(w, err.Error(), statusCode)
 			return
 		}
 
-		sum := sha256.Sum256(data)
-		sumHex := hex.EncodeToString(sum[:])
-
 		if wantChecksum {
-			// sha256sum-compatible line: "<hex>  <filename>".
+			sumLine, rerr := os.ReadFile(sumPath)
+			if rerr != nil {
+				http.Error(w, "stored bundle checksum unreadable", http.StatusInternalServerError)
+				return
+			}
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-			fmt.Fprintf(w, "%s  %s\n", sumHex, wantName)
+			_, _ = w.Write(sumLine)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/gzip")
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", wantName))
-		w.Header().Set("X-Content-SHA256", sumHex)
-		_, _ = w.Write(data)
+		http.ServeFile(w, r, tarPath)
 	})
+}
+
+// ensureStoredReleaseBundle returns the stored release artifact paths for the
+// given version, materializing them exactly once when absent. Materialization
+// is the ONLY place assembly happens; it is an explicit, serialized,
+// once-per-version event — never a per-request behavior. If the store already
+// holds the artifact (e.g. Day-0 pre-populated the original release tarball),
+// it is served as-is; a missing .sha256 sidecar is recomputed from the STORED
+// bytes so the pinned provenance is preserved.
+func ensureStoredReleaseBundle(version, wantName string) (tarPath, sumPath string, statusCode int, err error) {
+	dir := filepath.Join(joinBundleReleasesDir, version)
+	tarPath = filepath.Join(dir, wantName)
+	sumPath = tarPath + ".sha256"
+
+	bundleStoreMu.Lock()
+	defer bundleStoreMu.Unlock()
+
+	tarOK := fileIsRegular(tarPath)
+	if tarOK && fileIsRegular(sumPath) {
+		return tarPath, sumPath, http.StatusOK, nil
+	}
+
+	if tarOK {
+		// Stored artifact without its checksum sidecar: pin the STORED bytes.
+		if err := writeChecksumSidecar(tarPath, sumPath, wantName); err != nil {
+			return "", "", http.StatusInternalServerError, fmt.Errorf("stored bundle checksum: %w", err)
+		}
+		return tarPath, sumPath, http.StatusOK, nil
+	}
+
+	// One-time materialization from the founder's BOM-verified installed state.
+	bundleRoot := strings.TrimSuffix(wantName, ".tar.gz")
+	data, code, aerr := assembleJoinBundle(bundleRoot)
+	if aerr != nil {
+		return "", "", code, aerr
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", "", http.StatusInternalServerError, fmt.Errorf("release store: %w", err)
+	}
+	if err := atomicWriteFile(tarPath, data, 0o644); err != nil {
+		return "", "", http.StatusInternalServerError, fmt.Errorf("store bundle: %w", err)
+	}
+	if err := writeChecksumSidecar(tarPath, sumPath, wantName); err != nil {
+		return "", "", http.StatusInternalServerError, fmt.Errorf("store bundle checksum: %w", err)
+	}
+	return tarPath, sumPath, http.StatusOK, nil
+}
+
+func fileIsRegular(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.Mode().IsRegular()
+}
+
+// writeChecksumSidecar hashes the STORED artifact bytes and writes the
+// sha256sum-compatible sidecar atomically.
+func writeChecksumSidecar(tarPath, sumPath, wantName string) error {
+	f, err := os.Open(tarPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return err
+	}
+	line := fmt.Sprintf("%s  %s\n", hex.EncodeToString(h.Sum(nil)), wantName)
+	return atomicWriteFile(sumPath, []byte(line), 0o644)
+}
+
+// atomicWriteFile writes via a temp file + rename in the destination
+// directory so a crash never leaves a partially-written artifact in the store.
+func atomicWriteFile(dst string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(dst)
+	tmp, err := os.CreateTemp(dir, ".tmp-"+filepath.Base(dst)+"-*")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer func() {
+		_ = os.Remove(tmpName)
+	}()
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Chmod(perm); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpName, dst)
 }
 
 // assembleJoinBundle builds the Day-1 fallback tarball into a buffer so the same

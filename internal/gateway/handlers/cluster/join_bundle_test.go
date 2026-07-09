@@ -44,16 +44,19 @@ func TestJoinBundleHandler_ServesBootstrapBundle(t *testing.T) {
 	oldPackagesDir := joinBundlePackagesDir
 	oldWorkflowsDir := joinBundleWorkflowsDir
 	oldReleaseIndex := joinBundleReleaseIndex
+	oldReleasesDir := joinBundleReleasesDir
 	t.Cleanup(func() {
 		joinBundleInstallerCandidates = oldCandidates
 		joinBundlePackagesDir = oldPackagesDir
 		joinBundleWorkflowsDir = oldWorkflowsDir
 		joinBundleReleaseIndex = oldReleaseIndex
+		joinBundleReleasesDir = oldReleasesDir
 	})
 	joinBundleInstallerCandidates = []string{installerPath}
 	joinBundlePackagesDir = packagesDir
 	joinBundleWorkflowsDir = workflowsDir
 	joinBundleReleaseIndex = releaseIndexPath
+	joinBundleReleasesDir = filepath.Join(tmp, "releases")
 
 	version := activePlatformVersion("1.2.3")
 	name := "globular-" + version + "-linux-amd64.tar.gz"
@@ -134,16 +137,19 @@ func bundleTestFixture(t *testing.T, includeReleaseIndex bool) (version, name st
 	oldPackagesDir := joinBundlePackagesDir
 	oldWorkflowsDir := joinBundleWorkflowsDir
 	oldReleaseIndex := joinBundleReleaseIndex
+	oldReleasesDir := joinBundleReleasesDir
 	t.Cleanup(func() {
 		joinBundleInstallerCandidates = oldCandidates
 		joinBundlePackagesDir = oldPackagesDir
 		joinBundleWorkflowsDir = oldWorkflowsDir
 		joinBundleReleaseIndex = oldReleaseIndex
+		joinBundleReleasesDir = oldReleasesDir
 	})
 	joinBundleInstallerCandidates = []string{installerPath}
 	joinBundlePackagesDir = packagesDir
 	joinBundleWorkflowsDir = workflowsDir
 	joinBundleReleaseIndex = releaseIndexPath
+	joinBundleReleasesDir = filepath.Join(tmp, "releases")
 
 	version = activePlatformVersion("1.2.3")
 	name = "globular-" + version + "-linux-amd64.tar.gz"
@@ -190,5 +196,94 @@ func TestJoinBundleHandler_RequiresReleaseIndex(t *testing.T) {
 	}
 	if !strings.Contains(rr.Body.String(), "release-index.json") {
 		t.Errorf("error body should name the missing release-index.json, got %q", rr.Body.String())
+	}
+}
+
+// TestJoinBundleHandler_ServedBytesMatchStoredArtifact pins the provenance
+// contract (docs/design/package-identity-single-authority.md §4): the served
+// join bundle is byte-identical to the artifact in the release-addressed
+// store, and the .sha256 route serves the stored sidecar.
+func TestJoinBundleHandler_ServedBytesMatchStoredArtifact(t *testing.T) {
+	version, name := bundleTestFixture(t, true)
+
+	rr := serveBundle(t, "/join/bundle/"+name)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("tarball: unexpected status %d body=%s", rr.Code, rr.Body.String())
+	}
+
+	storedPath := filepath.Join(joinBundleReleasesDir, version, name)
+	stored, err := os.ReadFile(storedPath)
+	if err != nil {
+		t.Fatalf("stored artifact missing after first request: %v", err)
+	}
+	if string(stored) != rr.Body.String() {
+		t.Fatal("served bundle bytes differ from the stored release artifact")
+	}
+
+	sumStored, err := os.ReadFile(storedPath + ".sha256")
+	if err != nil {
+		t.Fatalf("stored checksum sidecar missing: %v", err)
+	}
+	sumRR := serveBundle(t, "/join/bundle/"+name+".sha256")
+	if sumRR.Code != http.StatusOK || sumRR.Body.String() != string(sumStored) {
+		t.Fatalf(".sha256 route must serve the stored sidecar: got %q want %q", sumRR.Body.String(), string(sumStored))
+	}
+}
+
+// TestJoinBundleHandler_NoPerRequestReassembly pins that the bundle is
+// materialized ONCE: mutating the live packages dir after the first request
+// must NOT change the served bytes — the stored release artifact is the
+// authority, not the controller's current disk state.
+func TestJoinBundleHandler_NoPerRequestReassembly(t *testing.T) {
+	_, name := bundleTestFixture(t, true)
+
+	first := serveBundle(t, "/join/bundle/"+name)
+	if first.Code != http.StatusOK {
+		t.Fatalf("first request: unexpected status %d body=%s", first.Code, first.Body.String())
+	}
+
+	// Drift the live source dir — a per-request assembler would pick this up.
+	if err := os.WriteFile(filepath.Join(joinBundlePackagesDir, "drift_9.9.9_linux_amd64.tgz"), []byte("drift"), 0o644); err != nil {
+		t.Fatalf("write drift package: %v", err)
+	}
+
+	second := serveBundle(t, "/join/bundle/"+name)
+	if second.Code != http.StatusOK {
+		t.Fatalf("second request: unexpected status %d body=%s", second.Code, second.Body.String())
+	}
+	if first.Body.String() != second.Body.String() {
+		t.Fatal("served bundle changed between requests — per-request reassembly detected; the stored artifact must be served")
+	}
+}
+
+// TestJoinBundleHandler_PrePopulatedStoreWins pins the Day-0 lane: when the
+// release store already holds an artifact for the active version (e.g. the
+// original release tarball stored at install), the handler serves those exact
+// bytes and never assembles from live disk.
+func TestJoinBundleHandler_PrePopulatedStoreWins(t *testing.T) {
+	version, name := bundleTestFixture(t, true)
+
+	pre := []byte("original-release-artifact-bytes")
+	dir := filepath.Join(joinBundleReleasesDir, version)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir releases: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, name), pre, 0o644); err != nil {
+		t.Fatalf("pre-populate store: %v", err)
+	}
+
+	rr := serveBundle(t, "/join/bundle/"+name)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("unexpected status %d body=%s", rr.Code, rr.Body.String())
+	}
+	if rr.Body.String() != string(pre) {
+		t.Fatal("handler did not serve the pre-populated stored artifact byte-for-byte")
+	}
+	// The checksum sidecar must pin the STORED bytes.
+	sum := sha256.Sum256(pre)
+	wantLine := hex.EncodeToString(sum[:]) + "  " + name + "\n"
+	sumRR := serveBundle(t, "/join/bundle/"+name+".sha256")
+	if sumRR.Body.String() != wantLine {
+		t.Fatalf("checksum must pin stored bytes: got %q want %q", sumRR.Body.String(), wantLine)
 	}
 }

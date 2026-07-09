@@ -25,8 +25,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Version lives in zz_version_generated.go — the committed per-package
+// version authority (single-authority identity model). ldflags override is
+// sanctioned only for the hotfix/local lane.
 var (
-	Version   = "0.0.0-dev"
 	BuildTime = "unknown"
 	GitCommit = "unknown"
 )
