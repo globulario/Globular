@@ -637,6 +637,131 @@ func TestJoinScript_Phase57DiesOnMissingMember(t *testing.T) {
 	}
 }
 
+// ─── Preflight lifecycle contract (scar 2026-07-10) ──────────────────────────
+//
+// Re-running the fresh-join script on an already-joined node used to stop its
+// etcd member and node-agent DURING preflight, then refuse on the existing
+// data directory — leaving the member down and collapsing quorum on a 2-node
+// cluster. The contract is now: every refusal fires BEFORE any service stop,
+// and an armed compensation trap restores previously-active units on abort.
+
+// TestJoinScript_LifecycleRefusalBeforeServiceStop verifies that both refusal
+// paths (non-pristine node without --repair-etcd; repair mode against a live
+// member) appear before the first service stop in the script.
+func TestJoinScript_LifecycleRefusalBeforeServiceStop(t *testing.T) {
+	script := joinScriptForTest()
+
+	stopIdx := strings.Index(script, `systemctl stop "${unit}"`)
+	if stopIdx < 0 {
+		t.Fatal("join script must contain the targeted service-stop loop")
+	}
+
+	classifyIdx := strings.Index(script, "[0.0] Classifying node lifecycle state")
+	if classifyIdx < 0 {
+		t.Fatal("join script must classify node lifecycle state in step [0.0]")
+	}
+	if classifyIdx > stopIdx {
+		t.Errorf("lifecycle classification (byte %d) must run before the service-stop loop (byte %d)",
+			classifyIdx, stopIdx)
+	}
+
+	refusals := []string{
+		`REFUSED: node is ${LIFECYCLE}`,
+		"--repair-etcd was not given",
+		"--repair-etcd given but globular-etcd.service is ACTIVE",
+	}
+	for _, r := range refusals {
+		idx := strings.Index(script, r)
+		if idx < 0 {
+			t.Errorf("join script missing refusal %q", r)
+			continue
+		}
+		if idx > stopIdx {
+			t.Errorf("refusal %q (byte %d) must appear BEFORE the service-stop loop (byte %d)\n"+
+				"reason: an aborted preflight must leave the node exactly as it found it",
+				r, idx, stopIdx)
+		}
+	}
+}
+
+// TestJoinScript_CompensationTrapArmedBeforeStops verifies the abort
+// compensation trap is installed and armed before the first service stop, so
+// any later abort restores the units that were active when the script started.
+func TestJoinScript_CompensationTrapArmedBeforeStops(t *testing.T) {
+	script := joinScriptForTest()
+
+	stopIdx := strings.Index(script, `systemctl stop "${unit}"`)
+	trapIdx := strings.Index(script, "trap compensate_on_abort EXIT")
+	armIdx := strings.Index(script, "COMPENSATION_ARMED=1")
+
+	if stopIdx < 0 || trapIdx < 0 || armIdx < 0 {
+		t.Fatalf("join script missing compensation markers (stop=%d trap=%d arm=%d)",
+			stopIdx, trapIdx, armIdx)
+	}
+	if trapIdx > stopIdx || armIdx > stopIdx {
+		t.Errorf("compensation trap (byte %d) and arming (byte %d) must precede the service-stop loop (byte %d)",
+			trapIdx, armIdx, stopIdx)
+	}
+	// The trap must restore exactly the units recorded as active at start.
+	for _, m := range []string{"ETCD_WAS_ACTIVE", "AGENT_WAS_ACTIVE", "join_interrupted.json"} {
+		if !strings.Contains(script, m) {
+			t.Errorf("compensation trap missing marker %q", m)
+		}
+	}
+}
+
+// TestJoinScript_UnitRestoreDisarmedAtPointsOfNoReturn verifies unit restore
+// is disarmed (a) after the repair-mode wipe — restarting the old unit on an
+// empty data dir could fork a new cluster — and (b) after the Phase 5.7
+// anti-fork proof, when the local units belong to the new cluster state.
+func TestJoinScript_UnitRestoreDisarmedAtPointsOfNoReturn(t *testing.T) {
+	script := joinScriptForTest()
+
+	wipeIdx := strings.Index(script, `rm -rf "${STATE_DIR}/etcd"`)
+	antiForkIdx := strings.Index(script, "anti-fork verified")
+	if wipeIdx < 0 || antiForkIdx < 0 {
+		t.Fatalf("join script missing wipe (%d) or anti-fork (%d) marker", wipeIdx, antiForkIdx)
+	}
+
+	disarmCount := strings.Count(script, "RESTORE_UNITS_ON_ABORT=0")
+	if disarmCount < 2 {
+		t.Fatalf("expected at least 2 RESTORE_UNITS_ON_ABORT=0 disarm points (post-wipe, post-anti-fork), got %d", disarmCount)
+	}
+	firstDisarm := strings.Index(script, "RESTORE_UNITS_ON_ABORT=0")
+	if firstDisarm < wipeIdx {
+		t.Errorf("first unit-restore disarm (byte %d) must come after the repair-mode wipe (byte %d)",
+			firstDisarm, wipeIdx)
+	}
+	lastDisarm := strings.LastIndex(script, "RESTORE_UNITS_ON_ABORT=0")
+	if lastDisarm < antiForkIdx {
+		t.Errorf("a unit-restore disarm must follow the anti-fork proof (disarm byte %d, anti-fork byte %d)",
+			lastDisarm, antiForkIdx)
+	}
+}
+
+// TestJoinScript_TrapDisarmedOnSuccess verifies the success path disarms the
+// abort trap and clears any stale interrupted-join receipt.
+func TestJoinScript_TrapDisarmedOnSuccess(t *testing.T) {
+	script := joinScriptForTest()
+
+	disarmIdx := strings.Index(script, "trap - EXIT")
+	successIdx := strings.Index(script, "NODE JOINED SUCCESSFULLY")
+	clearIdx := strings.Index(script, `rm -f "${STATE_DIR}/nodeagent/join_interrupted.json"`)
+
+	if disarmIdx < 0 {
+		t.Fatal("join script must disarm the abort trap (trap - EXIT) on success")
+	}
+	if clearIdx < 0 {
+		t.Fatal("join script must clear the stale interrupted-join receipt on success")
+	}
+	if successIdx < 0 {
+		t.Fatal("join script missing success banner")
+	}
+	if disarmIdx > successIdx {
+		t.Errorf("trap disarm (byte %d) must precede the success banner (byte %d)", disarmIdx, successIdx)
+	}
+}
+
 // ─── bash syntax validation ──────────────────────────────────────────────────
 
 // TestJoinScript_BashNSyntaxCheck writes the expanded script to a temp file
