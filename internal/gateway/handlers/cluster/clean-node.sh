@@ -74,15 +74,20 @@ phase_marker() {
 }
 
 count_scylla_up_nodes() {
-    # An unreachable/empty `nodetool status` is UNKNOWN ring topology, NOT a live-node
-    # count of zero. Collapsing it to 0 lets the caller misread a live multi-node ring
-    # member as single-node and hard-kill it without decommission — destroying group0
-    # Raft quorum. Emit a distinguishable UNKNOWN sentinel so the caller fails closed.
+    # ScyllaDB's admin REST API binds to api_address = this node's cluster IP (the SAME
+    # routable address the node registers in etcd; never loopback — this is a cluster),
+    # passed in as $1. nodetool defaults to 127.0.0.1:10000, which nothing serves, so a
+    # plain `nodetool status` reads "connection refused" on a perfectly healthy node and
+    # would collapse to a live-node count of zero — letting the caller misread a live
+    # multi-node ring member as single-node and hard-kill it without decommission,
+    # destroying group0 Raft quorum. Target the resolved node address, NOT localhost.
+    # An unreachable/empty result is UNKNOWN ring topology, NOT zero — emit the UNKNOWN
+    # sentinel so the caller fails closed.
     # Contract: cluster.teardown.membership_must_be_confirmed_before_destructive_stop
-    local status_output=""
-    status_output="$(nodetool status 2>/dev/null || true)"
+    local _node_ip="${1:-}" status_output=""
+    status_output="$(nodetool -h "${_node_ip}" status 2>/dev/null || true)"
     if [[ -z "${status_output}" ]]; then
-        log_warn "nodetool status unreachable — ScyllaDB ring topology is UNKNOWN" >&2
+        log_warn "nodetool status unreachable at ${_node_ip}:10000 — ScyllaDB ring topology is UNKNOWN" >&2
         printf 'UNKNOWN\n'
         return 0
     fi
@@ -394,7 +399,7 @@ fi
 # Skip when this is the only ScyllaDB node (nothing to stream to).
 if [[ "$LOCAL_ONLY" != "1" ]] && systemctl is-active --quiet scylla-server.service 2>/dev/null; then
   if command -v nodetool >/dev/null 2>&1; then
-    _SCYLLA_UP="$(count_scylla_up_nodes)"
+    _SCYLLA_UP="$(count_scylla_up_nodes "$_NODE_IP")"
     if [[ "$_SCYLLA_UP" == "UNKNOWN" ]]; then
       # FAIL CLOSED: cannot confirm this node is NOT a live ring voter. Killing a live
       # multi-node member without decommission destroys group0 quorum. --force only
@@ -413,7 +418,7 @@ if [[ "$LOCAL_ONLY" != "1" ]] && systemctl is-active --quiet scylla-server.servi
       fi
     elif [[ "$_SCYLLA_UP" -gt 1 ]]; then
       log_info "Decommissioning ScyllaDB node (streaming data to peers — this may take a few minutes)..."
-      if nodetool decommission 2>/dev/null; then
+      if nodetool -h "$_NODE_IP" decommission 2>/dev/null; then
         log_success "ScyllaDB node decommissioned cleanly"
       else
         log_warn "ScyllaDB decommission failed — data may be under-replicated."
