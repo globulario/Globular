@@ -976,11 +976,30 @@ log_info "[5.5] Adding ${ETCD_NAME} to cluster as a non-voting LEARNER (quorum-s
 # voters toward the HA target (>=3 voters) — see cluster_controller
 # etcd_learner_promotion.go.
 #
-# etcd permits only ONE learner at a time (max-learners=1). If a prior node is
-# still an un-promoted learner, wait for the controller to promote it first —
-# otherwise this add is rejected with "too many learner members in cluster".
-log_info "[5.5.0] Waiting for any prior learner to be promoted (etcd max-learners=1, up to 300s)..."
-for i in $(seq 1 150); do
+# etcd permits only ONE learner at a time (max-learners=1) and serializes raft
+# configuration changes. Waiting for that slot and TAKING it must therefore share
+# one budget: observing a free slot does not reserve it, and concurrent joiners
+# routinely observe the same free slot in the same instant. The loser of that
+# race is rejected by the ADD, not by the wait.
+#
+# Observed 2026-08-01 joining four nodes concurrently: node-3 added instantly;
+# node-2 waited 25s for node-3's promotion and added cleanly; node-4 and node-5
+# both left the wait, fired "member add" into the contended slot, and died at 30s
+# on "etcdserver: request timed out" — having consumed NONE of their 300s budget,
+# because the budget covered only the wait while the add was a single attempt
+# outside it.
+#
+# So the add retries until the budget is spent, and errors are classified:
+# contention is retryable, a genuine refusal still dies at once, and an exhausted
+# budget is fatal. --command-timeout bounds each attempt so one blocked add
+# cannot swallow the whole budget in a single call.
+log_info "[5.5.0] Waiting for the learner slot and adding ${ETCD_NAME} (etcd max-learners=1, up to 300s)..."
+ETCD_ADD_DEADLINE=$(( $(date +%%s) + 300 ))
+MEMBER_ADD_OUT=""
+MEMBER_ADD_OK=0
+ETCD_ADD_TRIES=0
+while [[ $(date +%%s) -lt ${ETCD_ADD_DEADLINE} ]]; do
+  ETCD_ADD_TRIES=$((ETCD_ADD_TRIES + 1))
   # grep -c prints the count and exits 1 on zero matches; under set -euo
   # pipefail that non-zero would abort the whole join at the common 0-learner
   # case, so swallow it with '|| true' (the count "0" is still captured).
@@ -988,22 +1007,80 @@ for i in $(seq 1 150); do
     --endpoints="${BOOTSTRAP_ETCD}" \
     --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
     member list -w json 2>/dev/null | grep -c '"isLearner":true' || true)
-  if [[ "${PENDING_LEARNERS:-0}" -eq 0 ]]; then
+  if [[ "${PENDING_LEARNERS:-0}" -ne 0 ]]; then
+    if [[ $((ETCD_ADD_TRIES %% 15)) -eq 0 ]]; then
+      log_info "still waiting: ${PENDING_LEARNERS} un-promoted learner(s) present..."
+    fi
+    sleep 2
+    continue
+  fi
+
+  # The slot LOOKED free. Taking it may still lose to another joiner.
+  if MEMBER_ADD_OUT=$(etcdctl \
+    --endpoints="${BOOTSTRAP_ETCD}" \
+    --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
+    --command-timeout=15s \
+    member add "${ETCD_NAME}" --learner \
+    --peer-urls="https://${NODE_IP}:2380" 2>&1); then
+    MEMBER_ADD_OK=1
     break
   fi
-  if [[ $((i %% 15)) -eq 0 ]]; then
-    log_info "still waiting: ${PENDING_LEARNERS} un-promoted learner(s) present..."
-  fi
-  sleep 2
+
+  # Contention, not refusal: another joiner holds the slot, or the raft
+  # configuration change has not committed yet. Both clear on their own.
+  case "${MEMBER_ADD_OUT}" in
+    *"too many learner members"*|*"request timed out"*|*"leader changed"*|\
+    *"no leader"*|*"unhealthy cluster"*|*"context deadline exceeded"*)
+      if [[ $((ETCD_ADD_TRIES %% 15)) -eq 0 ]]; then
+        log_info "learner slot contended, retrying: $(echo "${MEMBER_ADD_OUT}" | tail -n1)"
+      fi
+      sleep 2
+      continue
+      ;;
+  esac
+
+  # Anything else is the bootstrap cluster genuinely refusing this node.
+  echo "${MEMBER_ADD_OUT}" >&2
+  die "etcd join failed: learner member add rejected by bootstrap cluster"
 done
 
-etcdctl \
-  --endpoints="${BOOTSTRAP_ETCD}" \
-  --cacert="${ETCD_CACERT}" --cert="${ETCD_CERT}" --key="${ETCD_KEY}" \
-  member add "${ETCD_NAME}" --learner \
-  --peer-urls="https://${NODE_IP}:2380" \
-  || die "etcd join failed: learner member add rejected by bootstrap cluster"
+if [[ "${MEMBER_ADD_OK}" -ne 1 ]]; then
+  echo "${MEMBER_ADD_OUT}" >&2
+  die "etcd join failed: learner member add did not succeed within 300s (learner slot never became available)"
+fi
+echo "${MEMBER_ADD_OUT}"
 log_ok "learner member add accepted: ${ETCD_NAME} (non-voting; controller promotes to voter when caught up)"
+
+# [5.5.1] Re-render initial-cluster from the value the member add command just returned.
+#
+# Phase 5.4 above rendered initial-cluster from a membership snapshot taken
+# BEFORE this add. If another node joined inside that window, the snapshot is
+# already stale and etcd refuses to start:
+#
+#   fatal: discovery failed: error validating peerURLs ... member count is unequal
+#
+# The blast radius is the whole cluster, not this node: etcd allows one learner
+# (max-learners=1), so an etcd that never starts never catches up, is never
+# promoted, and wedges the learner slot — every subsequent join then dies with
+# "too many learner members in cluster". Observed 2026-07-31 joining four nodes
+# concurrently: node-2 succeeded, node-3 wedged, node-4 and node-5 both failed
+# after waiting the full 300s in phase 5.5.0.
+#
+# The member add command prints the authoritative ETCD_INITIAL_CLUSTER so the
+# caller can write it. Use it rather than the pre-add snapshot.
+AUTH_INITIAL_CLUSTER=$(echo "${MEMBER_ADD_OUT}" \
+  | sed -n 's/^ETCD_INITIAL_CLUSTER="\(.*\)"$/\1/p' | tail -n1)
+if [[ -n "${AUTH_INITIAL_CLUSTER}" ]]; then
+  # Same loopback rewrite phase 5.4 applies: a bootstrap founder may advertise
+  # 127.0.0.1, which is meaningless from this node.
+  AUTH_INITIAL_CLUSTER="${AUTH_INITIAL_CLUSTER//127.0.0.1/${BOOTSTRAP_HOST}}"
+  sed -i "s|^initial-cluster: .*|initial-cluster: ${AUTH_INITIAL_CLUSTER}|" \
+    "${STATE_DIR}/config/etcd.yaml"
+  log_ok "initial-cluster re-rendered from member add: ${AUTH_INITIAL_CLUSTER}"
+else
+  # Fail closed rather than start etcd against a snapshot we know may be stale.
+  die "etcd join failed: could not parse ETCD_INITIAL_CLUSTER from member add output — refusing to start etcd on a possibly stale initial-cluster"
+fi
 
 log_info "[5.6] Starting globular-etcd.service..."
 systemctl daemon-reload

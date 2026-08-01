@@ -257,6 +257,61 @@ func TestJoinScript_EtcdJoinsAsLearner(t *testing.T) {
 	}
 }
 
+// TestJoinScript_LearnerMemberAddRetriesWithinBudget locks the contract broken on
+// 2026-08-01: the learner-slot budget must cover the member ADD, not only the
+// wait that precedes it.
+//
+// etcd allows one learner (max-learners=1) and serializes raft configuration
+// changes, so observing a free slot does not reserve it. Joining four nodes
+// concurrently, node-4 and node-5 both left the wait, fired a single `member add`
+// into the contended slot, and died at 30s on "etcdserver: request timed out" —
+// having spent none of their 300s budget, because the add sat outside the loop.
+//
+// A single-attempt add is therefore forbidden here regardless of how generous the
+// preceding wait is.
+func TestJoinScript_LearnerMemberAddRetriesWithinBudget(t *testing.T) {
+	script := joinScriptForTest()
+
+	addIdx := strings.Index(script, `member add "${ETCD_NAME}" --learner`)
+	if addIdx < 0 {
+		t.Fatal("join script must contain the learner member add")
+	}
+
+	// The add must sit inside the budgeted loop, i.e. the loop must still be open
+	// where the add appears. Anchor on the deadline the loop is bounded by.
+	deadlineIdx := strings.Index(script, "ETCD_ADD_DEADLINE=")
+	if deadlineIdx < 0 {
+		t.Fatal("learner member add must be bounded by a wall-clock budget (ETCD_ADD_DEADLINE)")
+	}
+	if deadlineIdx > addIdx {
+		t.Error("the learner-slot budget must be established BEFORE the member add,\n" +
+			"otherwise the add is a single attempt outside the budget (2026-08-01 node-4/node-5 failure)")
+	}
+
+	// Contention must be classified as retryable. "too many learner members" is
+	// the max-learners rejection; "request timed out" is the blocked raft config
+	// change that actually killed node-4 and node-5.
+	for _, retryable := range []string{"too many learner members", "request timed out"} {
+		if !strings.Contains(script, retryable) {
+			t.Errorf("join script must treat %q as retryable contention on the learner slot,\n"+
+				"not as a terminal rejection", retryable)
+		}
+	}
+
+	// Each attempt must be bounded so one blocked add cannot consume the whole
+	// budget in a single call.
+	if !strings.Contains(script, "--command-timeout=") {
+		t.Error("each learner member add attempt must be time-bounded (--command-timeout),\n" +
+			"or a blocked add swallows the entire retry budget")
+	}
+
+	// Exhausting the budget must remain fatal — retrying must not become a way to
+	// proceed without membership.
+	if !strings.Contains(script, "did not succeed within 300s") {
+		t.Error("budget exhaustion on member add must be fatal, not a soft continue")
+	}
+}
+
 // TestJoinScript_BackupBeforeWipeInRepairMode verifies that the repair-etcd
 // branch backs up the etcd data directory BEFORE wiping it. Wipe without
 // backup is not permitted.
