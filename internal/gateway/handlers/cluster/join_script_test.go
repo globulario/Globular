@@ -360,28 +360,53 @@ func TestJoinScript_ExistingEtcdDataWithoutRepairFlagFails(t *testing.T) {
 // TestJoinScript_TarballDownloadFallsBackToGateway verifies that the generated
 // join script tries GitHub first, then falls back to the controller-local
 // bundle endpoint when the platform tag is not published upstream.
-func TestJoinScript_TarballDownloadFallsBackToGateway(t *testing.T) {
+// TestJoinScript_TarballDownloadPrefersGateway verifies the bundle download
+// tries the cluster's own gateway FIRST (guaranteed to match the running
+// controller's active BOM, and already a mandatory dependency for every
+// other join phase), falling back to GitHub only as a last resort. A Day-1
+// join should not pay for an external network dependency it doesn't
+// otherwise need, and should not risk pulling a GitHub release that's
+// out of sync with what the controller is actually running.
+func TestJoinScript_TarballDownloadPrefersGateway(t *testing.T) {
 	script := joinScriptForTest()
 
-	if !strings.Contains(script, `GITHUB_TARBALL_URL="https://github.com/globulario/services/releases/download/v${PLATFORM_VERSION}/${TARBALL_NAME}"`) {
-		t.Fatal("join script must define the GitHub tarball URL")
-	}
 	if !strings.Contains(script, `GATEWAY_TARBALL_URL="https://${GATEWAY}/join/bundle/${TARBALL_NAME}"`) {
-		t.Fatal("join script must define the gateway fallback tarball URL")
+		t.Fatal("join script must define the gateway tarball URL")
 	}
-	if !strings.Contains(script, `GitHub release tarball unavailable for v${PLATFORM_VERSION} — falling back to controller bundle`) {
-		t.Fatal("join script must log the controller fallback when GitHub is unavailable")
+	if !strings.Contains(script, `GITHUB_TARBALL_URL="https://github.com/globulario/services/releases/download/v${PLATFORM_VERSION}/${TARBALL_NAME}"`) {
+		t.Fatal("join script must define the GitHub fallback tarball URL")
 	}
-	if !strings.Contains(script, `could not download ${TARBALL_NAME} (+.sha256) from GitHub or controller fallback`) {
-		t.Fatal("join script must fail closed if both GitHub and controller bundle download fail")
+
+	gatewayAttemptIdx := strings.Index(script, `curl -sfL -k "${GATEWAY_TARBALL_URL}"`)
+	githubAttemptIdx := strings.Index(script, `curl -sfL "${GITHUB_TARBALL_URL}"`)
+	if gatewayAttemptIdx < 0 {
+		t.Fatal("join script must attempt the gateway bundle download")
 	}
-	// The controller fallback must fetch and verify a checksum, not trust the
-	// bytes blindly (mirrors the GitHub path).
+	if githubAttemptIdx < 0 {
+		t.Fatal("join script must attempt the GitHub fallback download")
+	}
+	if !(gatewayAttemptIdx < githubAttemptIdx) {
+		t.Fatal("join script must try the gateway bundle before falling back to GitHub")
+	}
+
+	if !strings.Contains(script, `controller gateway bundle unavailable for v${PLATFORM_VERSION} — falling back to GitHub release`) {
+		t.Fatal("join script must log the GitHub fallback when the gateway bundle is unavailable")
+	}
+	if !strings.Contains(script, `could not download ${TARBALL_NAME} (+.sha256) from controller gateway or GitHub fallback`) {
+		t.Fatal("join script must fail closed if both gateway and GitHub download fail")
+	}
+	// Both paths must fetch and verify a checksum, not trust the bytes blindly.
 	if !strings.Contains(script, `${GATEWAY_TARBALL_URL}.sha256`) {
-		t.Fatal("join script must fetch the controller fallback bundle .sha256")
+		t.Fatal("join script must fetch the gateway bundle .sha256")
 	}
-	if !strings.Contains(script, `controller fallback bundle checksum mismatch`) {
-		t.Fatal("join script must fail closed on a controller fallback checksum mismatch")
+	if !strings.Contains(script, `controller bundle checksum mismatch`) {
+		t.Fatal("join script must fail closed on a gateway bundle checksum mismatch")
+	}
+	if !strings.Contains(script, `${GITHUB_TARBALL_URL}.sha256`) {
+		t.Fatal("join script must fetch the GitHub fallback bundle .sha256")
+	}
+	if !strings.Contains(script, `GitHub fallback tarball checksum mismatch`) {
+		t.Fatal("join script must fail closed on a GitHub fallback checksum mismatch")
 	}
 }
 
@@ -465,16 +490,20 @@ func TestJoinScript_NodeAgentStartAfterEtcdHealthGate(t *testing.T) {
 	// Learner-first join: a learner cannot serve client health RPCs, so the local
 	// readiness gate uses `endpoint status` and dies with "etcd did not come up".
 	healthGateIdx := strings.Index(script, `etcd did not come up`)
-	agentStartIdx := strings.Index(script, `systemctl start globular-node-agent.service`)
+	// node-agent's install (which enables+starts it via the package spec's
+	// own install_services/start_services steps — see
+	// TestJoinScript_NodeAgentDoesNotHandWriteUnit) begins at its package
+	// discovery line.
+	agentStartIdx := strings.Index(script, `NODE_AGENT_PKG=$(find`)
 
 	if healthGateIdx < 0 {
 		t.Fatal("join script must contain etcd readiness gate failure message")
 	}
 	if agentStartIdx < 0 {
-		t.Fatal("join script must contain node-agent start command")
+		t.Fatal("join script must contain node-agent install/start point")
 	}
 	if agentStartIdx < healthGateIdx {
-		t.Errorf("node-agent start (byte %d) must appear after etcd health gate (byte %d)\n"+
+		t.Errorf("node-agent install/start (byte %d) must appear after etcd health gate (byte %d)\n"+
 			"reason: node-agent must never start before etcd is verified healthy",
 			agentStartIdx, healthGateIdx)
 	}
@@ -542,7 +571,9 @@ func TestJoinScript_LocalControlPlaneOrder(t *testing.T) {
 		`install_pkg "workflow"`,
 		`install_pkg "repository"`,
 		`install_pkg "cluster-controller"`,
-		`systemctl start globular-node-agent.service`,
+		// node-agent is installed (and enabled+started, via the package
+		// spec's own steps) last — see TestJoinScript_NodeAgentDoesNotHandWriteUnit.
+		`NODE_AGENT_PKG=$(find`,
 	}
 	last := -1
 	for _, marker := range markers {
@@ -554,6 +585,46 @@ func TestJoinScript_LocalControlPlaneOrder(t *testing.T) {
 			t.Fatalf("join script marker %q is out of order", marker)
 		}
 		last = idx
+	}
+}
+
+// TestJoinScript_NoLiveAptGetInstall pins the fix for a live network/apt
+// dependency at join time: the script must not shell out to `apt-get
+// install` for anything. OS dependencies (e.g. libnss-resolve) must come
+// from a bundled, checksum-verified package (bundle_debs/install_local_debs
+// in the package's own spec — see packages/metadata/libnss-resolve in the
+// packages repo), same as every other OS dependency this script installs
+// (e.g. ScyllaDB's .deb dependencies), not a live apt-get call that can fail
+// or silently no-op on a restricted-network node.
+func TestJoinScript_NoLiveAptGetInstall(t *testing.T) {
+	script := joinScriptForTest()
+
+	if strings.Contains(script, "apt-get install") {
+		t.Errorf("join script must not call apt-get install — OS dependencies must be " +
+			"bundled and installed offline via install_pkg, same as every other package this script installs")
+	}
+}
+
+// TestJoinScript_LibnssResolveInstalledFromBundle verifies libnss-resolve is
+// installed via the generic install_pkg helper (same pattern as every other
+// service/package in this script) once the package bundle is staged in
+// Phase 4, not via a separate hand-rolled step.
+func TestJoinScript_LibnssResolveInstalledFromBundle(t *testing.T) {
+	script := joinScriptForTest()
+
+	if !strings.Contains(script, `install_pkg "libnss-resolve"`) {
+		t.Fatal("join script must install libnss-resolve via install_pkg, same as every other package")
+	}
+
+	// Must be installed after the package bundle is staged (Phase 4.3) so
+	// find_pkg can actually locate it in PACKAGES_DIR.
+	stageIdx := strings.Index(script, `log_info "[4.3] Staging packages`)
+	installIdx := strings.Index(script, `install_pkg "libnss-resolve"`)
+	if stageIdx < 0 {
+		t.Fatal("join script missing package staging marker")
+	}
+	if !(stageIdx < installIdx) {
+		t.Fatal("libnss-resolve must be installed after packages are staged (Phase 4.3)")
 	}
 }
 
@@ -576,27 +647,56 @@ func TestJoinScript_ScyllaReadinessBeforeControlPlane(t *testing.T) {
 
 // ─── Service start ordering ──────────────────────────────────────────────────
 
-// TestJoinScript_NodeAgentAfterEtcd verifies that the node-agent systemd unit
-// declares After=...globular-etcd.service so systemd enforces the dependency.
-func TestJoinScript_NodeAgentAfterEtcd(t *testing.T) {
+// TestJoinScript_NodeAgentDoesNotHandWriteUnit pins the fix for a recurring
+// installed_state_runtime_mismatch / unit_receipt_drift.unit_file_drift
+// cluster-doctor finding: the join script must NOT hand-write or separately
+// start globular-node-agent.service. Every other service in this script
+// (etcd, scylladb, xds, envoy, gateway, workflow, repository,
+// cluster-controller) installs via a single globular-installer call that
+// reads the package's own spec — install, enable, start, and health-check
+// all happen there, and the receipt hash matches what's on disk because
+// nothing overwrites it afterward. A prior version of this script hand-wrote
+// a second, differently-shaped unit for node-agent right after installing
+// it, which produced a permanent hash mismatch on every single join. The
+// etcd ordering dependency now lives in the package spec itself
+// (golang/service_catalog.yaml's node_agent entry declares `etcd` as a
+// dependency, in the services repo), not in this script.
+func TestJoinScript_NodeAgentDoesNotHandWriteUnit(t *testing.T) {
 	script := joinScriptForTest()
 
-	want := "After=network-online.target globular-etcd.service"
-	if !strings.Contains(script, want) {
-		t.Errorf("node-agent unit must declare After=...globular-etcd.service\n"+
-			"expected to find: %q", want)
+	if strings.Contains(script, `SYSTEMD_DIR}/globular-node-agent.service" <<`) {
+		t.Errorf("join script must not hand-write globular-node-agent.service — " +
+			"the package spec (golang/service_catalog.yaml in the services repo) owns the unit content, " +
+			"same as every other service installed by this script")
+	}
+	if strings.Contains(script, "systemctl start globular-node-agent.service") {
+		t.Errorf("join script must not separately start globular-node-agent.service — " +
+			"the installer's start_services step already starts it as part of the install call, " +
+			"same as every other service installed by this script")
 	}
 }
 
-// TestJoinScript_NodeAgentRequiresEtcd verifies that the node-agent systemd
-// unit declares Requires=globular-etcd.service.
-func TestJoinScript_NodeAgentRequiresEtcd(t *testing.T) {
+// TestJoinScript_NodeAgentInstalledLikeOtherServices verifies node-agent is
+// installed via a single globular-installer call, matching the pattern used
+// for every other service in this script (no separate write/enable/start
+// steps carved out just for node-agent).
+func TestJoinScript_NodeAgentInstalledLikeOtherServices(t *testing.T) {
 	script := joinScriptForTest()
 
-	want := "Requires=globular-etcd.service"
-	if !strings.Contains(script, want) {
-		t.Errorf("node-agent unit must declare Requires=globular-etcd.service\n"+
-			"expected to find: %q", want)
+	installIdx := strings.Index(script, `"${INSTALL_DIR}/globular-installer" install`)
+	if installIdx < 0 {
+		t.Fatalf("join script missing generic globular-installer install invocation")
+	}
+	nodeAgentPkgIdx := strings.Index(script, `NODE_AGENT_PKG=$(find`)
+	if nodeAgentPkgIdx < 0 {
+		t.Fatalf("join script missing node-agent package discovery")
+	}
+	waitPortIdx := strings.Index(script, `Waiting for node-agent to listen on :11000`)
+	if waitPortIdx < 0 {
+		t.Fatalf("join script missing node-agent readiness wait")
+	}
+	if !(nodeAgentPkgIdx < waitPortIdx) {
+		t.Fatalf("node-agent package discovery must precede the readiness wait")
 	}
 }
 

@@ -499,17 +499,37 @@ log_phase "1 — Directories and globular user"
 # State wipe already handled in Phase 0 (repair only) or by clean-node.sh.
 
 log_info "[1.1] Creating directories..."
+# policy/rbac is included deliberately: cluster_controller runs as
+# User=globular and deploys its EMBEDDED cluster-roles.json there at startup.
+# Without a globular-owned policy/ parent it cannot create the subdir —
+#   failed to deploy embedded cluster-roles.json
+#     err="create policy dir: mkdir /var/lib/globular/policy/rbac: permission denied"
+# — so the 22 cluster roles never land on disk, every local authz decision
+# carries policy_version=unknown, and the service-account bindings resolve to
+# role NAMES with no definitions behind them. The joined node then denies its
+# own control-plane calls (observed live 2026-07-29 on globule-nuc:
+# "workflow recorder: StartRun failed: PermissionDenied: workflow.admin")
+# even though "rbac list-bindings --subject <sa>" shows the binding present.
+# Day-0 has the same requirement (install-day0.sh creates it before the
+# control-plane phase); Phase 7 below starts cluster-controller, so the
+# directory must exist and be globular-writable by then.
 mkdir -p "${INSTALL_DIR}" \
          "${STATE_DIR}/pki/issued/services" \
          "${STATE_DIR}/services" \
          "${STATE_DIR}/node_agent" \
          "${STATE_DIR}/config" \
          "${STATE_DIR}/workflows" \
+         "${STATE_DIR}/policy/rbac" \
          "${STATE_DIR}/keys"
 
 if ! id -u globular &>/dev/null; then
   useradd --system --no-create-home --home-dir "${STATE_DIR}" --shell /usr/sbin/nologin globular
 fi
+# Ownership must be set AFTER the user exists. The blanket recursive chown of
+# STATE_DIR later in this script covers this too, but policy/ is set explicitly
+# here so the invariant is local to the mkdir that creates it and cannot be
+# lost if that later chown is ever narrowed.
+chown globular:globular "${STATE_DIR}/policy" "${STATE_DIR}/policy/rbac" 2>/dev/null || true
 log_ok "Directories and user ready"
 
 # ============================================================================
@@ -697,16 +717,7 @@ sed -i '/minio\.globular\.internal/d' /etc/hosts
 echo "${BOOTSTRAP_HOST} minio.globular.internal  # MinIO bootstrap fallback — ObjectStoreDesiredState governs topology" >> /etc/hosts
 log_ok "minio.globular.internal → ${BOOTSTRAP_HOST} (bootstrap; topology contract governs membership)"
 
-log_info "[3.3] Ensuring libnss-resolve (systemd-resolved bridge for Go binaries)..."
-if ! dpkg -l libnss-resolve 2>/dev/null | grep -q '^ii'; then
-  apt-get install -y libnss-resolve >/dev/null 2>&1 || true
-fi
-if grep -q 'mdns4_minimal.*NOTFOUND.*return' /etc/nsswitch.conf; then
-  sed -i 's/^hosts:.*/hosts:          files resolve dns myhostname/' /etc/nsswitch.conf
-fi
-log_ok "libnss-resolve configured"
-
-log_info "[3.4] Configuring log rate limits (prevent syslog/journal disk fill)..."
+log_info "[3.3] Configuring log rate limits (prevent syslog/journal disk fill)..."
 mkdir -p /etc/rsyslog.d
 cat > /etc/rsyslog.d/50-globular-rate-limit.conf <<'RSYSLOG'
 $SystemLogRateLimitInterval 10
@@ -724,7 +735,7 @@ JOURNALD
 systemctl restart systemd-journald 2>/dev/null || true
 log_ok "rsyslog rate-limited, journald capped at 2GB/7days"
 
-log_info "[3.5] Writing node-agent seed config.json..."
+log_info "[3.4] Writing node-agent seed config.json..."
 cat > "${STATE_DIR}/config.json" <<CFGJSON
 {
   "Address": "${NODE_IP}",
@@ -752,7 +763,7 @@ CFGJSON
 chown -R globular:globular "${STATE_DIR}"
 chown globular:globular "${STATE_DIR}/keys"
 
-log_info "[3.6] Writing etcd endpoints file (seed for ScyllaDB post-install)..."
+log_info "[3.5] Writing etcd endpoints file (seed for ScyllaDB post-install)..."
 # ScyllaDB's post-install reads this file to discover seed nodes.
 # Without it the file is absent and ScyllaDB falls back to the local IP only,
 # bootstrapping a standalone cluster instead of joining the existing ring.
@@ -762,7 +773,7 @@ echo "https://${BOOTSTRAP_HOST}:2379" > "${STATE_DIR}/config/etcd_endpoints"
 chown globular:globular "${STATE_DIR}/config/etcd_endpoints"
 log_ok "etcd_endpoints seeded with bootstrap host (${BOOTSTRAP_HOST})"
 
-log_info "[3.7] Writing node-agent state (join token + controller endpoint + join_id)..."
+log_info "[3.6] Writing node-agent state (join token + controller endpoint + join_id)..."
 # The join_id is included so the node-agent uses the v2 path (no RequestJoin call):
 # it polls GetJoinRequestStatus(join_id) directly without consuming the token again.
 cat > "${STATE_DIR}/nodeagent/state.json" <<STATEJSON
@@ -789,11 +800,18 @@ log_phase "4 — Download Release Tarball"
 # Use the same release tarball shape as Day-0. It contains globular-installer,
 # all packages, and all workflow definitions.
 #
-# Normal path: download the published tarball from GitHub.
-# Dev/local-build fallback: if GitHub does not have v${PLATFORM_VERSION}, pull a
-# controller-local bootstrap bundle from the gateway. The controller's active
-# BOM remains the authority for the version; the fallback only changes the
-# transport.
+# Normal path: pull the bootstrap bundle from the cluster's own gateway
+# (the same bundle the controller itself was built from — guaranteed to
+# match the running cluster's active BOM, and already a mandatory
+# dependency for this join: every other phase already talks to this same
+# gateway for JoinPlan authorization and CSR signing). Reaching out to
+# GitHub for a Day-1 join added an external network dependency this script
+# doesn't otherwise need, plus a real version-consistency risk (GitHub's
+# published release can be older, newer, or simply not yet published
+# relative to what the controller is actually running — the controller's
+# active BOM is authoritative here, not GitHub's release history).
+# Last-resort fallback: if the controller's local bundle is unavailable for
+# some reason, fall back to the published GitHub release.
 
 PLATFORM_VERSION="%[4]s"
 
@@ -808,36 +826,36 @@ TARBALL_TMP="/tmp/${TARBALL_NAME}"
 TARBALL_DIR="/tmp/globular-${PLATFORM_VERSION}"
 
 log_info "[4.1] Downloading ${TARBALL_NAME}..."
-DOWNLOAD_SOURCE="github"
-if curl -sfL "${GITHUB_TARBALL_URL}" -o "${TARBALL_TMP}" \
-  && curl -sfL "${GITHUB_TARBALL_URL}.sha256" -o "${TARBALL_TMP}.sha256"; then
+DOWNLOAD_SOURCE="gateway"
+# Fetch the bundle AND its checksum, then verify. The checksum catches
+# corruption/truncation. It is not, by itself, MITM protection over the
+# curl -k transport; pinning the cluster CA here is a tracked follow-up.
+if curl -sfL -k "${GATEWAY_TARBALL_URL}" -o "${TARBALL_TMP}" \
+  && curl -sfL -k "${GATEWAY_TARBALL_URL}.sha256" -o "${TARBALL_TMP}.sha256"; then
   EXPECTED_SUM=$(awk '{print $1}' "${TARBALL_TMP}.sha256")
   ACTUAL_SUM=$(sha256sum "${TARBALL_TMP}" | awk '{print $1}')
   if [[ "${EXPECTED_SUM}" != "${ACTUAL_SUM}" ]]; then
-    die "tarball checksum mismatch (expected ${EXPECTED_SUM}, got ${ACTUAL_SUM})"
+    die "controller bundle checksum mismatch (expected ${EXPECTED_SUM}, got ${ACTUAL_SUM})"
   fi
   rm -f "${TARBALL_TMP}.sha256"
-  log_ok "tarball downloaded from GitHub (sha256 ok)"
+  log_ok "tarball downloaded from controller gateway bundle (sha256 ok)"
 else
   rm -f "${TARBALL_TMP}" "${TARBALL_TMP}.sha256"
-  log_warn "GitHub release tarball unavailable for v${PLATFORM_VERSION} — falling back to controller bundle"
-  # Fetch the fallback bundle AND its checksum, then verify — mirroring the
-  # GitHub path. The checksum catches corruption/truncation. It is not, by
-  # itself, MITM protection over the curl -k transport; pinning the cluster CA
-  # here is a tracked follow-up.
-  if curl -sfL -k "${GATEWAY_TARBALL_URL}" -o "${TARBALL_TMP}" \
-    && curl -sfL -k "${GATEWAY_TARBALL_URL}.sha256" -o "${TARBALL_TMP}.sha256"; then
+  log_warn "controller gateway bundle unavailable for v${PLATFORM_VERSION} — falling back to GitHub release"
+  # Mirrors the gateway path: fetch bundle + checksum, verify, fail closed.
+  if curl -sfL "${GITHUB_TARBALL_URL}" -o "${TARBALL_TMP}" \
+    && curl -sfL "${GITHUB_TARBALL_URL}.sha256" -o "${TARBALL_TMP}.sha256"; then
     EXPECTED_SUM=$(awk '{print $1}' "${TARBALL_TMP}.sha256")
     ACTUAL_SUM=$(sha256sum "${TARBALL_TMP}" | awk '{print $1}')
     if [[ "${EXPECTED_SUM}" != "${ACTUAL_SUM}" ]]; then
-      die "controller fallback bundle checksum mismatch (expected ${EXPECTED_SUM}, got ${ACTUAL_SUM})"
+      die "GitHub fallback tarball checksum mismatch (expected ${EXPECTED_SUM}, got ${ACTUAL_SUM})"
     fi
     rm -f "${TARBALL_TMP}.sha256"
-    DOWNLOAD_SOURCE="gateway"
-    log_ok "tarball downloaded from controller fallback bundle (sha256 ok)"
+    DOWNLOAD_SOURCE="github"
+    log_ok "tarball downloaded from GitHub fallback (sha256 ok)"
   else
     rm -f "${TARBALL_TMP}" "${TARBALL_TMP}.sha256"
-    die "could not download ${TARBALL_NAME} (+.sha256) from GitHub or controller fallback"
+    die "could not download ${TARBALL_NAME} (+.sha256) from controller gateway or GitHub fallback"
   fi
 fi
 
@@ -865,6 +883,72 @@ log_info "[4.4] Copying workflows to state dir..."
 cp -r "${TARBALL_DIR}/workflows/." "${STATE_DIR}/workflows/"
 chown -R globular:globular "${STATE_DIR}/workflows"
 log_ok "globular-installer, packages, and workflows ready"
+
+log_info "[4.4b] Deploying per-service RBAC policy from staged packages..."
+# Each gRPC service package ships policy/permissions.generated.json (the
+# gRPC-method -> action-key map) and policy/roles.generated.json. The runtime
+# resolver loads them from STATE_DIR/policy/services/<name>/, and the authz
+# interceptor derives its action key via policy.GlobalResolver().Resolve(method).
+#
+# Nothing on the join path deployed them: only node-agent's install_payload does
+# (internal/actions/artifact.go, the policy/ branch), and it only runs when a
+# package is actually (re)installed — on a fresh join every package is already at
+# the desired version, so it never backfills. Without the map, Resolve() returns
+# the RAW gRPC method path, no role grants a raw path, and every inter-service
+# call is denied role_binding_denied even when the binding exists AND the bound
+# role grants the correct dotted action.
+#
+# Live evidence 2026-07-29 (Day-0, same root cause): subject=globule-ryzen (mtls)
+# bound to globular-node-executor, which grants repository.status.read, was still
+# denied /repository.PackageRepository/GetRepositoryStatus 28x/min. That surfaced
+# as CRITICAL repository.unreachable plus 2 cluster_doctor.snapshot_source_unavailable
+# findings and workflow RecordOutcome/RecordPhaseTransition failures every
+# reconcile pass. Deploying the policy files took denials to 0. install-day0.sh
+# has the equivalent phase; a joining node needs it for its own local services.
+mkdir -p "${STATE_DIR}/policy/services"
+_JOIN_POLICY_DEPLOYED=0
+_JOIN_POLICY_FAILED=""
+for _jpkg in "${PACKAGES_DIR}"/*.tgz; do
+  [[ -f "$_jpkg" ]] || continue
+  _jbase="$(basename "$_jpkg")"
+  # <name>_<version>_<os>_<arch>.tgz — package names use hyphens, not underscores.
+  _jname="${_jbase%%_*}"
+  [[ -n "$_jname" ]] || continue
+  if ! tar tzf "$_jpkg" 2>/dev/null | grep -qE 'policy/.*\.json'; then
+    continue
+  fi
+  # Extract ONLY the policy JSON members straight into place.
+  #
+  # An earlier version extracted the WHOLE package to a mktemp dir then copied
+  # policy/*.json out, with 2>/dev/null and "|| true" on the copy — a 30-90 MB
+  # extraction per service to obtain two small files, with every failure
+  # swallowed. It reported "deployed for 31 package(s)" while only 18 landed;
+  # the 13 silently-missing ones included repository, cluster-controller and
+  # node-agent. Consequence on both joined nodes: 414 role_binding_denied per 5
+  # minutes against repository, and the doctor back in reduced-harvest with
+  # repository.unreachable + 2 cluster_doctor.snapshot_source_unavailable.
+  # Targeted extraction deployed 31/31 with zero failures.
+  #
+  # --strip-components=2 drops the leading "./policy/" so the JSON lands
+  # directly in the service dir. Failures are collected and reported, never
+  # swallowed.
+  mkdir -p "${STATE_DIR}/policy/services/${_jname}"
+  if tar xzf "$_jpkg" -C "${STATE_DIR}/policy/services/${_jname}" \
+       --strip-components=2 --wildcards '*policy/*.json' 2>/dev/null; then
+    _JOIN_POLICY_DEPLOYED=$((_JOIN_POLICY_DEPLOYED + 1))
+  else
+    _JOIN_POLICY_FAILED="$_JOIN_POLICY_FAILED $_jname"
+  fi
+done
+chown -R globular:globular "${STATE_DIR}/policy" 2>/dev/null || true
+if [[ -n "$_JOIN_POLICY_FAILED" ]]; then
+  log_warn "policy extraction FAILED for:${_JOIN_POLICY_FAILED} — those services' calls will be DENIED"
+fi
+if [[ "$_JOIN_POLICY_DEPLOYED" -gt 0 ]]; then
+  log_ok "Per-service RBAC policy deployed for ${_JOIN_POLICY_DEPLOYED} package(s)"
+else
+  log_warn "No per-service RBAC policy deployed — inter-service authz on this node will be DENIED"
+fi
 
 log_info "[4.5] Installing etcdctl (required by etcd cluster join step)..."
 ETCDCTL_PKG=$(find "${PACKAGES_DIR}" -maxdepth 1 -name "etcdctl_*_linux_amd64.tgz" 2>/dev/null | head -1)
@@ -903,6 +987,14 @@ rm -rf "${STATE_DIR}/etcd"
 mkdir -p "${STATE_DIR}/etcd"
 chown globular:globular "${STATE_DIR}/etcd"
 log_ok "installer-started etcd stopped; data dir reset for cluster join"
+
+log_info "[4.7] Installing libnss-resolve (systemd-resolved bridge for reliable *.globular.internal resolution)..."
+# Bundled via bundle_debs/install_local_debs (see
+# packages/metadata/libnss-resolve in the packages repo) — no live apt-get,
+# same reliability pattern as every other OS dependency this script installs
+# (e.g. ScyllaDB's .deb dependencies). Installed from the same package bundle
+# staged in [4.3], not fetched separately.
+install_pkg "libnss-resolve"
 
 # ============================================================================
 log_phase "5 — Etcd Cluster Join"
@@ -1231,8 +1323,19 @@ fi
 # ============================================================================
 log_phase "8 — node-agent"
 # ============================================================================
-# Install the node-agent binary, write a systemd unit that declares an
-# ordering dependency on globular-etcd.service, then start it.
+# Install the node-agent binary via the installer engine, same as every other
+# service in this script (etcd, scylladb, xds, envoy, gateway, workflow,
+# repository, cluster-controller): the package's own spec
+# (node_agent_service.yaml, generated from golang/service_catalog.yaml) owns
+# the systemd unit content — install, enable, start, and health-check all
+# happen as part of this single call. node-agent must NOT hand-write or
+# re-start its unit here; a prior version of this script did, which produced
+# a permanent installed_state_runtime_mismatch / unit_receipt_drift.unit_file_drift
+# doctor finding on every join (the hand-written unit's shape never matched
+# the receipt hash recorded for the spec-generated one). The catalog's
+# node_agent entry now declares an etcd dependency, so the generated unit
+# orders correctly after globular-etcd.service without any join-script
+# special-casing.
 # The node-agent reads join_token + controller_endpoint + join_id from the
 # state file written in Phase 3.7 and uses the v2 path at startup:
 # it polls GetJoinRequestStatus(join_id) without calling RequestJoin again.
@@ -1246,36 +1349,9 @@ fi
   --non-interactive --verbose \
   "${NODE_AGENT_PKG}" \
   || die "installer: node-agent install failed"
+log_ok "node-agent installed (unit written, enabled, started, health-checked by package spec)"
 
-log_info "[8.2] Writing node-agent systemd unit (After=globular-etcd.service)..."
-NODE_AGENT_BIN=$(find "${INSTALL_DIR}" -maxdepth 1 \( -name "node_agent_server" -o -name "globular-node-agent" \) 2>/dev/null | head -1 || echo "${INSTALL_DIR}/node_agent_server")
-cat > "${SYSTEMD_DIR}/globular-node-agent.service" <<NAUNIT
-[Unit]
-Description=Globular Node Agent
-After=network-online.target globular-etcd.service
-Requires=network-online.target
-Requires=globular-etcd.service
-
-[Service]
-User=root
-Group=root
-ExecStart=${NODE_AGENT_BIN} ${STATE_DIR}
-Restart=on-failure
-RestartSec=5
-LimitNOFILE=65536
-
-[Install]
-WantedBy=multi-user.target
-NAUNIT
-systemctl daemon-reload
-systemctl enable globular-node-agent.service 2>/dev/null || true
-log_ok "node-agent unit written (Requires=globular-etcd.service)"
-
-log_info "[8.3] Starting globular-node-agent.service..."
-systemctl start globular-node-agent.service \
-  || log_warn "node-agent start returned non-zero — controller will retry join RPC"
-
-log_info "[8.4] Waiting for node-agent to listen on :11000..."
+log_info "[8.2] Waiting for node-agent to listen on :11000..."
 AGENT_UP=0
 for i in $(seq 1 30); do
   if ss -tlnp 2>/dev/null | grep -q ":11000 "; then
