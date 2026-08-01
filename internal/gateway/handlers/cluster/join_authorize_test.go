@@ -21,6 +21,53 @@ func TestJoinAuthorize_ResponseIncludesPlan(t *testing.T) {
 	}
 }
 
+func TestJoinAuthorize_NodeCapabilitiesAcceptsNestedShape(t *testing.T) {
+	body := []byte(`{
+		"join_token":"tok-1",
+		"identity":{"hostname":"node-01"},
+		"capabilities":{
+			"cpu_count":8,
+			"ram_bytes":33554432,
+			"disk_bytes":515396075520,
+			"disk_free_bytes":494780232499,
+			"can_apply_privileged":true,
+			"privilege_reason":"join script running as root"
+		}
+	}`)
+	var req joinAuthorizeRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		t.Fatalf("unmarshal nested capabilities: %v", err)
+	}
+	got := req.nodeCapabilities()
+	if got == nil {
+		t.Fatal("nested capabilities were dropped")
+	}
+	if got.GetCpuCount() != 8 || got.GetRamBytes() != 33554432 ||
+		got.GetDiskBytes() != 515396075520 || got.GetDiskFreeBytes() != 494780232499 {
+		t.Fatalf("nested capabilities mismatch: %+v", got)
+	}
+	if !got.GetCanApplyPrivileged() || got.GetPrivilegeReason() != "join script running as root" {
+		t.Fatalf("privilege evidence mismatch: %+v", got)
+	}
+}
+
+func TestJoinAuthorize_NodeCapabilitiesKeepsLegacyFlatShape(t *testing.T) {
+	req := joinAuthorizeRequest{
+		CPUCount:      4,
+		RAMBytes:      8589934592,
+		DiskBytes:     128849018880,
+		DiskFreeBytes: 107374182400,
+	}
+	got := req.nodeCapabilities()
+	if got == nil {
+		t.Fatal("legacy flat capabilities were dropped")
+	}
+	if got.GetCpuCount() != req.CPUCount || got.GetRamBytes() != req.RAMBytes ||
+		got.GetDiskBytes() != req.DiskBytes || got.GetDiskFreeBytes() != req.DiskFreeBytes {
+		t.Fatalf("legacy capabilities mismatch: %+v", got)
+	}
+}
+
 // TestJoinAuthorize_GatewayIsNotAuthority verifies the gateway handler
 // never invents profiles, etcd membership, or release identity.
 // The handler must be a pure courier: it forwards the request as-is to the
