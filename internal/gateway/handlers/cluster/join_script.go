@@ -993,8 +993,25 @@ log_info "[5.5] Adding ${ETCD_NAME} to cluster as a non-voting LEARNER (quorum-s
 # contention is retryable, a genuine refusal still dies at once, and an exhausted
 # budget is fatal. --command-timeout bounds each attempt so one blocked add
 # cannot swallow the whole budget in a single call.
-log_info "[5.5.0] Waiting for the learner slot and adding ${ETCD_NAME} (etcd max-learners=1, up to 300s)..."
-ETCD_ADD_DEADLINE=$(( $(date +%%s) + 300 ))
+# The budget must cover every joiner AHEAD of this one, not just this one's own
+# attempt. etcd allows a single learner, so N concurrent joiners serialize: the
+# last one waits for N-1 promotions, and each promotion costs a controller
+# reconcile cycle plus the new member's raft catch-up.
+#
+# 300s was too tight. Observed 2026-08-01 with four joiners: promotions landed
+# at 18:56:32 and 18:57:02, then the controller stalled and the next did not land
+# until 19:01:16 — a four-minute gap. node-4, last in line, waited its full 300s
+# and failed with "too many learner members in cluster". The join logic was
+# correct; the constant was a guess that did not account for a slow promoter.
+#
+# 900s is sized from that shape rather than a round number: the observed
+# worst-case promotion interval (~4 min) times the queue depth a 5-node bring-up
+# produces (3 joiners ahead of the last), with headroom. A joiner that waits this
+# long has still cost nothing — it holds no slot while waiting — whereas failing
+# early destroys a node that would have joined fine seconds later.
+ETCD_ADD_BUDGET_S=900
+log_info "[5.5.0] Waiting for the learner slot and adding ${ETCD_NAME} (etcd max-learners=1, up to ${ETCD_ADD_BUDGET_S}s)..."
+ETCD_ADD_DEADLINE=$(( $(date +%%s) + ETCD_ADD_BUDGET_S ))
 MEMBER_ADD_OUT=""
 MEMBER_ADD_OK=0
 ETCD_ADD_TRIES=0
@@ -1046,7 +1063,7 @@ done
 
 if [[ "${MEMBER_ADD_OK}" -ne 1 ]]; then
   echo "${MEMBER_ADD_OUT}" >&2
-  die "etcd join failed: learner member add did not succeed within 300s (learner slot never became available)"
+  die "etcd join failed: learner member add did not succeed within ${ETCD_ADD_BUDGET_S}s (learner slot never became available)"
 fi
 echo "${MEMBER_ADD_OUT}"
 log_ok "learner member add accepted: ${ETCD_NAME} (non-voting; controller promotes to voter when caught up)"

@@ -307,8 +307,19 @@ func TestJoinScript_LearnerMemberAddRetriesWithinBudget(t *testing.T) {
 
 	// Exhausting the budget must remain fatal — retrying must not become a way to
 	// proceed without membership.
-	if !strings.Contains(script, "did not succeed within 300s") {
+	//
+	// Asserted on the behaviour, not the number: this used to match the literal
+	// "within 300s" and would have failed the moment the budget was retuned,
+	// which trains the next person to edit the test rather than read it. The
+	// budget IS expected to change — it is sized from promotion cadence times
+	// queue depth, both of which are observations, not constants.
+	if !strings.Contains(script, "did not succeed within ${ETCD_ADD_BUDGET_S}s") {
 		t.Error("budget exhaustion on member add must be fatal, not a soft continue")
+	}
+	if !strings.Contains(script, "ETCD_ADD_BUDGET_S=") {
+		t.Error("the learner-add budget must be a named constant, not inlined —\n" +
+			"it appears in the wait log, the deadline and the fatal message, and those three\n" +
+			"drifting apart is how a joiner reports one budget while enforcing another")
 	}
 }
 
