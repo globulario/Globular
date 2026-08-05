@@ -493,3 +493,26 @@ invariants:
           - internal/xds/watchers/sds_conformance_test.go:TestSnapshotContainsSecrets
           - internal/xds/watchers/sds_conformance_test.go:TestListenerUsesSDS
           - internal/xds/watchers/sds_conformance_test.go:TestNoFileBasedTLSWhenSDSEnabled
+    - id: invariant.an_advisory_probe_must_not_be_able_to_fail_the_operation_it
+      title: An advisory probe must not be able to fail the operation it describes
+      severity: critical
+      status: active
+      description: Diagnostic/progress probes (size lookups, capability sniffs, version peeks) exist to describe an operation. Under 'set -euo pipefail' a probe written as PROBE="$(cmd | filter)" is fatal even when the filter exits 0, because pipefail promotes cmd's status to the pipeline's. Such a probe must be explicitly de-fanged (|| true) or its failure branch is unreachable.
+      protects:
+        files:
+          - internal/gateway/handlers/cluster/join_script.go
+          - internal/gateway/handlers/cluster/join_bundle.go
+      required_tests:
+        - join_script_test.go:TestJoinScript_BundleSizeProbeIsAdvisoryNotFatal
+      contract: advisory telemetry is not control flow
+    - id: etcd.reconstruction_failure_must_not_worsen_membership
+      title: A failed etcd member reconstruction must leave membership no worse than it found it
+      severity: critical
+      status: active
+      description: 'Either the registered node rejoins as a healthy etcd member, or the cluster returns to its original healthy membership with no phantom. Recovery code mutates membership BEFORE it can know whether the node will come up, so the compensating action must be recorded at the moment the mutation succeeds — never rediscovered afterwards as ''the likely phantom''. Acceptance: force startup/verification to fail after a successful member add; rollback must remove that exact member id, leave no phantom, restore the original member count and quorum, allow an immediate retry without identity conflict, and emit a receipt naming both the attempted member id and the rollback outcome.'
+      protects:
+        files:
+          - internal/gateway/handlers/cluster/join_script.go
+      related_failure_modes:
+        - etcd.failed_reconstruction_leaves_phantom_member
+      contract: 'a recovery operation must be transactional: mutate, verify, or roll back the exact mutation it made'
