@@ -836,8 +836,17 @@ TARBALL_DIR="/tmp/globular-${PLATFORM_VERSION}"
 # Silence during a long operation is not a neutral default: it reports "nothing
 # is happening" when something very much is. A progress bar costs nothing and
 # removes the ambiguity.
+# The trailing '|| true' is load-bearing. This script runs under
+# 'set -euo pipefail'. awk exits 0 even when curl fails, but pipefail
+# promotes curl's exit status to the pipeline's, so a failed probe makes
+# this assignment fail and -e aborts the join — before the else-branch
+# below (which exists precisely to handle "size unknown") can ever run.
+# A gateway that answers HEAD with 405 then killed every Day-1 join at
+# phase 4.1, with the ~750 MB download it was merely describing left
+# untried. An advisory probe must never be able to fail the operation it
+# is only reporting on.
 BUNDLE_BYTES="$(curl -sfL -k -I "${GATEWAY_TARBALL_URL}" 2>/dev/null \
-  | awk 'tolower($1) ~ /^content-length:/ {gsub(/\r/,"",$2); print $2; exit}')"
+  | awk 'tolower($1) ~ /^content-length:/ {gsub(/\r/,"",$2); print $2; exit}' || true)"
 if [[ -n "${BUNDLE_BYTES}" ]] && [[ "${BUNDLE_BYTES}" =~ ^[0-9]+$ ]]; then
   log_info "[4.1] Downloading ${TARBALL_NAME} ($(( BUNDLE_BYTES / 1024 / 1024 )) MB) — this can take several minutes; do not interrupt"
 else

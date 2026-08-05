@@ -1071,3 +1071,80 @@ func TestJoinScript_LegacyPlanFallsBackToFullInstall(t *testing.T) {
 		t.Error("should_install_role must fall back to installing everything when the plan carries no profiles")
 	}
 }
+
+// TestJoinScript_BundleSizeProbeIsAdvisoryNotFatal pins the rule the phase-4.1
+// download-size probe broke: an advisory probe must never be able to fail the
+// operation it is only reporting on.
+//
+// Regression. The probe is `BUNDLE_BYTES="$(curl -sfL -I ... | awk ...)"`. awk
+// exits 0 even when curl fails, so this looks safe — but the script runs under
+// `set -euo pipefail`, and pipefail promotes curl's exit status to the
+// pipeline's. A gateway answering HEAD with 405 gave curl exit 22, the
+// assignment failed, and `set -e` aborted the join at phase 4 — never reaching
+// the else-branch written precisely to handle "size unknown". Every joiner in
+// the 5-node simulation died there on v1.2.295.
+//
+// This test extracts the real construct from the rendered script and runs it
+// under the script's own shell options with a curl that fails, asserting the
+// script survives. It fails if the `|| true` is dropped.
+func TestJoinScript_BundleSizeProbeIsAdvisoryNotFatal(t *testing.T) {
+	script := joinScriptForTest()
+
+	// Extract the actual assignment (spans two lines) from the rendered script
+	// rather than restating it, so the test tracks the real code.
+	lines := strings.Split(script, "\n")
+	start := -1
+	for i, l := range lines {
+		if strings.HasPrefix(strings.TrimSpace(l), `BUNDLE_BYTES="$(curl`) {
+			start = i
+			break
+		}
+	}
+	if start < 0 {
+		t.Fatal("could not find the BUNDLE_BYTES probe in the rendered join script")
+	}
+	end := -1
+	for i := start; i < len(lines) && i < start+6; i++ {
+		if strings.Contains(lines[i], `)"`) {
+			end = i
+			break
+		}
+	}
+	if end < 0 {
+		t.Fatal("could not find the end of the BUNDLE_BYTES assignment")
+	}
+	probe := strings.Join(lines[start:end+1], "\n")
+
+	// A curl that fails the way a 405 makes it fail.
+	stubDir := t.TempDir()
+	stub := "#!/bin/sh\nexit 22\n"
+	if err := os.WriteFile(stubDir+"/curl", []byte(stub), 0o755); err != nil {
+		t.Fatalf("write curl stub: %v", err)
+	}
+
+	prog := "set -euo pipefail\n" +
+		`GATEWAY_TARBALL_URL="https://example.invalid/join/bundle/x.tar.gz"` + "\n" +
+		probe + "\n" +
+		`echo "PROBE_SURVIVED bytes=[${BUNDLE_BYTES}]"` + "\n"
+
+	f, err := os.CreateTemp(t.TempDir(), "probe-*.sh")
+	if err != nil {
+		t.Fatalf("temp: %v", err)
+	}
+	if _, err := f.WriteString(prog); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	f.Close()
+
+	cmd := exec.Command("bash", f.Name())
+	cmd.Env = append(os.Environ(), "PATH="+stubDir+":"+os.Getenv("PATH"))
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("the size probe killed the script when curl failed (exit %v).\n"+
+			"An advisory probe must not be fatal under `set -euo pipefail`.\noutput: %s",
+			err, string(out))
+	}
+	if !strings.Contains(string(out), "PROBE_SURVIVED") {
+		t.Errorf("script did not continue past the probe; output: %s", string(out))
+	}
+}
