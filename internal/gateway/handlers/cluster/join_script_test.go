@@ -377,8 +377,14 @@ func TestJoinScript_TarballDownloadPrefersGateway(t *testing.T) {
 		t.Fatal("join script must define the GitHub fallback tarball URL")
 	}
 
-	gatewayAttemptIdx := strings.Index(script, `curl -sfL -k "${GATEWAY_TARBALL_URL}"`)
-	githubAttemptIdx := strings.Index(script, `curl -sfL "${GITHUB_TARBALL_URL}"`)
+	// Match the download-to-tarball form rather than an exact curl invocation.
+	// The previous literals pinned `curl -sfL -k "${GATEWAY_TARBALL_URL}"`, which
+	// stopped matching when the main fetch gained --progress-bar — the ordering
+	// this test exists to protect was still correct, but the assertion had gone
+	// stale and failed for a cosmetic reason. What actually matters is that each
+	// URL is fetched into TARBALL_TMP, and that the gateway is tried first.
+	gatewayAttemptIdx := strings.Index(script, `"${GATEWAY_TARBALL_URL}" -o "${TARBALL_TMP}"`)
+	githubAttemptIdx := strings.Index(script, `"${GITHUB_TARBALL_URL}" -o "${TARBALL_TMP}"`)
 	if gatewayAttemptIdx < 0 {
 		t.Fatal("join script must attempt the gateway bundle download")
 	}

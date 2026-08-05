@@ -898,11 +898,56 @@ cp "${TARBALL_DIR}/globular-installer" "${INSTALL_DIR}/globular-installer"
 chmod +x "${INSTALL_DIR}/globular-installer"
 
 log_info "[4.3] Staging packages to ${STATE_DIR}/packages/ ..."
-# Move all packages to their canonical location so the node-agent can install
-# them locally during convergence without re-fetching from the repository service.
+# Publish packages TRANSACTIONALLY. The node-agent installs from this directory
+# during convergence, and it may already be running: a package must therefore
+# never be observable at its final path until it is complete.
+#
+# The naive form was:
+#
+#     mv "${TARBALL_DIR}/packages/"* "${STATE_DIR}/packages/"
+#
+# which looks atomic and is not. TARBALL_DIR is /tmp (tmpfs) and STATE_DIR is
+# on the real disk, so mv crosses a filesystem boundary and degrades to
+# copy+unlink. The destination file appears at its final, discoverable name
+# immediately and then fills over seconds — with its mtime already set from the
+# archive, so nothing about it looks unfinished. On 2026-08-05 that raced
+# node.join on 2 of 4 joiners: node-3 died staging prometheus (62 MB) and
+# node-5 staging alertmanager (18 MB), both with "stage package: gzip: EOF",
+# and both tarballs verified fine minutes later. The bytes were never corrupt;
+# the reader was simply early.
+#
+# So: stage into a hidden directory on the SAME filesystem as the destination,
+# where a rename really is atomic, then publish each file with one. A partial
+# package is structurally invisible rather than merely unlikely to be read.
 mkdir -p "${STATE_DIR}/packages"
-mv "${TARBALL_DIR}/packages/"* "${STATE_DIR}/packages/"
+STAGING_DIR="${STATE_DIR}/packages/.incoming.$$"
+rm -rf "${STAGING_DIR}"
+mkdir -p "${STAGING_DIR}"
+# Same-filesystem move out of /tmp is still a copy, but into a directory the
+# node-agent does not scan (dotfile prefix), so nothing half-written is visible.
+cp -a "${TARBALL_DIR}/packages/." "${STAGING_DIR}/"
+sync -f "${STAGING_DIR}" 2>/dev/null || sync
+# Publish: one rename per package, each atomic because source and destination
+# are now on the same filesystem.
+staged_count=0
+for staged in "${STAGING_DIR}"/*; do
+  [[ -e "${staged}" ]] || continue
+  mv -f "${staged}" "${STATE_DIR}/packages/$(basename "${staged}")"
+  staged_count=$((staged_count + 1))
+done
+rmdir "${STAGING_DIR}" 2>/dev/null || rm -rf "${STAGING_DIR}"
 chown -R globular:globular "${STATE_DIR}/packages"
+# fsync the directory so the renames survive a crash, then write the completion
+# receipt LAST. The receipt is the barrier a consumer can wait on for "the whole
+# BOM is published", as distinct from "this one file is complete" (which the
+# atomic rename already guarantees).
+sync
+printf '{"staged":%%d,"platform_release":"%%s","completed_unix":%%d}\n' \
+  "${staged_count}" "${PLATFORM_VERSION}" "$(date +%%s)" \
+  > "${STATE_DIR}/packages/.staging-complete.json"
+chown globular:globular "${STATE_DIR}/packages/.staging-complete.json"
+sync
+log_ok "staged ${staged_count} packages (atomic publish + completion receipt)"
 PACKAGES_DIR="${STATE_DIR}/packages"
 
 log_info "[4.4] Copying workflows to state dir..."
