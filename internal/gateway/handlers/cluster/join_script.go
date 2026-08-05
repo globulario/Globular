@@ -825,12 +825,29 @@ GATEWAY_TARBALL_URL="https://${GATEWAY}/join/bundle/${TARBALL_NAME}"
 TARBALL_TMP="/tmp/${TARBALL_NAME}"
 TARBALL_DIR="/tmp/globular-${PLATFORM_VERSION}"
 
-log_info "[4.1] Downloading ${TARBALL_NAME}..."
+# Announce the SIZE before starting, and show progress while it runs.
+#
+# This step used to print one line and then go silent for minutes behind
+# 'curl -s'. The bundle is not small — observed 1.3 GB on 2026-08-04 — so on a
+# wifi link the join looked hung at exactly this point, and was killed twice by
+# an operator who reasonably concluded it had died. The download was working
+# both times.
+#
+# Silence during a long operation is not a neutral default: it reports "nothing
+# is happening" when something very much is. A progress bar costs nothing and
+# removes the ambiguity.
+BUNDLE_BYTES="$(curl -sfL -k -I "${GATEWAY_TARBALL_URL}" 2>/dev/null \
+  | awk 'tolower($1) ~ /^content-length:/ {gsub(/\r/,"",$2); print $2; exit}')"
+if [[ -n "${BUNDLE_BYTES}" ]] && [[ "${BUNDLE_BYTES}" =~ ^[0-9]+$ ]]; then
+  log_info "[4.1] Downloading ${TARBALL_NAME} ($(( BUNDLE_BYTES / 1024 / 1024 )) MB) — this can take several minutes; do not interrupt"
+else
+  log_info "[4.1] Downloading ${TARBALL_NAME} — this can take several minutes; do not interrupt"
+fi
 DOWNLOAD_SOURCE="gateway"
 # Fetch the bundle AND its checksum, then verify. The checksum catches
 # corruption/truncation. It is not, by itself, MITM protection over the
 # curl -k transport; pinning the cluster CA here is a tracked follow-up.
-if curl -sfL -k "${GATEWAY_TARBALL_URL}" -o "${TARBALL_TMP}" \
+if curl -fL -k --progress-bar "${GATEWAY_TARBALL_URL}" -o "${TARBALL_TMP}" \
   && curl -sfL -k "${GATEWAY_TARBALL_URL}.sha256" -o "${TARBALL_TMP}.sha256"; then
   EXPECTED_SUM=$(awk '{print $1}' "${TARBALL_TMP}.sha256")
   ACTUAL_SUM=$(sha256sum "${TARBALL_TMP}" | awk '{print $1}')
@@ -843,7 +860,7 @@ else
   rm -f "${TARBALL_TMP}" "${TARBALL_TMP}.sha256"
   log_warn "controller gateway bundle unavailable for v${PLATFORM_VERSION} — falling back to GitHub release"
   # Mirrors the gateway path: fetch bundle + checksum, verify, fail closed.
-  if curl -sfL "${GITHUB_TARBALL_URL}" -o "${TARBALL_TMP}" \
+  if curl -fL --progress-bar "${GITHUB_TARBALL_URL}" -o "${TARBALL_TMP}" \
     && curl -sfL "${GITHUB_TARBALL_URL}.sha256" -o "${TARBALL_TMP}.sha256"; then
     EXPECTED_SUM=$(awk '{print $1}' "${TARBALL_TMP}.sha256")
     ACTUAL_SUM=$(sha256sum "${TARBALL_TMP}" | awk '{print $1}')
