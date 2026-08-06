@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -162,6 +163,66 @@ func serveBundle(t *testing.T, path string) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
 	NewJoinBundleHandler("1.2.3").ServeHTTP(rr, req)
 	return rr
+}
+
+// TestJoinBundleHandler_HeadReportsSizeWithoutBody pins the contract the Day-1
+// join relies on at phase 4.1: the bundle route answers HEAD with a usable
+// Content-Length and no body.
+//
+// Regression. The handler used to reject every non-GET method with 405. The
+// join script probes this endpoint with `curl -sfL -I` to announce the download
+// size, and it runs under `set -euo pipefail` — so the 405 became curl exit 22,
+// pipefail promoted it past the exit-0 awk, and the assignment aborted the join
+// at phase 4. Every joiner in the 5-node simulation died there on v1.2.295,
+// with the ~750 MB download the probe was only describing never attempted.
+// The script no longer lets the probe be fatal; this test pins the other half,
+// so HEAD keeps working and the size stays reportable.
+func TestJoinBundleHandler_HeadReportsSizeWithoutBody(t *testing.T) {
+	_, name := bundleTestFixture(t, true)
+
+	getRR := serveBundle(t, "/join/bundle/"+name)
+	if getRR.Code != http.StatusOK {
+		t.Fatalf("GET: unexpected status %d body=%s", getRR.Code, getRR.Body.String())
+	}
+
+	req := httptest.NewRequest(http.MethodHead, "/join/bundle/"+name, nil)
+	headRR := httptest.NewRecorder()
+	NewJoinBundleHandler("1.2.3").ServeHTTP(headRR, req)
+
+	if headRR.Code != http.StatusOK {
+		t.Fatalf("HEAD must be allowed (join phase 4.1 probes it), got %d body=%s",
+			headRR.Code, headRR.Body.String())
+	}
+
+	// The probe greps Content-Length out of the headers; without it the size
+	// is unreportable and the feature that motivated the probe is dead.
+	gotLen := headRR.Header().Get("Content-Length")
+	wantLen := strconv.Itoa(getRR.Body.Len())
+	if gotLen != wantLen {
+		t.Errorf("HEAD Content-Length = %q, want %q (must match the GET body size)",
+			gotLen, wantLen)
+	}
+
+	if headRR.Body.Len() != 0 {
+		t.Errorf("HEAD must not return a body, got %d bytes", headRR.Body.Len())
+	}
+}
+
+// TestJoinBundleHandler_RejectsMutatingMethods keeps the widened method guard
+// honest: allowing HEAD must not have opened the endpoint to anything else.
+func TestJoinBundleHandler_RejectsMutatingMethods(t *testing.T) {
+	_, name := bundleTestFixture(t, true)
+
+	for _, method := range []string{
+		http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete,
+	} {
+		req := httptest.NewRequest(method, "/join/bundle/"+name, nil)
+		rr := httptest.NewRecorder()
+		NewJoinBundleHandler("1.2.3").ServeHTTP(rr, req)
+		if rr.Code != http.StatusMethodNotAllowed {
+			t.Errorf("%s: expected 405, got %d", method, rr.Code)
+		}
+	}
 }
 
 // TestJoinBundleHandler_ChecksumMatchesTarball verifies the .sha256 route returns

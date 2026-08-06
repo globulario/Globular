@@ -346,10 +346,28 @@ func BuildSnapshot(input Input, version string) (*cache_v3.Snapshot, error) {
 				resources[resource_v3.RouteType] = append(resources[resource_v3.RouteType], redirectRC)
 				resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], redirectListener)
 			}
-		} else if httpAllowed {
-			redirectListenerName := fmt.Sprintf("%s_http_%d", listenerName, httpPort)
-			httpListener := controlplane.MakeHTTPListener(host, httpPort, redirectListenerName, routeName, "", "", "")
-			resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], httpListener)
+		} else {
+			// TLS is not ready, so the HTTPS (:443) listener cannot be built and
+			// is omitted from the snapshot. Envoy will still receive CDS (the
+			// clusters below) but no LDS entry for :443 — the exact "CDS
+			// progresses, LDS stays 0, port 443 never binds" wedge (invariant
+			// envoy.lds_progress_required_for_http_mesh_readiness). Historically
+			// this was dropped silently, so the only signal was the doctor's
+			// downstream Prometheus rule — which goes blind if Prometheus is not
+			// scraping. Surface it loudly at the control-plane source so the
+			// condition (and its usual cause: the ACME cert/symlink not yet
+			// materialized) is visible in logs. Do NOT remediate by restarting
+			// Envoy — that deepens the wedge (forbidden by the awareness rule).
+			if len(input.Clusters) > 0 {
+				fmt.Fprintf(os.Stderr,
+					"[WARN] BuildSnapshot: TLS not ready (certFile=%q keyFile=%q) — omitting :443 HTTPS listener %q on %s:%d while shipping %d cluster(s); Envoy will bind NO HTTPS listener (CDS>0, LDS :443=0, HTTP mesh down). Check ACME cert materialization / xDS cert symlink.\n",
+					certFile, keyFile, listenerName, host, httpsPort, len(input.Clusters))
+			}
+			if httpAllowed {
+				redirectListenerName := fmt.Sprintf("%s_http_%d", listenerName, httpPort)
+				httpListener := controlplane.MakeHTTPListener(host, httpPort, redirectListenerName, routeName, "", "", "")
+				resources[resource_v3.ListenerType] = append(resources[resource_v3.ListenerType], httpListener)
+			}
 		}
 	}
 

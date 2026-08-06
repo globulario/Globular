@@ -119,3 +119,30 @@ failure_modes:
       related_invariants:
           - xds.cert.validated.before.serving.secrets
           - xds.mtls.required.in.production
+    - id: failure.day_1_join_aborts_at_phase_4_1_when_the_bundle_route_refuses
+      title: Day-1 join aborts at phase 4.1 when the bundle route refuses HEAD
+      severity: critical
+      description: join_bundle.go answered every non-GET with 405. The join script's phase-4.1 download-size probe uses 'curl -sfL -I', so the 405 became curl exit 22; under 'set -euo pipefail' pipefail promoted it past the exit-0 awk and set -e killed the join. The ~750MB bundle GET (and its .sha256) both returned 200 — the download was never attempted. All four joiners in the 5-node simulation died here on v1.2.295; the cluster never grew past 1 node.
+      protects:
+        files:
+          - internal/gateway/handlers/cluster/join_bundle.go
+      related_invariants:
+        - invariant.an_advisory_probe_must_not_be_able_to_fail_the_operation_it
+      required_tests:
+        - join_bundle_test.go:TestJoinBundleHandler_HeadReportsSizeWithoutBody
+      evidence:
+        - 'node-2..5: WARN: join aborted during phase ''4 — Download Release Tarball'' (exit 22)'
+        - curl -sfL -I .../join/bundle/globular-1.2.295-linux-amd64.tar.gz -> exit 22 (HTTP 405); GET -> 200; GET .sha256 -> 200
+        - 'introduced by Globular d495924 ''fix(join): stop a working download from looking like a hang'''
+    - id: etcd.failed_reconstruction_leaves_phantom_member
+      title: Failed etcd member reconstruction leaves a phantom member that inflates quorum
+      severity: critical
+      description: 'Phase-5 learner ''member add'' mutates cluster membership BEFORE the node is known to start. When the node then fails to start, the added member remains as an ''unstarted'' entry. A phantom is not inert: it counts toward quorum, so 3 live members plus one phantom moves the requirement from 2-of-3 to 3-of-4. The next rejoin then fails with ''learner slot contended ... etcdserver: unhealthy cluster'' and can add another phantom. Each failed recovery makes the next harder — a compounding recovery defect where the repair leaves the cluster worse than it found it. The existing ghost-cleanup (GHOST_ID, peer-URL match) does not cover this: the phantom is created by the very member add it guards, not inherited from a prior run. Fix is transactional: record the new member id at the moment the mutation succeeds, and on any later failure remove THAT exact id rather than rediscovering the likely phantom.'
+      protects:
+        files:
+          - internal/gateway/handlers/cluster/join_script.go
+      evidence:
+        - member a255b6c28231fd7b, peer https://10.10.0.13:2380, STATUS=unstarted, NAME empty
+        - 'next rejoin: ''learner slot contended, retrying: etcdserver: unhealthy cluster'' then ''learner member add did not succeed within 900s'''
+        - manual etcdctl member remove a255b6c28231fd7b restored healthy 3/3 with quorum 2
+      contract: a recovery operation must roll back the exact mutation it made

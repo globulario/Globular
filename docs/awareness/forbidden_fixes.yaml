@@ -65,3 +65,9 @@ forbidden_fixes:
           and replace a recoverable state with a full reseed requirement.
       related_invariants:
           - repair.etcd.explicit.flag.only
+    - id: forbidden_fix.do_not_drop_set_euo_pipefail_to_keep_an_advisory_probe_from
+      title: Do not drop 'set -euo pipefail' to keep an advisory probe from killing the join
+      summary: 'Relaxing the join script''s shell options makes the symptom vanish and silences every REAL failure in a 1200-line script that installs a cluster node — trading a loud, correct abort for silent partial joins. De-fang the individual advisory probe (|| true) instead, and fix the endpoint so the probe can succeed. Equally forbidden: deleting the progress/size reporting outright, which would re-introduce the ''working download looks like a hang'' defect d495924 fixed.'
+      related_invariants:
+        - invariant.an_advisory_probe_must_not_be_able_to_fail_the_operation_it
+      reason: 'Relaxing the join script''s shell options makes the symptom vanish and silences every REAL failure in a 1200-line script that installs a cluster node — trading a loud, correct abort for silent partial joins. De-fang the individual advisory probe (|| true) instead, and fix the endpoint so the probe can succeed. Equally forbidden: deleting the progress/size reporting outright, which would re-introduce the ''working download looks like a hang'' defect d495924 fixed.'

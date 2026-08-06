@@ -11,14 +11,17 @@ import (
 // joinAuthorizeRequest is the JSON body accepted by POST /join/authorize.
 // It mirrors the controller's JoinAuthorizationRequest for JSON-over-HTTP.
 type joinAuthorizeRequest struct {
-	JoinToken        string             `json:"join_token"`
-	Identity         joinAuthorizeIdent `json:"identity"`
-	Labels           map[string]string  `json:"labels,omitempty"`
-	CPUCount         uint32             `json:"cpu_count,omitempty"`
-	RAMBytes         uint64             `json:"ram_bytes,omitempty"`
-	DiskBytes        uint64             `json:"disk_bytes,omitempty"`
-	InstallerVersion string             `json:"installer_version,omitempty"`
-	ClusterID        string             `json:"cluster_id,omitempty"`
+	JoinToken    string             `json:"join_token"`
+	Identity     joinAuthorizeIdent `json:"identity"`
+	Labels       map[string]string  `json:"labels,omitempty"`
+	Capabilities *joinCapabilities  `json:"capabilities,omitempty"`
+	// Legacy flat capability fields are still accepted for older join scripts.
+	CPUCount         uint32 `json:"cpu_count,omitempty"`
+	RAMBytes         uint64 `json:"ram_bytes,omitempty"`
+	DiskBytes        uint64 `json:"disk_bytes,omitempty"`
+	DiskFreeBytes    uint64 `json:"disk_free_bytes,omitempty"`
+	InstallerVersion string `json:"installer_version,omitempty"`
+	ClusterID        string `json:"cluster_id,omitempty"`
 	// ClusterUID is the cluster's minted membership identity (opaque UUID),
 	// distinct from ClusterID (the DNS/storage namespace). The installer obtains
 	// it from the join token bundle; the gateway forwards it verbatim so the
@@ -31,6 +34,15 @@ type joinAuthorizeRequest struct {
 	// controller (e.g. from `join --profiles`). The gateway is a courier and
 	// never validates or assigns profiles — the controller is the sole authority.
 	RequestedProfiles []string `json:"requested_profiles,omitempty"`
+}
+
+type joinCapabilities struct {
+	CPUCount           uint32 `json:"cpu_count,omitempty"`
+	RAMBytes           uint64 `json:"ram_bytes,omitempty"`
+	DiskBytes          uint64 `json:"disk_bytes,omitempty"`
+	DiskFreeBytes      uint64 `json:"disk_free_bytes,omitempty"`
+	CanApplyPrivileged bool   `json:"can_apply_privileged,omitempty"`
+	PrivilegeReason    string `json:"privilege_reason,omitempty"`
 }
 
 type joinAuthorizeIdent struct {
@@ -105,13 +117,7 @@ func NewJoinAuthorizeHandler(deps HandlerDeps) http.Handler {
 			Nonce:             req.Nonce,
 			RequestedProfiles: append([]string(nil), req.RequestedProfiles...),
 		}
-		if req.CPUCount > 0 || req.RAMBytes > 0 || req.DiskBytes > 0 {
-			protoReq.Capabilities = &cluster_controllerpb.NodeCapabilities{
-				CpuCount:  req.CPUCount,
-				RamBytes:  req.RAMBytes,
-				DiskBytes: req.DiskBytes,
-			}
-		}
+		protoReq.Capabilities = req.nodeCapabilities()
 
 		resp, err := deps.Controller.RequestJoinAuthorization(r.Context(), protoReq)
 		if err != nil {
@@ -135,4 +141,41 @@ func NewJoinAuthorizeHandler(deps HandlerDeps) http.Handler {
 			ControllerGeneration: resp.GetControllerGeneration(),
 		})
 	})
+}
+
+func (req joinAuthorizeRequest) nodeCapabilities() *cluster_controllerpb.NodeCapabilities {
+	caps := joinCapabilities{
+		CPUCount:      req.CPUCount,
+		RAMBytes:      req.RAMBytes,
+		DiskBytes:     req.DiskBytes,
+		DiskFreeBytes: req.DiskFreeBytes,
+	}
+	if req.Capabilities != nil {
+		if req.Capabilities.CPUCount > 0 {
+			caps.CPUCount = req.Capabilities.CPUCount
+		}
+		if req.Capabilities.RAMBytes > 0 {
+			caps.RAMBytes = req.Capabilities.RAMBytes
+		}
+		if req.Capabilities.DiskBytes > 0 {
+			caps.DiskBytes = req.Capabilities.DiskBytes
+		}
+		if req.Capabilities.DiskFreeBytes > 0 {
+			caps.DiskFreeBytes = req.Capabilities.DiskFreeBytes
+		}
+		caps.CanApplyPrivileged = req.Capabilities.CanApplyPrivileged
+		caps.PrivilegeReason = strings.TrimSpace(req.Capabilities.PrivilegeReason)
+	}
+	if caps.CPUCount == 0 && caps.RAMBytes == 0 && caps.DiskBytes == 0 && caps.DiskFreeBytes == 0 &&
+		!caps.CanApplyPrivileged && caps.PrivilegeReason == "" {
+		return nil
+	}
+	return &cluster_controllerpb.NodeCapabilities{
+		CpuCount:           caps.CPUCount,
+		RamBytes:           caps.RAMBytes,
+		DiskBytes:          caps.DiskBytes,
+		DiskFreeBytes:      caps.DiskFreeBytes,
+		CanApplyPrivileged: caps.CanApplyPrivileged,
+		PrivilegeReason:    caps.PrivilegeReason,
+	}
 }

@@ -72,7 +72,12 @@ var bundleModTime = time.Unix(0, 0).UTC()
 // truth object, and a joining node must not come up without it.
 func NewJoinBundleHandler(platformVersion string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
+		// HEAD is served alongside GET: this endpoint hands out static bytes,
+		// and HEAD is how a client asks "how big is it?" without pulling a
+		// ~750 MB body. The join script's phase-4 progress line does exactly
+		// that. http.ServeFile below honours HEAD natively (headers, incl.
+		// Content-Length, with no body), so no separate write path is needed.
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
